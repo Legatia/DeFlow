@@ -1,0 +1,27 @@
+{
+  "canisters": {
+    "DeFlow_backend": {
+      "candid": "src/DeFlow_backend/DeFlow_backend.did",
+      "package": "DeFlow_backend",
+      "type": "rust"
+    },
+    "DeFlow_frontend": {
+      "dependencies": [
+        "DeFlow_backend"
+      ],
+      "source": [
+        "src/DeFlow_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "DeFlow_frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
