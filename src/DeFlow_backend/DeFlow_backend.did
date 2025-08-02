@@ -1,3 +1,191 @@
+type ConfigValue = variant {
+  String : text;
+  Number : float64;
+  Boolean : bool;
+  Array : vec ConfigValue;
+  Object : vec record { text; ConfigValue };
+};
+
+type NodePosition = record {
+  x : float64;
+  y : float64;
+};
+
+type NodeConfiguration = record {
+  parameters : vec record { text; ConfigValue };
+};
+
+type NodeMetadata = record {
+  label : text;
+  description : opt text;
+  version : text;
+};
+
+type WorkflowNode = record {
+  id : text;
+  node_type : text;
+  position : NodePosition;
+  configuration : NodeConfiguration;
+  metadata : NodeMetadata;
+};
+
+type NodeConnection = record {
+  id : text;
+  source_node_id : text;
+  source_output : text;
+  target_node_id : text;
+  target_input : text;
+};
+
+type WorkflowTrigger = variant {
+  Manual;
+  Schedule : record { cron : text };
+  Webhook : record { path : text };
+  Event : record { event_type : text; conditions : vec record { text; ConfigValue } };
+};
+
+type Workflow = record {
+  id : text;
+  name : text;
+  description : opt text;
+  nodes : vec WorkflowNode;
+  connections : vec NodeConnection;
+  triggers : vec WorkflowTrigger;
+  created_at : nat64;
+  updated_at : nat64;
+  active : bool;
+};
+
+type ExecutionStatus = variant {
+  Pending;
+  Running;
+  Completed;
+  Failed;
+  Cancelled;
+};
+
+type NodeExecution = record {
+  node_id : text;
+  status : ExecutionStatus;
+  started_at : opt nat64;
+  completed_at : opt nat64;
+  input_data : opt vec record { text; ConfigValue };
+  output_data : opt vec record { text; ConfigValue };
+  error_message : opt text;
+  retry_count : nat32;
+};
+
+type WorkflowExecution = record {
+  id : text;
+  workflow_id : text;
+  status : ExecutionStatus;
+  started_at : nat64;
+  completed_at : opt nat64;
+  trigger_data : opt vec record { text; ConfigValue };
+  node_executions : vec NodeExecution;
+  error_message : opt text;
+};
+
+type ParameterSchema = record {
+  name : text;
+  parameter_type : text;
+  required : bool;
+  description : opt text;
+  default_value : opt ConfigValue;
+};
+
+type NodeDefinition = record {
+  node_type : text;
+  name : text;
+  description : text;
+  category : text;
+  version : text;
+  input_schema : vec ParameterSchema;
+  output_schema : vec ParameterSchema;
+  configuration_schema : vec ParameterSchema;
+};
+
+type Result = variant { Ok : text; Err : text };
+type Result_1 = variant { Ok; Err : text };
+type Result_2 = variant { Ok : Workflow; Err : text };
+type Result_3 = variant { Ok : WorkflowExecution; Err : text };
+type Result_4 = variant { Ok : NodeDefinition; Err : text };
+
+type RetryPolicy = record {
+  max_retries : nat32;
+  initial_delay_ms : nat64;
+  backoff_multiplier : float64;
+  max_delay_ms : nat64;
+  retry_on_errors : vec text;
+};
+
+type EventListener = record {
+  id : text;
+  workflow_id : text;
+  event_type : text;
+  conditions : vec record { text; ConfigValue };
+  active : bool;
+};
+
+type ScheduledWorkflow = record {
+  id : text;
+  workflow_id : text;
+  cron_expression : text;
+  next_execution : nat64;
+  active : bool;
+  timer_id : opt text;
+};
+
+type WorkflowEvent = record {
+  id : text;
+  event_type : text;
+  workflow_id : opt text;
+  execution_id : opt text;
+  data : vec record { text; ConfigValue };
+  timestamp : nat64;
+};
+
+type WebhookEvent = record {
+  event_type : text;
+  data : vec record { text; ConfigValue };
+  timestamp : nat64;
+  source : text;
+};
+
 service : {
-    "greet": (text) -> (text) query;
+  greet : (text) -> (text) query;
+  
+  // Workflow Management
+  create_workflow : (Workflow) -> (Result);
+  update_workflow : (Workflow) -> (Result_1);
+  get_workflow : (text) -> (Result_2) query;
+  list_workflows : () -> (vec Workflow) query;
+  delete_workflow : (text) -> (Result_1);
+  
+  // Execution Management
+  start_execution : (text, opt vec record { text; ConfigValue }) -> (Result);
+  get_execution : (text) -> (Result_3) query;
+  list_executions : (opt text) -> (vec WorkflowExecution) query;
+  retry_failed_execution : (text, text) -> (Result_1);
+  
+  // Node Registry
+  register_node : (NodeDefinition) -> (Result_1);
+  get_node_definition : (text) -> (Result_4) query;
+  list_node_types : () -> (vec text) query;
+  list_nodes_by_category : (text) -> (vec NodeDefinition) query;
+  
+  // Event System
+  emit_event : (WorkflowEvent) -> (variant { Ok : vec text; Err : text });
+  register_event_listener : (EventListener) -> (Result_1);
+  webhook_trigger : (text, WebhookEvent) -> (Result);
+  register_webhook : (text, text) -> (Result_1);
+  
+  // Scheduling System
+  schedule_workflow : (text, text) -> (Result);
+  unschedule_workflow : (text) -> (Result_1);
+  list_scheduled_workflows : () -> (vec ScheduledWorkflow) query;
+  
+  // Retry Policy Management
+  set_retry_policy : (text, RetryPolicy) -> (Result_1);
+  get_retry_policy_for_node : (text) -> (RetryPolicy) query;
 }

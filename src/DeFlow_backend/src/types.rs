@@ -1,0 +1,298 @@
+use candid::{CandidType, Deserialize};
+use serde::Serialize;
+use std::collections::HashMap;
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct Workflow {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub nodes: Vec<WorkflowNode>,
+    pub connections: Vec<NodeConnection>,
+    pub triggers: Vec<WorkflowTrigger>,
+    pub created_at: u64,
+    pub updated_at: u64,
+    pub active: bool,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct WorkflowNode {
+    pub id: String,
+    pub node_type: String,
+    pub position: NodePosition,
+    pub configuration: NodeConfiguration,
+    pub metadata: NodeMetadata,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct NodePosition {
+    pub x: f64,
+    pub y: f64,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct NodeConfiguration {
+    pub parameters: HashMap<String, ConfigValue>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum ConfigValue {
+    String(String),
+    Number(f64),
+    Boolean(bool),
+    Array(Vec<ConfigValue>),
+    Object(HashMap<String, ConfigValue>),
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct NodeMetadata {
+    pub label: String,
+    pub description: Option<String>,
+    pub version: String,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct NodeConnection {
+    pub id: String,
+    pub source_node_id: String,
+    pub source_output: String,
+    pub target_node_id: String,
+    pub target_input: String,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum WorkflowTrigger {
+    Manual,
+    Schedule { cron: String },
+    Webhook { path: String },
+    Event { event_type: String, conditions: HashMap<String, ConfigValue> },
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct WorkflowExecution {
+    pub id: String,
+    pub workflow_id: String,
+    pub status: ExecutionStatus,
+    pub started_at: u64,
+    pub completed_at: Option<u64>,
+    pub trigger_data: Option<HashMap<String, ConfigValue>>,
+    pub node_executions: Vec<NodeExecution>,
+    pub error_message: Option<String>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum ExecutionStatus {
+    Pending,
+    Running,
+    Completed,
+    Failed,
+    Cancelled,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct NodeExecution {
+    pub node_id: String,
+    pub status: ExecutionStatus,
+    pub started_at: Option<u64>,
+    pub completed_at: Option<u64>,
+    pub input_data: Option<HashMap<String, ConfigValue>>,
+    pub output_data: Option<HashMap<String, ConfigValue>>,
+    pub error_message: Option<String>,
+    pub retry_count: u32,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct NodeDefinition {
+    pub node_type: String,
+    pub name: String,
+    pub description: String,
+    pub category: String,
+    pub version: String,
+    pub input_schema: Vec<ParameterSchema>,
+    pub output_schema: Vec<ParameterSchema>,
+    pub configuration_schema: Vec<ParameterSchema>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct ParameterSchema {
+    pub name: String,
+    pub parameter_type: String,
+    pub required: bool,
+    pub description: Option<String>,
+    pub default_value: Option<ConfigValue>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct NodeInput {
+    pub data: HashMap<String, ConfigValue>,
+    pub context: ExecutionContext,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct NodeOutput {
+    pub data: HashMap<String, ConfigValue>,
+    pub next_nodes: Vec<String>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct ExecutionContext {
+    pub workflow_id: String,
+    pub execution_id: String,
+    pub user_id: String,
+    pub timestamp: u64,
+    pub global_variables: HashMap<String, ConfigValue>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum NodeError {
+    ConfigurationError(String),
+    ExecutionError(String),
+    NetworkError(String),
+    ValidationError(String),
+    TimeoutError,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum ValidationError {
+    MissingRequiredParameter(String),
+    InvalidParameterType { parameter: String, expected: String, got: String },
+    InvalidParameterValue(String),
+    SchemaValidationFailed(String),
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct RetryPolicy {
+    pub max_retries: u32,
+    pub initial_delay_ms: u64,
+    pub backoff_multiplier: f64,
+    pub max_delay_ms: u64,
+    pub retry_on_errors: Vec<String>,
+}
+
+impl Default for RetryPolicy {
+    fn default() -> Self {
+        Self {
+            max_retries: 3,
+            initial_delay_ms: 1000,
+            backoff_multiplier: 2.0,
+            max_delay_ms: 30000,
+            retry_on_errors: vec![
+                "NetworkError".to_string(),
+                "TimeoutError".to_string(),
+                "TemporaryError".to_string(),
+            ],
+        }
+    }
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct EventListener {
+    pub id: String,
+    pub workflow_id: String,
+    pub event_type: String,
+    pub conditions: HashMap<String, ConfigValue>,
+    pub active: bool,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct ScheduledWorkflow {
+    pub id: String,
+    pub workflow_id: String,
+    pub cron_expression: String,
+    pub next_execution: u64,
+    pub active: bool,
+    pub timer_id: Option<String>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct WebhookEvent {
+    pub event_type: String,
+    pub data: HashMap<String, ConfigValue>,
+    pub timestamp: u64,
+    pub source: String,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct WorkflowEvent {
+    pub id: String,
+    pub event_type: String,
+    pub workflow_id: Option<String>,
+    pub execution_id: Option<String>,
+    pub data: HashMap<String, ConfigValue>,
+    pub timestamp: u64,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct CircuitBreaker {
+    pub node_type: String,
+    pub failure_threshold: u32,
+    pub recovery_timeout_ms: u64,
+    pub current_failures: u32,
+    pub state: CircuitBreakerState,
+    pub last_failure_time: Option<u64>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum CircuitBreakerState {
+    Closed,  // Normal operation
+    Open,    // Failing, blocking requests
+    HalfOpen, // Testing if service recovered
+}
+
+impl CircuitBreaker {
+    pub fn new(node_type: String) -> Self {
+        Self {
+            node_type,
+            failure_threshold: 5,
+            recovery_timeout_ms: 60000, // 1 minute
+            current_failures: 0,
+            state: CircuitBreakerState::Closed,
+            last_failure_time: None,
+        }
+    }
+    
+    pub fn can_execute(&mut self) -> bool {
+        use ic_cdk::api;
+        
+        match self.state {
+            CircuitBreakerState::Closed => true,
+            CircuitBreakerState::Open => {
+                if let Some(last_failure) = self.last_failure_time {
+                    let elapsed = api::time().saturating_sub(last_failure) / 1_000_000;
+                    if elapsed > self.recovery_timeout_ms {
+                        self.state = CircuitBreakerState::HalfOpen;
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    true
+                }
+            }
+            CircuitBreakerState::HalfOpen => true,
+        }
+    }
+    
+    pub fn on_success(&mut self) {
+        self.current_failures = 0;
+        self.state = CircuitBreakerState::Closed;
+        self.last_failure_time = None;
+    }
+    
+    pub fn on_failure(&mut self) {
+        use ic_cdk::api;
+        
+        self.current_failures += 1;
+        self.last_failure_time = Some(api::time());
+        
+        if self.current_failures >= self.failure_threshold {
+            self.state = CircuitBreakerState::Open;
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ExecutionGraph {
+    pub nodes: Vec<String>,
+    pub edges: Vec<(String, String)>, // (from, to)
+}

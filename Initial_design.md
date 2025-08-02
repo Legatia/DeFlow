@@ -192,7 +192,7 @@ To democratize complex blockchain operations by providing a visual, intuitive in
 - Resource quotas and execution limits with upgrade paths
 
 **Chain Fusion Integration Layer**
-- Native Bitcoin, Ethereum, and multi-chain protocol support
+- Native Bitcoin, Ethereum, Solana and multi-chain protocol support
 - Direct API calls to external services without oracles
 - Cross-chain transaction coordination and atomic swaps
 - Real-time blockchain data feeds and event monitoring
