@@ -3,7 +3,7 @@ use crate::types::{
     NodeConfiguration, NodeDefinition, ParameterSchema, ConfigValue,
     ExecutionContext
 };
-use crate::storage::NODE_REGISTRY;
+use crate::storage;
 use ic_cdk::{api, update, query};
 use std::collections::HashMap;
 
@@ -19,37 +19,32 @@ pub async fn register_node(definition: NodeDefinition) -> Result<(), String> {
         return Err("Node type cannot be empty".to_string());
     }
     
-    NODE_REGISTRY.with(|registry| {
-        registry.borrow_mut().insert(definition.node_type.clone(), definition);
-    });
+    storage::insert_node_definition(definition.node_type.clone(), definition);
     
     Ok(())
 }
 
 #[query]
 pub fn get_node_definition(node_type: String) -> Result<NodeDefinition, String> {
-    NODE_REGISTRY.with(|registry| {
-        registry.borrow()
-            .get(&node_type)
-            .cloned()
-            .ok_or_else(|| format!("Node type '{}' not found", node_type))
-    })
+    storage::get_node_definition(&node_type)
+        .ok_or_else(|| format!("Node type '{}' not found", node_type))
 }
 
 #[query]
 pub fn list_node_types() -> Vec<String> {
-    NODE_REGISTRY.with(|registry| {
-        registry.borrow().keys().cloned().collect()
+    storage::NODE_REGISTRY.with(|registry| {
+        registry.borrow().iter()
+            .map(|(key, _)| key.clone())
+            .collect()
     })
 }
 
 #[query]
 pub fn list_nodes_by_category(category: String) -> Vec<NodeDefinition> {
-    NODE_REGISTRY.with(|registry| {
-        registry.borrow()
-            .values()
+    storage::NODE_REGISTRY.with(|registry| {
+        registry.borrow().iter()
+            .map(|(_, storable)| storable.0.clone())
             .filter(|def| def.category == category)
-            .cloned()
             .collect()
     })
 }
@@ -147,7 +142,10 @@ pub async fn execute_transform_node(node: &WorkflowNode, input: &HashMap<String,
     })
 }
 
-pub async fn execute_http_request_node(node: &WorkflowNode, _input: &HashMap<String, ConfigValue>) -> Result<NodeOutput, String> {
+pub async fn execute_http_request_node(node: &WorkflowNode, input: &HashMap<String, ConfigValue>) -> Result<NodeOutput, String> {
+    use crate::http_client::{HttpClient, parse_json_response, json_to_config_value};
+    use std::collections::HashMap as StdHashMap;
+    
     let url = node.configuration.parameters
         .get("url")
         .and_then(|v| match v {
@@ -164,12 +162,65 @@ pub async fn execute_http_request_node(node: &WorkflowNode, _input: &HashMap<Str
         })
         .unwrap_or("GET".to_string());
     
-    let response_data = HashMap::from([
-        ("status".to_string(), ConfigValue::Number(200.0)),
-        ("url".to_string(), ConfigValue::String(url)),
-        ("method".to_string(), ConfigValue::String(method)),
-        ("simulated".to_string(), ConfigValue::Boolean(true)),
-    ]);
+    // Extract headers from configuration
+    let headers = node.configuration.parameters
+        .get("headers")
+        .and_then(|v| match v {
+            ConfigValue::Object(obj) => {
+                let mut headers = StdHashMap::new();
+                for (key, value) in obj {
+                    if let ConfigValue::String(val) = value {
+                        headers.insert(key.clone(), val.clone());
+                    }
+                }
+                Some(headers)
+            }
+            _ => None,
+        });
+    
+    // Extract body from configuration or input
+    let body = node.configuration.parameters
+        .get("body")
+        .or_else(|| input.get("body"))
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            ConfigValue::Object(_) | ConfigValue::Array(_) => {
+                // Convert to JSON string
+                let json_value = crate::http_client::config_value_to_json(v);
+                serde_json::to_string(&json_value).ok()
+            }
+            _ => None,
+        });
+    
+    // Make the HTTP request
+    let response = match method.to_uppercase().as_str() {
+        "GET" => HttpClient::get(&url, headers).await?,
+        "POST" => HttpClient::post(&url, body, headers).await?,
+        "PUT" => HttpClient::put(&url, body, headers).await?,
+        "DELETE" => HttpClient::delete(&url, headers).await?,
+        _ => return Err(format!("Unsupported HTTP method: {}", method)),
+    };
+    
+    // Build response data
+    let mut response_data = HashMap::new();
+    response_data.insert("status".to_string(), ConfigValue::Number(response.status as f64));
+    response_data.insert("url".to_string(), ConfigValue::String(url));
+    response_data.insert("method".to_string(), ConfigValue::String(method));
+    
+    // Try to parse response as JSON, fall back to string
+    let body_value = if let Ok(json_value) = parse_json_response(&response) {
+        json_to_config_value(&json_value)
+    } else {
+        ConfigValue::String(response.body.clone())
+    };
+    response_data.insert("body".to_string(), body_value);
+    
+    // Add headers to response
+    let headers_obj: HashMap<String, ConfigValue> = response.headers
+        .into_iter()
+        .map(|(k, v)| (k, ConfigValue::String(v)))
+        .collect();
+    response_data.insert("headers".to_string(), ConfigValue::Object(headers_obj));
     
     Ok(NodeOutput {
         data: response_data,
@@ -425,10 +476,7 @@ pub fn initialize_built_in_nodes() {
         create_timer_node_definition(),
     ];
     
-    NODE_REGISTRY.with(|registry| {
-        let mut reg = registry.borrow_mut();
-        for node_def in built_in_nodes {
-            reg.insert(node_def.node_type.clone(), node_def);
-        }
-    });
+    for node_def in built_in_nodes {
+        storage::insert_node_definition(node_def.node_type.clone(), node_def);
+    }
 }

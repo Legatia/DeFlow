@@ -4,6 +4,7 @@ mod workflow;
 mod execution;
 mod nodes;
 mod events;
+mod http_client;
 
 // Re-export types for external use
 pub use types::*;
@@ -13,7 +14,7 @@ use nodes::initialize_built_in_nodes;
 use events::restore_scheduled_workflows;
 
 // Re-export all the API functions from modules
-pub use workflow::{create_workflow, update_workflow, get_workflow, list_workflows, delete_workflow};
+pub use workflow::{create_workflow, update_workflow, get_workflow, list_workflows, delete_workflow, validate_workflow_query, analyze_workflow_query, WorkflowAnalysis};
 pub use execution::{start_execution, get_execution, list_executions, retry_failed_execution};
 pub use nodes::{register_node, get_node_definition, list_node_types, list_nodes_by_category};
 pub use events::{

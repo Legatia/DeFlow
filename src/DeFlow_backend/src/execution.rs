@@ -2,9 +2,9 @@ use crate::types::{
     Workflow, WorkflowExecution, ExecutionStatus, NodeExecution, ExecutionContext,
     NodeOutput, ConfigValue, RetryPolicy, ExecutionGraph, WorkflowNode
 };
-use crate::storage::{WORKFLOWS, EXECUTIONS, RETRY_POLICIES};
+use crate::storage;
 use crate::workflow::generate_id;
-use crate::nodes::{execute_node_internal, Node};
+use crate::nodes::execute_node_internal;
 use ic_cdk::{api, update, query, spawn};
 use ic_cdk_timers::set_timer;
 use std::collections::HashMap;
@@ -12,12 +12,8 @@ use std::time::Duration;
 
 #[update]
 pub async fn start_execution(workflow_id: String, trigger_data: Option<HashMap<String, ConfigValue>>) -> Result<String, String> {
-    let workflow = WORKFLOWS.with(|workflows| {
-        workflows.borrow()
-            .get(&workflow_id)
-            .cloned()
-            .ok_or_else(|| "Workflow not found".to_string())
-    })?;
+    let workflow = storage::get_workflow(&workflow_id)
+        .ok_or_else(|| "Workflow not found".to_string())?;
     
     if !workflow.active {
         return Err("Workflow is not active".to_string());
@@ -35,9 +31,7 @@ pub async fn start_execution(workflow_id: String, trigger_data: Option<HashMap<S
         error_message: None,
     };
     
-    EXECUTIONS.with(|executions| {
-        executions.borrow_mut().insert(execution_id.clone(), execution);
-    });
+    storage::insert_execution(execution_id.clone(), execution);
     
     spawn(execute_workflow(execution_id.clone()));
     
@@ -46,20 +40,17 @@ pub async fn start_execution(workflow_id: String, trigger_data: Option<HashMap<S
 
 #[query]
 pub fn get_execution(id: String) -> Result<WorkflowExecution, String> {
-    EXECUTIONS.with(|executions| {
-        executions.borrow()
-            .get(&id)
-            .cloned()
-            .ok_or_else(|| "Execution not found".to_string())
-    })
+    storage::get_execution(&id)
+        .ok_or_else(|| "Execution not found".to_string())
 }
 
 #[query]
 pub fn list_executions(workflow_id: Option<String>) -> Vec<WorkflowExecution> {
-    EXECUTIONS.with(|executions| {
+    storage::EXECUTIONS.with(|executions| {
         executions.borrow()
             .iter()
-            .filter_map(|(_, execution)| {
+            .filter_map(|(_, storable)| {
+                let execution = &storable.0;
                 match &workflow_id {
                     Some(wf_id) if execution.workflow_id == *wf_id => Some(execution.clone()),
                     None => Some(execution.clone()),
@@ -72,13 +63,11 @@ pub fn list_executions(workflow_id: Option<String>) -> Vec<WorkflowExecution> {
 
 #[update]
 pub async fn retry_failed_execution(execution_id: String, node_id: String) -> Result<(), String> {
-    let execution = EXECUTIONS.with(|executions| {
-        executions.borrow().get(&execution_id).cloned()
-    }).ok_or("Execution not found")?;
+    let execution = storage::get_execution(&execution_id)
+        .ok_or("Execution not found")?;
     
-    let workflow = WORKFLOWS.with(|workflows| {
-        workflows.borrow().get(&execution.workflow_id).cloned()
-    }).ok_or("Workflow not found")?;
+    let workflow = storage::get_workflow(&execution.workflow_id)
+        .ok_or("Workflow not found")?;
     
     let node = workflow.nodes.iter()
         .find(|n| n.id == node_id)
@@ -130,9 +119,7 @@ pub async fn retry_failed_execution(execution_id: String, node_id: String) -> Re
         }
     }
     
-    EXECUTIONS.with(|executions| {
-        executions.borrow_mut().insert(retry_execution_id, retry_execution);
-    });
+    storage::insert_execution(retry_execution_id, retry_execution);
     
     Ok(())
 }
@@ -140,40 +127,28 @@ pub async fn retry_failed_execution(execution_id: String, node_id: String) -> Re
 pub async fn execute_workflow(execution_id: String) {
     let result = execute_workflow_internal(execution_id.clone()).await;
     
-    EXECUTIONS.with(|executions| {
-        if let Some(mut execution) = executions.borrow().get(&execution_id).cloned() {
-            match result {
-                Ok(_) => {
-                    execution.status = ExecutionStatus::Completed;
-                    execution.completed_at = Some(api::time());
-                }
-                Err(error) => {
-                    execution.status = ExecutionStatus::Failed;
-                    execution.completed_at = Some(api::time());
-                    execution.error_message = Some(error);
-                }
+    if let Some(mut execution) = storage::get_execution(&execution_id) {
+        match result {
+            Ok(_) => {
+                execution.status = ExecutionStatus::Completed;
+                execution.completed_at = Some(api::time());
             }
-            executions.borrow_mut().insert(execution_id, execution);
+            Err(error) => {
+                execution.status = ExecutionStatus::Failed;
+                execution.completed_at = Some(api::time());
+                execution.error_message = Some(error);
+            }
         }
-    });
+        storage::insert_execution(execution_id, execution);
+    }
 }
 
 async fn execute_workflow_internal(execution_id: String) -> Result<(), String> {
-    let (workflow, mut execution) = EXECUTIONS.with(|executions| {
-        let execution = executions.borrow()
-            .get(&execution_id)
-            .cloned()
-            .ok_or_else(|| "Execution not found".to_string())?;
-        
-        let workflow = WORKFLOWS.with(|workflows| {
-            workflows.borrow()
-                .get(&execution.workflow_id)
-                .cloned()
-                .ok_or_else(|| "Workflow not found".to_string())
-        })?;
-        
-        Ok::<(Workflow, WorkflowExecution), String>((workflow, execution))
-    })?;
+    let mut execution = storage::get_execution(&execution_id)
+        .ok_or_else(|| "Execution not found".to_string())?;
+    
+    let workflow = storage::get_workflow(&execution.workflow_id)
+        .ok_or_else(|| "Workflow not found".to_string())?;
     
     execution.status = ExecutionStatus::Running;
     update_execution(&execution_id, &execution)?;
@@ -402,7 +377,7 @@ async fn execute_with_retry(
     execution_id: &str,
     execution: &mut WorkflowExecution
 ) -> Result<NodeOutput, String> {
-    let mut last_error = String::new();
+    let mut last_error;
     let mut retry_count = 0;
     
     loop {
@@ -456,12 +431,8 @@ async fn execute_with_retry(
 }
 
 fn get_retry_policy(node_type: &str) -> RetryPolicy {
-    RETRY_POLICIES.with(|policies| {
-        policies.borrow()
-            .get(node_type)
-            .cloned()
-            .unwrap_or_default()
-    })
+    storage::get_retry_policy(node_type)
+        .unwrap_or_default()
 }
 
 fn should_retry_error(error: &str, retry_on_errors: &[String]) -> bool {
@@ -475,9 +446,7 @@ fn calculate_retry_delay(retry_count: u32, policy: &RetryPolicy) -> u64 {
 }
 
 fn update_execution(execution_id: &str, execution: &WorkflowExecution) -> Result<(), String> {
-    EXECUTIONS.with(|executions| {
-        executions.borrow_mut().insert(execution_id.to_string(), execution.clone());
-    });
+    storage::insert_execution(execution_id.to_string(), execution.clone());
     Ok(())
 }
 
@@ -487,34 +456,30 @@ fn mark_node_completed(
     output: Option<NodeOutput>,
     _error: Option<String>
 ) -> Result<(), String> {
-    EXECUTIONS.with(|executions| {
-        if let Some(mut execution) = executions.borrow().get(execution_id).cloned() {
-            if let Some(node_exec) = execution.node_executions.iter_mut()
-                .find(|ne| ne.node_id == node_id) {
-                node_exec.status = ExecutionStatus::Completed;
-                node_exec.completed_at = Some(api::time());
-                if let Some(output) = output {
-                    node_exec.output_data = Some(output.data);
-                }
+    if let Some(mut execution) = storage::get_execution(execution_id) {
+        if let Some(node_exec) = execution.node_executions.iter_mut()
+            .find(|ne| ne.node_id == node_id) {
+            node_exec.status = ExecutionStatus::Completed;
+            node_exec.completed_at = Some(api::time());
+            if let Some(output) = output {
+                node_exec.output_data = Some(output.data);
             }
-            executions.borrow_mut().insert(execution_id.to_string(), execution);
         }
-    });
+        storage::insert_execution(execution_id.to_string(), execution);
+    }
     Ok(())
 }
 
 fn mark_node_failed(execution_id: &str, node_id: &str, error: &str) -> Result<(), String> {
-    EXECUTIONS.with(|executions| {
-        if let Some(mut execution) = executions.borrow().get(execution_id).cloned() {
-            if let Some(node_exec) = execution.node_executions.iter_mut()
-                .find(|ne| ne.node_id == node_id) {
-                node_exec.status = ExecutionStatus::Failed;
-                node_exec.completed_at = Some(api::time());
-                node_exec.error_message = Some(error.to_string());
-            }
-            executions.borrow_mut().insert(execution_id.to_string(), execution);
+    if let Some(mut execution) = storage::get_execution(execution_id) {
+        if let Some(node_exec) = execution.node_executions.iter_mut()
+            .find(|ne| ne.node_id == node_id) {
+            node_exec.status = ExecutionStatus::Failed;
+            node_exec.completed_at = Some(api::time());
+            node_exec.error_message = Some(error.to_string());
         }
-    });
+        storage::insert_execution(execution_id.to_string(), execution);
+    }
     Ok(())
 }
 

@@ -158,6 +158,11 @@ pub enum ValidationError {
     InvalidParameterType { parameter: String, expected: String, got: String },
     InvalidParameterValue(String),
     SchemaValidationFailed(String),
+    DuplicateNodeId(String),
+    InvalidNodeConfiguration(String),
+    InvalidConnection { connection_id: String, reason: String },
+    CycleDetected,
+    InvalidTrigger(String),
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]

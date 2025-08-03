@@ -2,9 +2,7 @@ use crate::types::{
     EventListener, ScheduledWorkflow, WebhookEvent, WorkflowEvent, 
     ConfigValue, RetryPolicy
 };
-use crate::storage::{
-    EVENT_LISTENERS, SCHEDULED_WORKFLOWS, TIMERS, WEBHOOK_ENDPOINTS, RETRY_POLICIES
-};
+use crate::storage;
 use crate::execution::start_execution;
 use crate::workflow::generate_id;
 use ic_cdk::{api, update, query, spawn};
@@ -22,18 +20,13 @@ pub async fn emit_event(event: WorkflowEvent) -> Result<Vec<String>, String> {
 
 #[update]
 pub async fn register_event_listener(listener: EventListener) -> Result<(), String> {
-    EVENT_LISTENERS.with(|listeners| {
-        listeners.borrow_mut()
-            .entry(listener.event_type.clone())
-            .or_insert_with(Vec::new)
-            .push(listener);
-    });
+    storage::insert_event_listener(listener.event_type.clone(), listener);
     Ok(())
 }
 
 #[update]
 pub async fn webhook_trigger(path: String, event: WebhookEvent) -> Result<String, String> {
-    let workflow_id = WEBHOOK_ENDPOINTS.with(|endpoints| {
+    let workflow_id = storage::WEBHOOK_ENDPOINTS.with(|endpoints| {
         endpoints.borrow().get(&path).cloned()
     }).ok_or("Webhook endpoint not found")?;
     
@@ -43,7 +36,7 @@ pub async fn webhook_trigger(path: String, event: WebhookEvent) -> Result<String
 
 #[update]
 pub async fn register_webhook(workflow_id: String, path: String) -> Result<(), String> {
-    WEBHOOK_ENDPOINTS.with(|endpoints| {
+    storage::WEBHOOK_ENDPOINTS.with(|endpoints| {
         endpoints.borrow_mut().insert(path, workflow_id);
     });
     Ok(())
@@ -66,13 +59,11 @@ pub async fn schedule_workflow(workflow_id: String, cron_expression: String) -> 
     
     let timer_id = setup_schedule_timer(&scheduled_workflow).await?;
     
-    SCHEDULED_WORKFLOWS.with(|schedules| {
-        let mut schedule = scheduled_workflow;
-        schedule.timer_id = Some(timer_id.clone());
-        schedules.borrow_mut().insert(schedule_id.clone(), schedule);
-    });
+    let mut schedule = scheduled_workflow;
+    schedule.timer_id = Some(timer_id.clone());
+    storage::insert_scheduled_workflow(schedule_id.clone(), schedule);
     
-    TIMERS.with(|timers| {
+    storage::TIMERS.with(|timers| {
         timers.borrow_mut().insert(schedule_id.clone(), timer_id);
     });
     
@@ -81,58 +72,47 @@ pub async fn schedule_workflow(workflow_id: String, cron_expression: String) -> 
 
 #[update]
 pub async fn unschedule_workflow(schedule_id: String) -> Result<(), String> {
-    SCHEDULED_WORKFLOWS.with(|schedules| {
-        if let Some(schedule) = schedules.borrow_mut().remove(&schedule_id) {
-            if let Some(timer_id_str) = schedule.timer_id {
-                TIMERS.with(|timers| {
-                    timers.borrow_mut().remove(&timer_id_str);
-                });
-            }
+    if let Some(schedule) = storage::remove_scheduled_workflow(&schedule_id) {
+        if let Some(timer_id_str) = schedule.timer_id {
+            storage::TIMERS.with(|timers| {
+                timers.borrow_mut().remove(&timer_id_str);
+            });
         }
-    });
+    }
     Ok(())
 }
 
 #[query]
 pub fn list_scheduled_workflows() -> Vec<ScheduledWorkflow> {
-    SCHEDULED_WORKFLOWS.with(|schedules| {
-        schedules.borrow().values().cloned().collect()
+    storage::SCHEDULED_WORKFLOWS.with(|schedules| {
+        schedules.borrow().iter()
+            .map(|(_, storable)| storable.0.clone())
+            .collect()
     })
 }
 
 // Retry Policy Management
 #[update]
 pub async fn set_retry_policy(node_type: String, policy: RetryPolicy) -> Result<(), String> {
-    RETRY_POLICIES.with(|policies| {
-        policies.borrow_mut().insert(node_type, policy);
-    });
+    storage::insert_retry_policy(node_type, policy);
     Ok(())
 }
 
 #[query]
 pub fn get_retry_policy_for_node(node_type: String) -> RetryPolicy {
-    RETRY_POLICIES.with(|policies| {
-        policies.borrow()
-            .get(&node_type)
-            .cloned()
-            .unwrap_or_default()
-    })
+    storage::get_retry_policy(&node_type)
+        .unwrap_or_default()
 }
 
 // Event Processing
 async fn process_event(event: &WorkflowEvent) -> Result<Vec<String>, String> {
     let triggered_executions = Vec::new();
     
-    let listeners_to_trigger: Vec<EventListener> = EVENT_LISTENERS.with(|listeners| {
-        if let Some(event_listeners) = listeners.borrow().get(&event.event_type) {
-            event_listeners.iter()
-                .filter(|listener| listener.active && matches_conditions(&listener.conditions, &event.data))
-                .cloned()
-                .collect()
-        } else {
-            Vec::new()
-        }
-    });
+    let event_listeners = storage::get_event_listeners(&event.event_type);
+    let listeners_to_trigger: Vec<EventListener> = event_listeners.iter()
+        .filter(|listener| listener.active && matches_conditions(&listener.conditions, &event.data))
+        .cloned()
+        .collect();
     
     for listener in listeners_to_trigger {
         let workflow_id = listener.workflow_id.clone();
@@ -205,23 +185,19 @@ async fn setup_schedule_timer(schedule: &ScheduledWorkflow) -> Result<String, St
 }
 
 async fn reschedule_workflow(schedule_id: String) {
-    SCHEDULED_WORKFLOWS.with(|schedules| {
-        if let Some(mut schedule) = schedules.borrow().get(&schedule_id).cloned() {
-            if let Ok(next_execution) = calculate_next_execution(&schedule.cron_expression) {
-                schedule.next_execution = next_execution;
-                
-                spawn(async move {
-                    if let Ok(timer_id) = setup_schedule_timer(&schedule).await {
-                        SCHEDULED_WORKFLOWS.with(|schedules| {
-                            let mut sched = schedule;
-                            sched.timer_id = Some(timer_id);
-                            schedules.borrow_mut().insert(schedule_id, sched);
-                        });
-                    }
-                });
-            }
+    if let Some(mut schedule) = storage::get_scheduled_workflow(&schedule_id) {
+        if let Ok(next_execution) = calculate_next_execution(&schedule.cron_expression) {
+            schedule.next_execution = next_execution;
+            
+            spawn(async move {
+                if let Ok(timer_id) = setup_schedule_timer(&schedule).await {
+                    let mut sched = schedule;
+                    sched.timer_id = Some(timer_id);
+                    storage::insert_scheduled_workflow(schedule_id, sched);
+                }
+            });
         }
-    });
+    }
 }
 
 fn calculate_next_execution(cron_expression: &str) -> Result<u64, String> {
@@ -243,20 +219,22 @@ fn calculate_next_execution(cron_expression: &str) -> Result<u64, String> {
 }
 
 pub fn restore_scheduled_workflows() {
-    SCHEDULED_WORKFLOWS.with(|schedules| {
-        let schedule_list: Vec<ScheduledWorkflow> = schedules.borrow().values().cloned().collect();
-        for schedule in schedule_list {
-            if schedule.active {
-                spawn(async move {
-                    if let Ok(timer_id) = setup_schedule_timer(&schedule).await {
-                        SCHEDULED_WORKFLOWS.with(|schedules| {
-                            let mut sched = schedule;
-                            sched.timer_id = Some(timer_id);
-                            schedules.borrow_mut().insert(sched.id.clone(), sched);
-                        });
-                    }
-                });
-            }
-        }
+    let schedule_list: Vec<ScheduledWorkflow> = storage::SCHEDULED_WORKFLOWS.with(|schedules| {
+        schedules.borrow().iter()
+            .map(|(_, storable)| storable.0.clone())
+            .collect()
     });
+    
+    for schedule in schedule_list {
+        if schedule.active {
+            let schedule_id = schedule.id.clone();
+            spawn(async move {
+                if let Ok(timer_id) = setup_schedule_timer(&schedule).await {
+                    let mut sched = schedule;
+                    sched.timer_id = Some(timer_id);
+                    storage::insert_scheduled_workflow(schedule_id, sched);
+                }
+            });
+        }
+    }
 }

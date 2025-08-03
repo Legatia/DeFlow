@@ -12,8 +12,7 @@
       "source": [
         "src/DeFlow_frontend/dist"
       ],
-      "type": "assets",
-      "workspace": "DeFlow_frontend"
+      "type": "assets"
     }
   },
   "defaults": {
