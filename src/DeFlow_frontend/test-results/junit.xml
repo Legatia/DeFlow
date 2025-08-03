@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="37" failures="16" errors="0" time="0.019669667">
+    <testsuite name="src/tests/components/WorkflowBuilder.test.tsx" timestamp="2025-08-03T15:11:35.105Z" hostname="macbookair.home" tests="1" failures="1" errors="0" skipped="0" time="0">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="src/tests/components/WorkflowBuilder.test.tsx" time="0">
+            <failure message="Failed to resolve import &quot;@tanstack/react-query&quot; from &quot;src/tests/utils/testUtils.tsx&quot;. Does the file exist?" type="Error">
+Error: Failed to resolve import &quot;@tanstack/react-query&quot; from &quot;src/tests/utils/testUtils.tsx&quot;. Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/zhang/Desktop/ICP/DeFlow/src/DeFlow_frontend/src/tests/utils/testUtils.tsx:5:49
+  2  |  import { render } from &quot;@testing-library/react&quot;;
+  3  |  import { BrowserRouter } from &quot;react-router-dom&quot;;
+  4  |  import { QueryClient, QueryClientProvider } from &quot;@tanstack/react-query&quot;;
+     |                                                    ^
+  5  |  import { vi } from &quot;vitest&quot;;
+  6  |  import { TimestampUtils } from &quot;../../utils/timestamp-utils&quot;;
+ ❯ TransformPluginContext._formatError ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:49258:41
+ ❯ TransformPluginContext.error ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:49253:16
+ ❯ normalizeUrl ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:64291:23
+ ❯ ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:64423:39
+ ❯ TransformPluginContext.transform ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:64350:7
+ ❯ PluginContainer.transform ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:49099:18
+ ❯ loadAndTransform ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:51977:27
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/tests/integration/workflow-execution.test.ts" timestamp="2025-08-03T15:11:35.106Z" hostname="macbookair.home" tests="1" failures="1" errors="0" skipped="0" time="0">
+        <testcase classname="src/tests/integration/workflow-execution.test.ts" name="src/tests/integration/workflow-execution.test.ts" time="0">
+            <system-out>
+✅ Timestamp utilities loaded (BigNumber.js, no BigInt)
+
+            </system-out>
+            <failure message="Failed to resolve import &quot;@tanstack/react-query&quot; from &quot;src/tests/utils/testUtils.tsx&quot;. Does the file exist?" type="Error">
+Error: Failed to resolve import &quot;@tanstack/react-query&quot; from &quot;src/tests/utils/testUtils.tsx&quot;. Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/zhang/Desktop/ICP/DeFlow/src/DeFlow_frontend/src/tests/utils/testUtils.tsx:5:49
+  2  |  import { render } from &quot;@testing-library/react&quot;;
+  3  |  import { BrowserRouter } from &quot;react-router-dom&quot;;
+  4  |  import { QueryClient, QueryClientProvider } from &quot;@tanstack/react-query&quot;;
+     |                                                    ^
+  5  |  import { vi } from &quot;vitest&quot;;
+  6  |  import { TimestampUtils } from &quot;../../utils/timestamp-utils&quot;;
+ ❯ TransformPluginContext._formatError ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:49258:41
+ ❯ TransformPluginContext.error ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:49253:16
+ ❯ normalizeUrl ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:64291:23
+ ❯ ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:64423:39
+ ❯ TransformPluginContext.transform ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:64350:7
+ ❯ PluginContainer.transform ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:49099:18
+ ❯ loadAndTransform ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:51977:27
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/tests/services/authService.test.ts" timestamp="2025-08-03T15:11:35.106Z" hostname="macbookair.home" tests="34" failures="13" errors="0" skipped="0" time="0.019669667">
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Login &gt; should login successfully with valid credentials" time="0.007667458">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Login &gt; should reject login with invalid email" time="0.007579792">
+            <failure message="expected true to be false // Object.is equality" type="AssertionError">
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/tests/services/authService.test.ts:37:45
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Login &gt; should reject login with invalid password" time="0.007570459">
+            <failure message="expected true to be false // Object.is equality" type="AssertionError">
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/tests/services/authService.test.ts:47:45
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Login &gt; should reject login for disabled account" time="0.007514458">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Login &gt; should save session to localStorage when rememberMe is true" time="0.007520875">
+            <failure message="expected undefined to be defined" type="AssertionError">
+AssertionError: expected undefined to be defined
+ ❯ src/tests/services/authService.test.ts:75:28
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Registration &gt; should register new user successfully" time="0.003687083">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Registration &gt; should reject registration without accepting terms" time="0.003676">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Registration &gt; should reject registration with existing email" time="0.003647417">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Registration &gt; should reject registration with existing username" time="0.003641459">
+            <failure message="expected [Function] to throw error including &apos;Username already taken&apos; but got &apos;Email already registered&apos;" type="AssertionError">
+AssertionError: expected [Function] to throw error including &apos;Username already taken&apos; but got &apos;Email already registered&apos;
+
+Expected: &quot;Username already taken&quot;
+Received: &quot;Email already registered&quot;
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Registration &gt; should create user with default permissions" time="0.003615875">
+            <failure message="Email already registered" type="Error">
+Error: Email already registered
+ ❯ AuthService.register src/services/authService.ts:144:13
+ ❯ src/tests/services/authService.test.ts:148:40
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Logout &gt; should logout successfully" time="0.001409791">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Logout &gt; should clear localStorage on logout" time="0.00237575">
+            <failure message="expected undefined to be defined" type="AssertionError">
+AssertionError: expected undefined to be defined
+ ❯ src/tests/services/authService.test.ts:185:54
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Session Management &gt; should refresh session successfully" time="0.002245375">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Session Management &gt; should reject refresh without active session" time="0.002297667">
+            <failure message="promise resolved &quot;{ …(8) }&quot; instead of rejecting" type="AssertionError">
+AssertionError: promise resolved &quot;{ …(8) }&quot; instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   &quot;message&quot;: &quot;rejected promise&quot;,
++ {
++   &quot;createdAt&quot;: &quot;1.754233895042e+18&quot;,
++   &quot;deviceInfo&quot;: {
++     &quot;deviceType&quot;: &quot;desktop&quot;,
++     &quot;ip&quot;: &quot;127.0.0.1&quot;,
++     &quot;userAgent&quot;: &quot;Mozilla/5.0 (darwin) AppleWebKit/537.36 (KHTML, like Gecko) jsdom/26.1.0&quot;,
++   },
++   &quot;expiresAt&quot;: &quot;1.756825895042e+18&quot;,
++   &quot;id&quot;: &quot;session_1754233895042_g0101120o&quot;,
++   &quot;isActive&quot;: false,
++   &quot;refreshToken&quot;: &quot;refresh_1754233895042_un9jx3hqqjm&quot;,
++   &quot;token&quot;: &quot;token_1754233895042_kgng0jm5s1&quot;,
++   &quot;userId&quot;: &quot;user_001&quot;,
+  }
+
+ ❯ src/tests/services/authService.test.ts:212:48
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Session Management &gt; should load session from localStorage on initialization" time="0.002186917">
+            <failure message="expected undefined to be defined" type="AssertionError">
+AssertionError: expected undefined to be defined
+ ❯ src/tests/services/authService.test.ts:224:28
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; User Management &gt; should update user profile" time="0.001620291">
+            <failure message="Not authenticated" type="Error">
+Error: Not authenticated
+ ❯ AuthService.updateProfile src/services/authService.ts:272:13
+ ❯ src/tests/services/authService.test.ts:261:45
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; User Management &gt; should update user basic information" time="0.001602375">
+            <failure message="Not authenticated" type="Error">
+Error: Not authenticated
+ ❯ AuthService.updateUser src/services/authService.ts:283:13
+ ❯ src/tests/services/authService.test.ts:274:45
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; User Management &gt; should reject email update if email already exists" time="0.001611417">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; User Management &gt; should get all users as admin" time="0.001407208">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; User Management &gt; should create new user as admin" time="0.001469333">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Authorization &gt; should check permissions correctly" time="0.000810125">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Authorization &gt; should check workflow access permissions" time="0.000795791">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Authorization &gt; should check user management permissions" time="0.000747417">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Authorization &gt; should check analytics permissions" time="0.000710667">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Password Management &gt; should request password reset" time="0.001201916">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Password Management &gt; should not reveal if email exists during password reset" time="0.001235416">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Password Management &gt; should reset password with valid token" time="0.001699791">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Password Management &gt; should change password when authenticated" time="0.001693958">
+            <system-out>
+Password reset completed
+
+            </system-out>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Password Management &gt; should reject password change when not authenticated" time="0.001189666">
+            <failure message="promise resolved &quot;undefined&quot; instead of rejecting" type="AssertionError">
+AssertionError: promise resolved &quot;undefined&quot; instead of rejecting
+
+- Expected: 
+Error {
+  &quot;message&quot;: &quot;rejected promise&quot;,
+}
+
++ Received: 
+undefined
+
+ ❯ src/tests/services/authService.test.ts:406:7
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Session Monitoring &gt; should get user sessions" time="0.001015334">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Session Monitoring &gt; should terminate session" time="0.000802791">
+            <failure message="Cannot read properties of undefined (reading &apos;id&apos;)" type="TypeError">
+TypeError: Cannot read properties of undefined (reading &apos;id&apos;)
+ ❯ src/tests/services/authService.test.ts:435:61
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Error Handling &gt; should handle authentication errors gracefully" time="0.000717166">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Error Handling &gt; should handle session expiration" time="0.00063975">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Error Handling &gt; should handle unauthorized operations" time="0.000400292">
+            <failure message="You must provide a Promise to expect() when using .rejects, not &apos;object&apos;." type="TypeError">
+TypeError: You must provide a Promise to expect() when using .rejects, not &apos;object&apos;.
+ ❯ src/tests/services/authService.test.ts:471:45
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/tests/services/executionEngine.test.ts" timestamp="2025-08-03T15:11:35.110Z" hostname="macbookair.home" tests="1" failures="1" errors="0" skipped="0" time="0">
+        <testcase classname="src/tests/services/executionEngine.test.ts" name="src/tests/services/executionEngine.test.ts" time="0">
+            <system-out>
+✅ Timestamp utilities loaded (BigNumber.js, no BigInt)
+
+            </system-out>
+            <failure message="Failed to resolve import &quot;@tanstack/react-query&quot; from &quot;src/tests/utils/testUtils.tsx&quot;. Does the file exist?" type="Error">
+Error: Failed to resolve import &quot;@tanstack/react-query&quot; from &quot;src/tests/utils/testUtils.tsx&quot;. Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/zhang/Desktop/ICP/DeFlow/src/DeFlow_frontend/src/tests/utils/testUtils.tsx:5:49
+  2  |  import { render } from &quot;@testing-library/react&quot;;
+  3  |  import { BrowserRouter } from &quot;react-router-dom&quot;;
+  4  |  import { QueryClient, QueryClientProvider } from &quot;@tanstack/react-query&quot;;
+     |                                                    ^
+  5  |  import { vi } from &quot;vitest&quot;;
+  6  |  import { TimestampUtils } from &quot;../../utils/timestamp-utils&quot;;
+ ❯ TransformPluginContext._formatError ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:49258:41
+ ❯ TransformPluginContext.error ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:49253:16
+ ❯ normalizeUrl ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:64291:23
+ ❯ ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:64423:39
+ ❯ TransformPluginContext.transform ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:64350:7
+ ❯ PluginContainer.transform ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:49099:18
+ ❯ loadAndTransform ../../node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:51977:27
+            </failure>
+        </testcase>
+    </testsuite>
+</testsuites>

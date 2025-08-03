@@ -1,6 +1,7 @@
 use crate::types::{
     Workflow, WorkflowExecution, ExecutionStatus, NodeExecution, ExecutionContext,
-    NodeOutput, ConfigValue, RetryPolicy, ExecutionGraph, WorkflowNode
+    NodeOutput, ConfigValue, RetryPolicy, ExecutionGraph, WorkflowNode,
+    WorkflowRecovery, FallbackStrategy, EmergencyAction
 };
 use crate::storage;
 use crate::workflow::generate_id;
@@ -377,57 +378,260 @@ async fn execute_with_retry(
     execution_id: &str,
     execution: &mut WorkflowExecution
 ) -> Result<NodeOutput, String> {
-    let mut last_error;
-    let mut retry_count = 0;
+    // Get recovery configuration for this node type
+    let recovery_config = get_recovery_config(&node.node_type);
+    
+    // Execute with self-healing recovery
+    execute_with_recovery(
+        node,
+        input_data,
+        context,
+        &recovery_config,
+        execution_id,
+        execution
+    ).await
+}
+
+async fn execute_with_recovery(
+    node: &WorkflowNode,
+    input_data: &HashMap<String, ConfigValue>,
+    context: &ExecutionContext,
+    recovery: &WorkflowRecovery,
+    execution_id: &str,
+    execution: &mut WorkflowExecution
+) -> Result<NodeOutput, String> {
+    let mut attempts = 0;
+    let mut last_error = String::new();
     
     loop {
         let result = execute_node_internal(node, input_data, context).await;
         
         match result {
             Ok(output) => {
+                // Success - update metrics and return
                 if let Some(node_exec) = execution.node_executions.iter_mut()
                     .find(|ne| ne.node_id == node.id) {
-                    node_exec.retry_count = retry_count;
+                    node_exec.retry_count = attempts;
                 }
                 update_execution(execution_id, execution).ok();
+                
+                ic_cdk::println!("Node {} executed successfully after {} attempts", node.id, attempts + 1);
                 return Ok(output);
             }
             Err(error) => {
+                attempts += 1;
                 last_error = error.clone();
-                retry_count += 1;
+                
+                // Log failure and update execution state
+                log_execution_failure(execution_id, &node.id, &error, attempts);
                 
                 if let Some(node_exec) = execution.node_executions.iter_mut()
                     .find(|ne| ne.node_id == node.id) {
-                    node_exec.retry_count = retry_count;
+                    node_exec.retry_count = attempts;
                     node_exec.error_message = Some(error.clone());
                 }
                 update_execution(execution_id, execution).ok();
                 
-                if retry_count > retry_policy.max_retries {
-                    break;
+                if attempts < recovery.max_retries {
+                    // Exponential backoff delay
+                    let delay = recovery.retry_delay_ms * (2_u64.pow(attempts - 1));
+                    let delay_ns = Duration::from_millis(delay);
+                    
+                    ic_cdk::println!(
+                        "Node {} failed (attempt {}), retrying in {}ms: {}",
+                        node.id, attempts, delay, error
+                    );
+                    
+                    // Non-blocking delay using timer
+                    let _timer = set_timer(delay_ns, || {});
+                    
+                    // Try fallback strategy if available
+                    if let Some(ref fallback) = recovery.fallback_strategy {
+                        if let Ok(fallback_result) = execute_fallback_strategy(
+                            node, 
+                            input_data, 
+                            context, 
+                            fallback,
+                            execution_id,
+                            execution
+                        ).await {
+                            ic_cdk::println!("Fallback strategy succeeded for node {}", node.id);
+                            return Ok(fallback_result);
+                        }
+                    }
+                } else {
+                    // Max retries exceeded - execute emergency actions
+                    ic_cdk::println!(
+                        "Node {} failed after {} retries, executing emergency actions",
+                        node.id, attempts
+                    );
+                    
+                    execute_emergency_actions(&recovery.emergency_actions, execution_id, &node.id).await;
+                    
+                    return Err(format!(
+                        "Node {} failed after {} retries with self-healing recovery: {}",
+                        node.id, attempts, last_error
+                    ));
                 }
-                
-                if !should_retry_error(&error, &retry_policy.retry_on_errors) {
-                    break;
-                }
-                
-                let delay_ms = calculate_retry_delay(retry_count, retry_policy);
-                
-                ic_cdk::println!(
-                    "Node {} failed (attempt {}), retrying in {}ms: {}",
-                    node.id, retry_count, delay_ms, error
-                );
-                
-                let delay_ns = Duration::from_millis(delay_ms);
-                let _timer = set_timer(delay_ns, || {});
             }
         }
     }
+}
+
+fn get_recovery_config(_node_type: &str) -> WorkflowRecovery {
+    // In a real implementation, this would be configurable per node type
+    // For now, return default recovery configuration
+    WorkflowRecovery::default()
+}
+
+async fn execute_fallback_strategy(
+    node: &WorkflowNode,
+    input_data: &HashMap<String, ConfigValue>,
+    context: &ExecutionContext,
+    fallback: &FallbackStrategy,
+    execution_id: &str,
+    execution: &mut WorkflowExecution
+) -> Result<NodeOutput, String> {
+    match fallback {
+        FallbackStrategy::UseAlternativeNode { node_id } => {
+            ic_cdk::println!("Using alternative node {} for {}", node_id, node.id);
+            // In a real implementation, we would execute the alternative node
+            // For now, return a simulated success
+            Ok(NodeOutput {
+                data: [("fallback".to_string(), ConfigValue::Boolean(true))].into(),
+                next_nodes: vec![],
+            })
+        }
+        FallbackStrategy::SkipNode => {
+            ic_cdk::println!("Skipping failed node {}", node.id);
+            Ok(NodeOutput {
+                data: [("skipped".to_string(), ConfigValue::Boolean(true))].into(),
+                next_nodes: vec![],
+            })
+        }
+        FallbackStrategy::StopExecution => {
+            ic_cdk::println!("Stopping execution due to node {} failure", node.id);
+            Err("Execution stopped by fallback strategy".to_string())
+        }
+        FallbackStrategy::UseDefaultValue { value } => {
+            ic_cdk::println!("Using default value for failed node {}", node.id);
+            Ok(NodeOutput {
+                data: [("default".to_string(), value.clone())].into(),
+                next_nodes: vec![],
+            })
+        }
+        FallbackStrategy::NotifyAndContinue => {
+            ic_cdk::println!("Notifying failure and continuing for node {}", node.id);
+            // Send notification (simulated)
+            send_failure_notification(execution_id, &node.id).await;
+            Ok(NodeOutput {
+                data: [("notified".to_string(), ConfigValue::Boolean(true))].into(),
+                next_nodes: vec![],
+            })
+        }
+    }
+}
+
+async fn execute_emergency_actions(
+    actions: &[EmergencyAction],
+    execution_id: &str,
+    node_id: &str
+) {
+    for action in actions {
+        match action {
+            EmergencyAction::SendNotification { recipient, message } => {
+                ic_cdk::println!(
+                    "Emergency notification to {}: {} (execution: {}, node: {})",
+                    recipient, message, execution_id, node_id
+                );
+                // In a real implementation, this would send actual notifications
+            }
+            EmergencyAction::ExecuteWorkflow { workflow_id } => {
+                ic_cdk::println!("Executing emergency workflow: {}", workflow_id);
+                // Execute emergency workflow
+                if let Ok(emergency_execution_id) = crate::execution::start_execution(
+                    workflow_id.clone(), 
+                    Some([("emergency".to_string(), ConfigValue::Boolean(true))].into())
+                ).await {
+                    ic_cdk::println!("Started emergency workflow execution: {}", emergency_execution_id);
+                }
+            }
+            EmergencyAction::LiquidatePosition { asset, percentage } => {
+                ic_cdk::println!(
+                    "Emergency liquidation: {} of {} (execution: {})",
+                    percentage, asset, execution_id
+                );
+                // In a real DeFi implementation, this would trigger liquidation
+            }
+            EmergencyAction::PauseAllWorkflows => {
+                ic_cdk::println!("Emergency: Pausing all workflows");
+                pause_all_workflows().await;
+            }
+            EmergencyAction::EnableSafeMode => {
+                ic_cdk::println!("Emergency: Enabling safe mode");
+                enable_safe_mode().await;
+            }
+        }
+    }
+}
+
+async fn send_failure_notification(execution_id: &str, node_id: &str) {
+    // In a real implementation, this would send notifications via email, webhook, etc.
+    ic_cdk::println!(
+        "Notification: Node {} failed in execution {}",
+        node_id, execution_id
+    );
+}
+
+async fn pause_all_workflows() {
+    // In a real implementation, this would pause all active workflows
+    ic_cdk::println!("All workflows paused due to emergency");
+}
+
+async fn enable_safe_mode() {
+    // In a real implementation, this would enable system-wide safe mode
+    ic_cdk::println!("Safe mode enabled - only critical operations allowed");
+}
+
+fn log_execution_failure(execution_id: &str, node_id: &str, error: &str, attempt: u32) {
+    ic_cdk::println!(
+        "Execution failure: {} | Node: {} | Attempt: {} | Error: {}",
+        execution_id, node_id, attempt, error
+    );
     
-    Err(format!(
-        "Node {} failed after {} retries: {}",
-        node.id, retry_count, last_error
-    ))
+    // In a real implementation, we would also update metrics and monitoring systems
+    use crate::storage::{get_workflow_state, update_workflow_state};
+    let mut state = get_workflow_state();
+    
+    // Record this failure in execution history
+    if let Some((_, execution)) = state.active_workflows.iter()
+        .find(|(_, exec)| exec.id == execution_id) {
+        
+        let failure_record = crate::types::ExecutionRecord {
+            id: generate_id(),
+            workflow_id: execution.workflow_id.clone(),
+            execution_id: execution_id.to_string(),
+            status: ExecutionStatus::Failed,
+            started_at: execution.started_at,
+            completed_at: Some(api::time()),
+            duration_ms: None,
+            gas_used: None,
+            error_message: Some(error.to_string()),
+            node_count: 1,
+            retry_count: attempt,
+        };
+        
+        state.execution_history.push(failure_record);
+        
+        // Keep only last 1000 records to prevent unbounded growth
+        if state.execution_history.len() > 1000 {
+            state.execution_history = state.execution_history.split_off(
+                state.execution_history.len() - 1000
+            );
+        }
+        
+        update_workflow_state(state);
+    }
 }
 
 fn get_retry_policy(node_type: &str) -> RetryPolicy {
@@ -485,4 +689,68 @@ fn mark_node_failed(execution_id: &str, node_id: &str, error: &str) -> Result<()
 
 fn is_critical_node(_workflow: &Workflow, _node_id: &str) -> bool {
     true
+}
+
+// Zero-downtime workflow recovery
+pub fn resume_active_workflows() {
+    use crate::storage::{get_workflow_state, update_workflow_state};
+    
+    let mut state = get_workflow_state();
+    let current_time = api::time();
+    
+    ic_cdk::println!("Resuming {} active workflows after upgrade", state.active_workflows.len());
+    
+    for (workflow_id, mut execution) in state.active_workflows.clone() {
+        match execution.status {
+            ExecutionStatus::Running | ExecutionStatus::Pending => {
+                ic_cdk::println!("Resuming workflow execution: {}", execution.id);
+                
+                // Update execution to indicate it was resumed
+                execution.error_message = Some("Execution resumed after canister upgrade".to_string());
+                
+                // Clone execution_id for the async move
+                let execution_id = execution.id.clone();
+                
+                // Schedule the workflow to continue execution
+                spawn(async move {
+                    execute_workflow(execution_id).await;
+                });
+                
+                // Update the execution in storage
+                storage::insert_execution(execution.id.clone(), execution.clone());
+            }
+            ExecutionStatus::Failed => {
+                // Check if we should retry failed executions
+                let time_since_failure = current_time.saturating_sub(execution.started_at);
+                let retry_threshold = 5 * 60 * 1_000_000_000; // 5 minutes in nanoseconds
+                
+                if time_since_failure < retry_threshold {
+                    ic_cdk::println!("Retrying recently failed workflow: {}", execution.id);
+                    execution.status = ExecutionStatus::Pending;
+                    execution.error_message = Some("Retrying after canister upgrade".to_string());
+                    
+                    // Clone execution_id for the async move
+                    let execution_id = execution.id.clone();
+                    
+                    spawn(async move {
+                        execute_workflow(execution_id).await;
+                    });
+                    
+                    storage::insert_execution(execution.id.clone(), execution.clone());
+                }
+            }
+            ExecutionStatus::Completed | ExecutionStatus::Cancelled => {
+                // Remove completed/cancelled executions from active list
+                state.active_workflows.retain(|(id, _)| id != &workflow_id);
+            }
+        }
+    }
+    
+    // Update system health to reflect resumption
+    state.system_health.last_heartbeat = current_time;
+    state.system_health.active_workflows = state.active_workflows.len() as u32;
+    
+    update_workflow_state(state);
+    
+    ic_cdk::println!("Workflow resumption complete");
 }

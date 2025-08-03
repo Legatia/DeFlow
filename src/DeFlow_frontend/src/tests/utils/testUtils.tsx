@@ -2,27 +2,16 @@
 import React, { ReactElement } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { vi } from 'vitest'
 import { Workflow, WorkflowExecution, User } from '../../types'
 import { TimestampUtils } from '../../utils/timestamp-utils'
 
 // Create a custom render function that includes providers
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  })
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        {children}
-      </BrowserRouter>
-    </QueryClientProvider>
+    <BrowserRouter>
+      {children}
+    </BrowserRouter>
   )
 }
 

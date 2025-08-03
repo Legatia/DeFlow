@@ -1,6 +1,6 @@
 use crate::types::{
     EventListener, ScheduledWorkflow, WebhookEvent, WorkflowEvent, 
-    ConfigValue, RetryPolicy
+    ConfigValue, RetryPolicy, ScheduledExecution, ScheduleType
 };
 use crate::storage;
 use crate::execution::start_execution;
@@ -236,5 +236,168 @@ pub fn restore_scheduled_workflows() {
                 }
             });
         }
+    }
+    
+    // Also restore persistent scheduled executions
+    restore_persistent_timers();
+}
+
+// Enhanced persistent timer system
+#[update]
+pub async fn schedule_workflow_execution(
+    workflow_id: String, 
+    delay_seconds: u64,
+    schedule_type: ScheduleType
+) -> Result<String, String> {
+    use std::collections::HashMap;
+    
+    let current_time = api::time();
+    let next_execution = current_time + (delay_seconds * 1_000_000_000); // Convert to nanoseconds
+    
+    let scheduled_execution = ScheduledExecution {
+        workflow_id: workflow_id.clone(),
+        next_execution,
+        interval: match &schedule_type {
+            ScheduleType::Interval { seconds } => Some(*seconds),
+            _ => None,
+        },
+        timer_id: None,
+        schedule_type,
+        metadata: HashMap::new(),
+    };
+    
+    // Set up persistent timer
+    let timer_id = schedule_persistent_timer(&scheduled_execution).await?;
+    
+    let mut execution = scheduled_execution;
+    execution.timer_id = Some(timer_id);
+    
+    // Store in persistent storage
+    storage::insert_scheduled_execution(workflow_id.clone(), execution);
+    
+    ic_cdk::println!("Scheduled persistent execution for workflow: {}", workflow_id);
+    Ok(workflow_id)
+}
+
+async fn schedule_persistent_timer(execution: &ScheduledExecution) -> Result<String, String> {
+    let workflow_id = execution.workflow_id.clone();
+    let schedule_type = execution.schedule_type.clone();
+    let current_time = api::time();
+    
+    // Calculate delay in nanoseconds
+    let delay_ns = if execution.next_execution > current_time {
+        execution.next_execution - current_time
+    } else {
+        0 // Execute immediately if overdue
+    };
+    
+    let delay = Duration::from_nanos(delay_ns);
+    
+    let timer_id = set_timer(delay, move || {
+        spawn(async move {
+            ic_cdk::println!("Executing persistent timer for workflow: {}", workflow_id);
+            
+            // Execute the workflow
+            if let Ok(execution_id) = start_execution(workflow_id.clone(), None).await {
+                ic_cdk::println!("Persistent timer execution started: {}", execution_id);
+            }
+            
+            // Reschedule if recurring
+            reschedule_persistent_execution(workflow_id, schedule_type).await;
+        });
+    });
+    
+    Ok(format!("{:?}", timer_id))
+}
+
+async fn reschedule_persistent_execution(workflow_id: String, schedule_type: ScheduleType) {
+    match schedule_type {
+        ScheduleType::Interval { seconds } => {
+            // Reschedule for next interval
+            let current_time = api::time();
+            let next_execution = current_time + (seconds * 1_000_000_000);
+            
+            if let Some(mut execution) = storage::get_scheduled_execution(&workflow_id) {
+                execution.next_execution = next_execution;
+                
+                // Schedule new timer
+                if let Ok(timer_id) = schedule_persistent_timer(&execution).await {
+                    execution.timer_id = Some(timer_id);
+                    storage::insert_scheduled_execution(workflow_id, execution);
+                }
+            }
+        }
+        ScheduleType::Cron { expression } => {
+            // Recalculate next execution based on cron expression
+            if let Ok(next_execution) = calculate_next_execution(&expression) {
+                if let Some(mut execution) = storage::get_scheduled_execution(&workflow_id) {
+                    execution.next_execution = next_execution;
+                    
+                    if let Ok(timer_id) = schedule_persistent_timer(&execution).await {
+                        execution.timer_id = Some(timer_id);
+                        storage::insert_scheduled_execution(workflow_id, execution);
+                    }
+                }
+            }
+        }
+        ScheduleType::Once => {
+            // Remove one-time executions
+            storage::remove_scheduled_execution(&workflow_id);
+        }
+        ScheduleType::Heartbeat => {
+            // Heartbeat executions are handled by the heartbeat function
+            // No rescheduling needed
+        }
+    }
+}
+
+pub fn restore_persistent_timers() {
+    let current_time = api::time();
+    let all_executions = storage::list_all_scheduled_executions();
+    
+    ic_cdk::println!("Restoring {} persistent timers after upgrade", all_executions.len());
+    
+    for (workflow_id, execution) in all_executions {
+        if execution.next_execution <= current_time {
+            // Execute immediately if overdue
+            ic_cdk::println!("Executing overdue persistent timer: {}", workflow_id);
+            let wf_id = workflow_id.clone();
+            spawn(async move {
+                if let Ok(execution_id) = start_execution(wf_id.clone(), None).await {
+                    ic_cdk::println!("Overdue execution started: {}", execution_id);
+                }
+            });
+            
+            // Reschedule based on type
+            let schedule_type = execution.schedule_type.clone();
+            spawn(async move {
+                reschedule_persistent_execution(workflow_id, schedule_type).await;
+            });
+        } else {
+            // Reschedule for future execution
+            let wf_id = workflow_id.clone();
+            spawn(async move {
+                if let Ok(timer_id) = schedule_persistent_timer(&execution).await {
+                    let mut exec = execution;
+                    exec.timer_id = Some(timer_id);
+                    storage::insert_scheduled_execution(wf_id, exec);
+                }
+            });
+        }
+    }
+}
+
+#[query]
+pub fn list_persistent_scheduled_executions() -> Vec<(String, ScheduledExecution)> {
+    storage::list_all_scheduled_executions()
+}
+
+#[update]
+pub async fn cancel_persistent_execution(workflow_id: String) -> Result<(), String> {
+    if storage::remove_scheduled_execution(&workflow_id).is_some() {
+        ic_cdk::println!("Cancelled persistent execution for workflow: {}", workflow_id);
+        Ok(())
+    } else {
+        Err("No persistent execution found for workflow".to_string())
     }
 }

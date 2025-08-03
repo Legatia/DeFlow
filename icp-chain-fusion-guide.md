@@ -208,3 +208,22 @@ This guide provides the foundational patterns for implementing ICP chain fusion 
 5. Plan for scalability and cost optimization
 
 The examples demonstrate basic functionality - production applications should extend these patterns with additional features like multi-signature support, advanced fee management, and comprehensive transaction history tracking.
+
+```
+Chain Fusion on the Internet Computer (ICP) enables native integration with Bitcoin, Ethereum, and Solana. For Layer 2 (L2) solutions, the situation is as follows:
+
+Ethereum L2s and EVM Chains: ICP’s integration with Ethereum is built on the EVM RPC canister, which supports not only Ethereum mainnet but also other EVM-compatible networks and Layer 2 solutions (such as Optimism, Arbitrum, Polygon, and Avalanche). This means canisters can interact with these L2s in the same way as with Ethereum mainnet—querying state and submitting transactions—using HTTPS outcalls to multiple JSON-RPC providers. The integration is already live and production-ready for these networks How Does ICP Work? > Chain Fusion > Ethereum Integration Chain Fusion: Connecting Blockchains.
+
+Bitcoin L2s: The current native integration is with the Bitcoin mainnet. There is no explicit mention in the knowledge sources of direct integration with Bitcoin L2s (such as Lightning Network) via Chain Fusion. However, ICP provides its own Layer 2 solution for Bitcoin in the form of ckBTC, which offers fast and cheap transfers programmable by canisters, but this is not the same as integrating with external Bitcoin L2s Bitcoin integration and ckBTC FAQ.
+
+Solana L2s: The knowledge sources do not mention support for Solana Layer 2 solutions. The current integration is with the Solana mainnet.
+Summary:
+ICP’s Chain Fusion natively supports Ethereum L2s and EVM-compatible chains via the EVM RPC canister. For Bitcoin and Solana, the integration is currently with their mainnets, and there is no explicit support for their L2s mentioned in the available sources. If you need L2 support for Bitcoin or Solana, you may need to monitor future roadmap updates.
+
+```
+ICP’s Chain Fusion supports other EVM-compatible chains in the same way as Ethereum, through the EVM RPC canister. The documentation explicitly states that EVM-compatible chains other than Ethereum are supported via the EVM RPC canister, even if they are not listed individually. This means that as long as the EVM chain (such as Sonic) provides a compatible JSON-RPC endpoint and uses a supported authentication method (like ECDSA), it can be integrated with ICP using the same workflow as Ethereum Supported chains Supported chains.
+
+You can use the EVM RPC canister’s request method to interact with many providers listed on ChainList.org, which includes a wide range of EVM-compatible networks. If Sonic is EVM-compatible and provides a public RPC endpoint, it should be supported by ICP’s Chain Fusion technology
+
+```
+
