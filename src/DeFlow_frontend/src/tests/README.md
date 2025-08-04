@@ -54,6 +54,12 @@ npm test -- --testPathPattern=services
 
 # Run integration tests
 npm test -- --testPathPattern=integration
+
+# Run Bitcoin DeFi tests
+npm run test:bitcoin
+
+# Run all DeFi tests
+npm run test:defi
 ```
 
 ## Test Categories
@@ -70,12 +76,14 @@ npm test -- --testPathPattern=integration
 - **MonitoringService**: Performance and health monitoring
 - **WebhookService**: External integration webhooks
 - **CollaborationService**: Workflow sharing features
+- **DeFiService**: Bitcoin DeFi integration and portfolio management
 
 ### 3. Integration Tests
 - **Workflow Execution**: End-to-end execution flows
 - **Real-time Updates**: WebSocket communication
 - **Webhook Integration**: External trigger handling
 - **Multi-user Scenarios**: Collaboration workflows
+- **Bitcoin DeFi Workflows**: End-to-end Bitcoin transaction flows
 
 ## Mock Data Factories
 
@@ -98,6 +106,22 @@ const user = createMockUser({
 // Create mock execution
 const execution = createMockWorkflowExecution({
   status: 'completed'
+})
+
+// Bitcoin DeFi mock factories
+const bitcoinPortfolio = createMockBitcoinPortfolio({
+  total_btc: 1.5,
+  total_value_usd: 67500
+})
+
+const bitcoinAddress = createMockBitcoinAddress({
+  address_type: 'P2WPKH',
+  balance_satoshis: 50000000
+})
+
+const sendResult = createMockBitcoinSendResult({
+  success: true,
+  transaction_id: 'abc123'
 })
 ```
 

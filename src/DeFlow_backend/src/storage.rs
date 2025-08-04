@@ -360,6 +360,7 @@ pub fn list_all_scheduled_executions() -> Vec<(String, ScheduledExecution)> {
     })
 }
 
+#[allow(dead_code)]
 pub fn get_due_scheduled_executions(current_time: u64) -> Vec<(String, ScheduledExecution)> {
     SCHEDULED_EXECUTIONS.with(|executions| {
         executions.borrow().iter()

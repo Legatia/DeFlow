@@ -374,7 +374,7 @@ async fn execute_with_retry(
     node: &WorkflowNode,
     input_data: &HashMap<String, ConfigValue>,
     context: &ExecutionContext,
-    retry_policy: &RetryPolicy,
+    _retry_policy: &RetryPolicy,
     execution_id: &str,
     execution: &mut WorkflowExecution
 ) -> Result<NodeOutput, String> {
@@ -486,11 +486,11 @@ fn get_recovery_config(_node_type: &str) -> WorkflowRecovery {
 
 async fn execute_fallback_strategy(
     node: &WorkflowNode,
-    input_data: &HashMap<String, ConfigValue>,
-    context: &ExecutionContext,
+    _input_data: &HashMap<String, ConfigValue>,
+    _context: &ExecutionContext,
     fallback: &FallbackStrategy,
     execution_id: &str,
-    execution: &mut WorkflowExecution
+    _execution: &mut WorkflowExecution
 ) -> Result<NodeOutput, String> {
     match fallback {
         FallbackStrategy::UseAlternativeNode { node_id } => {
@@ -639,10 +639,12 @@ fn get_retry_policy(node_type: &str) -> RetryPolicy {
         .unwrap_or_default()
 }
 
+#[allow(dead_code)]
 fn should_retry_error(error: &str, retry_on_errors: &[String]) -> bool {
     retry_on_errors.iter().any(|retry_error| error.contains(retry_error))
 }
 
+#[allow(dead_code)]
 fn calculate_retry_delay(retry_count: u32, policy: &RetryPolicy) -> u64 {
     let delay = policy.initial_delay_ms as f64 * policy.backoff_multiplier.powi(retry_count as i32 - 1);
     let delay = delay as u64;

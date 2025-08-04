@@ -69,6 +69,58 @@ Object.defineProperty(global, 'crypto', {
 // Mock fetch
 global.fetch = vi.fn()
 
+// Mock React Flow
+vi.mock('reactflow', () => ({
+  useNodesState: vi.fn(() => [[], vi.fn(), vi.fn()]),
+  useEdgesState: vi.fn(() => [[], vi.fn(), vi.fn()]),
+  useReactFlow: vi.fn(() => ({
+    getNodes: vi.fn(() => []),
+    getEdges: vi.fn(() => []),
+    setNodes: vi.fn(),
+    setEdges: vi.fn(),
+    addNodes: vi.fn(),
+    addEdges: vi.fn(),
+    getNode: vi.fn(),
+    getEdge: vi.fn(),
+    project: vi.fn(),
+    screenToFlowPosition: vi.fn(),
+    flowToScreenPosition: vi.fn(),
+    fitView: vi.fn(),
+    zoomIn: vi.fn(),
+    zoomOut: vi.fn(),
+    zoomTo: vi.fn(),
+    getZoom: vi.fn(() => 1),
+    setViewport: vi.fn(),
+    getViewport: vi.fn(() => ({ x: 0, y: 0, zoom: 1 })),
+  })),
+  ReactFlow: vi.fn(({ children, ...props }) => 
+    React.createElement('div', { 'data-testid': 'react-flow', ...props }, children)
+  ),
+  Controls: vi.fn(() => React.createElement('div', { 'data-testid': 'react-flow-controls' })),
+  Background: vi.fn(() => React.createElement('div', { 'data-testid': 'react-flow-background' })),
+  MiniMap: vi.fn(() => React.createElement('div', { 'data-testid': 'react-flow-minimap' })),
+  Handle: vi.fn(({ type, position, ...props }) => 
+    React.createElement('div', { 
+      'data-testid': `react-flow-handle-${type}-${position}`, 
+      className: `react-flow__handle react-flow__handle-${type} react-flow__handle-${position}`,
+      ...props 
+    })
+  ),
+  Position: {
+    Top: 'top',
+    Right: 'right', 
+    Bottom: 'bottom',
+    Left: 'left'
+  },
+  MarkerType: {
+    Arrow: 'arrow',
+    ArrowClosed: 'arrowclosed'
+  }
+}))
+
+// Import React for the mocks
+import React from 'react'
+
 // Mock console methods to reduce noise in tests
 global.console = {
   ...console,

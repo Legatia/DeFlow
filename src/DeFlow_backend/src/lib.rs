@@ -5,6 +5,7 @@ mod execution;
 mod nodes;
 mod events;
 mod http_client;
+mod defi;
 
 // Re-export types for external use
 pub use types::*;
@@ -15,7 +16,8 @@ use serde::Serialize;
 use nodes::initialize_built_in_nodes;
 use events::restore_scheduled_workflows;
 use storage::{save_workflow_state_for_upgrade, restore_workflow_state_after_upgrade};
-use types::{WorkflowState, SystemHealth, ExecutionStatus};
+use types::{WorkflowState as InternalWorkflowState, SystemHealth as InternalSystemHealth, ExecutionStatus as InternalExecutionStatus};
+use defi::api::get_defi_system_health;
 
 // Re-export all the API functions from modules
 pub use workflow::{create_workflow, update_workflow, get_workflow, list_workflows, delete_workflow, validate_workflow_query, analyze_workflow_query, WorkflowAnalysis};
@@ -27,10 +29,19 @@ pub use events::{
     set_retry_policy, get_retry_policy_for_node,
     schedule_workflow_execution, list_persistent_scheduled_executions, cancel_persistent_execution
 };
+// DeFi functions are available as canister endpoints in defi::api module
 
 #[init]
 fn init() {
     initialize_built_in_nodes();
+    
+    // Initialize DeFi system
+    ic_cdk::spawn(async {
+        if let Err(e) = defi::initialize_defi_system().await {
+            ic_cdk::println!("Failed to initialize DeFi system: {}", e);
+        }
+    });
+    
     ic_cdk::println!("DeFlow backend initialized");
 }
 
@@ -45,7 +56,7 @@ fn pre_upgrade() {
 #[post_upgrade]
 fn post_upgrade() {
     // Try to restore the workflow state, but handle gracefully if it fails
-    match ic_cdk::storage::stable_restore::<(WorkflowState,)>() {
+    match ic_cdk::storage::stable_restore::<(InternalWorkflowState,)>() {
         Ok((saved_state,)) => {
             restore_workflow_state_after_upgrade(saved_state);
             ic_cdk::println!("DeFlow backend upgraded and state restored successfully");
@@ -55,7 +66,7 @@ fn post_upgrade() {
             ic_cdk::println!("Initializing with fresh state");
             
             // Initialize with a fresh default state
-            let fresh_state = WorkflowState::default();
+            let fresh_state = InternalWorkflowState::default();
             restore_workflow_state_after_upgrade(fresh_state);
         }
     }
@@ -64,6 +75,13 @@ fn post_upgrade() {
     initialize_built_in_nodes();
     restore_scheduled_workflows();
     resume_active_workflows();
+    
+    // Re-initialize DeFi system
+    ic_cdk::spawn(async {
+        if let Err(e) = defi::initialize_defi_system().await {
+            ic_cdk::println!("Failed to re-initialize DeFi system after upgrade: {}", e);
+        }
+    });
     
     ic_cdk::println!("DeFlow backend post_upgrade completed");
 }
@@ -112,17 +130,17 @@ fn get_due_workflows(current_time: u64, scheduled_executions: &[(u64, String)]) 
         .collect()
 }
 
-async fn monitor_active_executions(state: &mut WorkflowState) {
+async fn monitor_active_executions(state: &mut InternalWorkflowState) {
     let current_time = ic_cdk::api::time();
     let timeout_threshold = 30 * 60 * 1_000_000_000; // 30 minutes in nanoseconds
     
     for (workflow_id, execution) in &mut state.active_workflows {
-        if matches!(execution.status, ExecutionStatus::Running | ExecutionStatus::Pending) {
+        if matches!(execution.status, InternalExecutionStatus::Running | InternalExecutionStatus::Pending) {
             let execution_time = current_time.saturating_sub(execution.started_at);
             
             if execution_time > timeout_threshold {
                 ic_cdk::println!("Workflow {} timed out after {}ns", workflow_id, execution_time);
-                execution.status = ExecutionStatus::Failed;
+                execution.status = InternalExecutionStatus::Failed;
                 execution.completed_at = Some(current_time);
                 execution.error_message = Some("Execution timed out".to_string());
                 
@@ -133,13 +151,13 @@ async fn monitor_active_executions(state: &mut WorkflowState) {
     }
 }
 
-fn cleanup_completed_workflows(state: &mut WorkflowState, current_time: u64) {
+fn cleanup_completed_workflows(state: &mut InternalWorkflowState, current_time: u64) {
     let cleanup_threshold = 24 * 60 * 60 * 1_000_000_000; // 24 hours in nanoseconds
     
     let initial_count = state.active_workflows.len();
     
     state.active_workflows.retain(|(_, execution)| {
-        if matches!(execution.status, ExecutionStatus::Completed | ExecutionStatus::Failed | ExecutionStatus::Cancelled) {
+        if matches!(execution.status, InternalExecutionStatus::Completed | InternalExecutionStatus::Failed | InternalExecutionStatus::Cancelled) {
             if let Some(completed_at) = execution.completed_at {
                 let age = current_time.saturating_sub(completed_at);
                 age < cleanup_threshold
@@ -159,13 +177,13 @@ fn cleanup_completed_workflows(state: &mut WorkflowState, current_time: u64) {
     }
 }
 
-async fn update_system_health(state: &mut WorkflowState) {
+async fn update_system_health(state: &mut InternalWorkflowState) {
     let current_time = ic_cdk::api::time();
     
     // Count active workflows
     state.system_health.active_workflows = state.active_workflows
         .iter()
-        .filter(|(_, execution)| matches!(execution.status, ExecutionStatus::Running | ExecutionStatus::Pending))
+        .filter(|(_, execution)| matches!(execution.status, InternalExecutionStatus::Running | InternalExecutionStatus::Pending))
         .count() as u32;
     
     // Count failed executions in the last 24 hours
@@ -174,7 +192,7 @@ async fn update_system_health(state: &mut WorkflowState) {
         .iter()
         .filter(|record| {
             record.started_at >= twenty_four_hours_ago && 
-            matches!(record.status, ExecutionStatus::Failed)
+            matches!(record.status, InternalExecutionStatus::Failed)
         })
         .count() as u32;
     
@@ -183,7 +201,7 @@ async fn update_system_health(state: &mut WorkflowState) {
         .iter()
         .filter(|record| {
             record.started_at >= twenty_four_hours_ago &&
-            matches!(record.status, ExecutionStatus::Completed) &&
+            matches!(record.status, InternalExecutionStatus::Completed) &&
             record.duration_ms.is_some()
         })
         .collect();
@@ -209,9 +227,11 @@ async fn update_system_health(state: &mut WorkflowState) {
 }
 
 async fn test_btc_connectivity() -> bool {
-    // In a real implementation, this would test actual BTC connectivity
-    // For now, simulate with a simple check
-    true // Assume BTC is always connected for demo
+    // Test Bitcoin connectivity through DeFi system health check
+    match get_defi_system_health().await {
+        Ok(health) => health.bitcoin_service.healthy,
+        Err(_) => false,
+    }
 }
 
 async fn test_eth_connectivity() -> bool {
@@ -304,9 +324,9 @@ async fn enable_emergency_mode() -> Result<(), String> {
     let mut state = get_workflow_state();
     
     // Pause all active workflows
-    for (workflow_id, execution) in &mut state.active_workflows {
-        if matches!(execution.status, ExecutionStatus::Running | ExecutionStatus::Pending) {
-            execution.status = ExecutionStatus::Cancelled;
+    for (_workflow_id, execution) in &mut state.active_workflows {
+        if matches!(execution.status, InternalExecutionStatus::Running | InternalExecutionStatus::Pending) {
+            execution.status = InternalExecutionStatus::Cancelled;
             execution.completed_at = Some(ic_cdk::api::time());
             execution.error_message = Some("Cancelled due to emergency mode".to_string());
             
