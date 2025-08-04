@@ -38,6 +38,8 @@ impl MinimalIcpEthereumService {
                 EvmChain::Polygon,
                 EvmChain::Base,
                 EvmChain::Avalanche,
+                EvmChain::Sonic,
+                EvmChain::BnbSmartChain,
             ],
         }
     }
@@ -237,6 +239,8 @@ impl MinimalIcpEthereumContext {
                 EvmChain::Polygon,
                 EvmChain::Base,
                 EvmChain::Avalanche,
+                EvmChain::Sonic,
+                EvmChain::BnbSmartChain,
             ],
         }
     }
@@ -252,7 +256,7 @@ mod tests {
             "test_key".to_string(),
             Principal::anonymous(),
         );
-        assert_eq!(service.supported_chains.len(), 6);
+        assert_eq!(service.supported_chains.len(), 8);
         assert_eq!(service.key_name, "test_key");
         assert!(service.supported_chains.contains(&EvmChain::Ethereum));
         assert!(service.supported_chains.contains(&EvmChain::Arbitrum));
@@ -260,6 +264,8 @@ mod tests {
         assert!(service.supported_chains.contains(&EvmChain::Polygon));
         assert!(service.supported_chains.contains(&EvmChain::Base));
         assert!(service.supported_chains.contains(&EvmChain::Avalanche));
+        assert!(service.supported_chains.contains(&EvmChain::Sonic));
+        assert!(service.supported_chains.contains(&EvmChain::BnbSmartChain));
     }
 
     #[test]
@@ -400,7 +406,7 @@ mod tests {
         
         assert_eq!(context.key_name, "test_key");
         assert_eq!(context.canister_id, Principal::anonymous());
-        assert_eq!(context.supported_chains.len(), 6);
+        assert_eq!(context.supported_chains.len(), 8);
         assert!(context.supported_chains.contains(&EvmChain::Ethereum));
     }
 }

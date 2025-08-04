@@ -22,5 +22,7 @@ hex = "0.4"
 num-bigint = "0.4"
 # Ethereum dependencies
 sha3 = "0.10"
-k256 = { version = "0.13", features = ["ecdsa", "arithmetic"] }
+k256 = { version = "0.13", features = ["ecdsa", "arithmetic"], default-features = false }
 rlp = "0.5"
+# Fix getrandom for WASM
+getrandom = { version = "0.2", features = ["js"] }

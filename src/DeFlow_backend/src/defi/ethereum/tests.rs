@@ -101,9 +101,11 @@ mod api_tests {
             EvmChain::Polygon,
             EvmChain::Base,
             EvmChain::Avalanche,
+            EvmChain::Sonic,
+            EvmChain::BnbSmartChain,
         ];
 
-        assert_eq!(chains.len(), 6);
+        assert_eq!(chains.len(), 8);
 
         // Test chain properties
         for chain in chains {
@@ -116,17 +118,26 @@ mod api_tests {
                 EvmChain::Arbitrum | EvmChain::Optimism | EvmChain::Base => {
                     assert!(chain.is_l2());
                     assert!(!chain.is_sidechain());
+                    assert!(!chain.is_independent_l1());
                     assert_eq!(chain.native_token(), "ETH");
                 },
-                EvmChain::Polygon | EvmChain::Avalanche => {
+                EvmChain::Polygon | EvmChain::Avalanche | EvmChain::BnbSmartChain => {
                     assert!(!chain.is_l2());
                     assert!(chain.is_sidechain());
+                    assert!(!chain.is_independent_l1());
                     assert_ne!(chain.native_token(), "ETH");
                 },
                 EvmChain::Ethereum => {
                     assert!(!chain.is_l2());
                     assert!(!chain.is_sidechain());
+                    assert!(!chain.is_independent_l1());
                     assert_eq!(chain.native_token(), "ETH");
+                },
+                EvmChain::Sonic => {
+                    assert!(!chain.is_l2());
+                    assert!(!chain.is_sidechain());
+                    assert!(chain.is_independent_l1());
+                    assert_eq!(chain.native_token(), "S");
                 },
             }
         }
@@ -148,7 +159,7 @@ mod integration_tests {
         // Test service properties
         assert_eq!(service.key_name, "deflow_ethereum_key");
         assert_eq!(service.canister_id, Principal::anonymous());
-        assert_eq!(service.supported_chains.len(), 6);
+        assert_eq!(service.supported_chains.len(), 8);
 
         // Test that all major chains are supported
         assert!(service.supported_chains.contains(&EvmChain::Ethereum));
@@ -213,6 +224,8 @@ mod integration_tests {
                 EvmChain::Polygon => 0.01,
                 EvmChain::Base => 0.1,
                 EvmChain::Avalanche => 0.2,
+                EvmChain::Sonic => 0.05,
+                EvmChain::BnbSmartChain => 0.02,
             };
             assert!(multiplier > 0.0);
 
@@ -317,7 +330,7 @@ mod icp_compliance_tests {
 
         // Test ICP-compliant patterns
         assert!(!service.key_name.is_empty()); // Key names must not be empty
-        assert_eq!(service.supported_chains.len(), 6); // Support major EVM chains
+        assert_eq!(service.supported_chains.len(), 8); // Support major EVM chains
         
         // Test that canister ID is set (in real deployment)
         // Note: ic_cdk::api::id() returns different values in test vs deployment
