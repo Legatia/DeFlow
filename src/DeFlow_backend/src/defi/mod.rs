@@ -4,6 +4,7 @@
 
 pub mod bitcoin;
 pub mod ethereum;
+pub mod solana;
 pub mod types;
 pub mod api;
 
@@ -85,6 +86,7 @@ pub struct DeFiChainManager {
     context: DeFiChainContext,
     bitcoin_service: Option<bitcoin::BitcoinDeFiService>,
     ethereum_service: Option<ethereum::minimal_icp::MinimalIcpEthereumService>,
+    solana_service: Option<solana::icp_solana::IcpSolanaService>,
 }
 
 impl DeFiChainManager {
@@ -93,6 +95,7 @@ impl DeFiChainManager {
             context: DeFiChainContext::default(),
             bitcoin_service: None,
             ethereum_service: None,
+            solana_service: None,
         }
     }
     
@@ -117,6 +120,19 @@ impl DeFiChainManager {
         
         self.ethereum_service = Some(ethereum_service);
         ic_cdk::println!("ICP-compliant Ethereum DeFi service initialized successfully");
+        Ok(())
+    }
+    
+    #[allow(dead_code)]
+    pub async fn initialize_solana(&mut self) -> Result<(), String> {
+        let solana_service = solana::icp_solana::IcpSolanaService::new(
+            "deflow_solana_key".to_string(),
+            ic_cdk::api::id(),
+            solana::SolanaNetwork::Devnet, // Start with Devnet for development
+        );
+        
+        self.solana_service = Some(solana_service);
+        ic_cdk::println!("ICP-compliant Solana DeFi service initialized successfully");
         Ok(())
     }
     

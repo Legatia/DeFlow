@@ -24,5 +24,12 @@ num-bigint = "0.4"
 sha3 = "0.10"
 k256 = { version = "0.13", features = ["ecdsa", "arithmetic"], default-features = false }
 rlp = "0.5"
-# Fix getrandom for WASM
+# Fix getrandom for WASM - pin to stable version and enable js feature
 getrandom = { version = "0.2", features = ["js"] }
+# Solana dependencies using official SOL RPC canister
+bs58 = "0.5"
+# Temporary removal of SOL RPC dependencies due to WASM compatibility issues
+# sol-rpc-client = { git = "https://github.com/dfinity/sol-rpc-canister", package = "sol_rpc_client" }
+# sol-rpc-types = { git = "https://github.com/dfinity/sol-rpc-canister", package = "sol_rpc_types" }
+# Will use pure ICP implementation instead for WASM compatibility
+

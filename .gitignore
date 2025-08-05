@@ -168,6 +168,9 @@ docs/.doctrees/
 *.backup
 *.old
 
+# Solana RPC canister (external dependency)
+sol-rpc-canister/
+
 # OS generated files
 .AppleDouble
 .LSOverride
