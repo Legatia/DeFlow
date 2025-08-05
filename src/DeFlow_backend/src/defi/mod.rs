@@ -7,6 +7,12 @@ pub mod ethereum;
 pub mod solana;
 pub mod types;
 pub mod api;
+// Day 11: Advanced DeFi Workflows - Cross-chain yield farming and arbitrage
+pub mod yield_farming;
+pub mod yield_engine;
+pub mod cross_chain_optimizer;
+pub mod yield_api;
+pub mod arbitrage;
 
 use candid::{CandidType, Deserialize};
 use serde::Serialize;

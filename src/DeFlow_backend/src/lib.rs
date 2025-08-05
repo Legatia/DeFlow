@@ -440,6 +440,7 @@ async fn send_system_notification(message: String, level: AlertLevel) -> Result<
     Ok(())
 }
 
+
 #[query]
 fn greet(name: String) -> String {
     format!("Hello, {}! Welcome to DeFlow!", name)

@@ -21,15 +21,32 @@ Desktop.ini
 # generated files
 **/declarations/
 **/.vessel/
+.vessel/
+canister_ids.json
 
 # ICP Canister builds
 .build/
 .build-local/
+.ic-assets.json
+.ic-assets.json5
+
+# Candid files (generated)
+**/*.did
+!candid/
+!src/**/*.did
+
+# WASM files
+**/*.wasm
+**/*.wasm.gz
 
 # Rust
 target/
 **/*-lock.json
 Cargo.lock
+**/*.rs.bk
+*.pdb
+*.rlib
+*.rmeta
 
 # Frontend (Node.js/TypeScript/React)
 node_modules/
@@ -109,15 +126,60 @@ temp/
 
 # Claude Code session files
 .claude
+.cursor/
+.ai-generated/
+
+# Development documentation (auto-generated)
+DEVELOPMENT_LOG.md
+API_DOCS.md
+CHANGELOG_AUTO.md
+
+# Performance and profiling
+*.prof
+perf.data*
+flamegraph.svg
+profiling/
+
+# Database files (if any)
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup and temp files from development
+*.tmp
+*.temp
+.backup/
+snapshots/
 
 # Test files and artifacts
 test-results/
 playwright-report/
 test-results.xml
 
-# Bitcoin/Ethereum integration temporary files
+# DeFi and Blockchain integration files
 *.wallet
 *.keystore
+*.mnemonic
+*.seed
+*.privatekey
+
+# Arbitrage and trading data
+arbitrage-opportunities.json
+price-cache.json
+trading-history.json
+yield-data.json
+
+# Chain-specific files
+bitcoin-cache/
+ethereum-cache/
+solana-cache/
+price-oracles/
+
+# API keys and secrets (extra security)
+.api-keys
+.secrets
+config/secrets/
+*.secret
 
 # Local development certificates
 localhost.pem
@@ -196,3 +258,47 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Project-specific ignores
+*.lock
+audit.json
+security-report.json
+
+# Local configuration overrides
+local.config.json
+dev.config.json
+.env.development
+.env.production
+
+# Build artifacts and optimization files
+*.opt
+*.min.js
+*.min.css
+source-map/
+
+# Container and deployment files
+.docker/
+docker-compose.override.yml
+.kubernetes/
+k8s-local/
+
+# Monitoring and analytics
+analytics/
+metrics/
+telemetry/
+
+# Third-party integrations cache  
+.chainlink/
+.uniswap/
+.compound/
+.aave/
+
+# Mobile development (if added later)
+*.xcuserstate
+*.xcworkspace
+.gradle/
+local.properties
+
+# Additional Rust-specific
+rust-project.json
+.rustfmt_cache/
