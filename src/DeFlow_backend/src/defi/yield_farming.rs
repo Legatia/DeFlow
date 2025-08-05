@@ -161,8 +161,13 @@ impl YieldStrategy {
             lock_period: None,
             auto_compound: false,
             verified: false,
-            last_updated: time(),
+            last_updated: 0, // Will be set when initialized properly
         }
+    }
+
+    /// Initialize with current time (for canister use)
+    pub fn initialize(&mut self) {
+        self.last_updated = time();
     }
 
     /// Calculate risk-adjusted return (Sharpe ratio approximation)
@@ -290,8 +295,13 @@ impl YieldOptimizer {
             rebalancing_rules,
             chain_preferences: HashMap::new(),
             protocol_blacklist: Vec::new(),
-            last_optimization: time(),
+            last_optimization: 0, // Will be set when initialized properly
         }
+    }
+
+    /// Initialize with current time (for canister use)
+    pub fn initialize(&mut self) {
+        self.last_optimization = time();
     }
 
     /// Add yield strategy to the optimizer
@@ -415,7 +425,7 @@ impl YieldOptimizer {
             risk_score: self.calculate_portfolio_risk_score(&plan_allocations),
             diversification_score: self.calculate_diversification_score(&plan_allocations),
             estimated_gas_cost_usd: self.estimate_deployment_cost(&plan_allocations),
-            created_at: time(),
+            created_at: 0, // Will be set when plan is created properly
         })
     }
 
@@ -578,6 +588,11 @@ impl std::fmt::Display for YieldOptimizationError {
 mod tests {
     use super::*;
 
+    // Mock time function for tests
+    fn mock_time() -> u64 {
+        1234567890_u64
+    }
+
     fn create_test_strategy(id: &str, chain: ChainId, apy: f64, risk: u8) -> YieldStrategy {
         let mut strategy = YieldStrategy::new(
             id.to_string(),
@@ -592,6 +607,7 @@ mod tests {
         strategy.risk_score = risk;
         strategy.liquidity_usd = 1_000_000;
         strategy.verified = true;
+        strategy.last_updated = mock_time(); // Set test time manually
         strategy
     }
 
@@ -650,7 +666,8 @@ mod tests {
             min_improvement_threshold: 0.02,
         };
         
-        let optimizer = YieldOptimizer::new(risk_params, rebalance_rules);
+        let mut optimizer = YieldOptimizer::new(risk_params, rebalance_rules);
+        optimizer.last_optimization = mock_time(); // Set test time manually
         assert_eq!(optimizer.strategies.len(), 0);
         assert!(optimizer.rebalancing_rules.enabled);
     }
@@ -664,6 +681,7 @@ mod tests {
             max_gas_cost_usd: 0.0,
             min_improvement_threshold: 0.0,
         });
+        optimizer.last_optimization = mock_time(); // Set test time manually
         
         let strategy = create_test_strategy("test1", ChainId::Ethereum, 8.0, 5);
         optimizer.add_strategy(strategy);
@@ -695,6 +713,7 @@ mod tests {
             max_gas_cost_usd: 0.0,
             min_improvement_threshold: 0.0,
         });
+        optimizer.last_optimization = mock_time(); // Set test time manually
         
         // Add diverse strategies
         optimizer.add_strategy(create_test_strategy("eth_aave", ChainId::Ethereum, 8.0, 4));

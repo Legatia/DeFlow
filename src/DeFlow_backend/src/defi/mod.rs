@@ -13,6 +13,9 @@ pub mod yield_engine;
 pub mod cross_chain_optimizer;
 pub mod yield_api;
 pub mod arbitrage;
+// Day 11: Advanced Portfolio Management System
+pub mod portfolio_manager;
+pub mod portfolio_api;
 
 use candid::{CandidType, Deserialize};
 use serde::Serialize;

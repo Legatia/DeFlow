@@ -27,7 +27,8 @@ pub async fn initialize_yield_farming() -> Result<String, String> {
     optimizer.initialize_chain_optimizers();
     
     // Initialize strategy engine
-    let engine = YieldStrategyEngine::new(EvaluationCriteria::default());
+    let mut engine = YieldStrategyEngine::new(EvaluationCriteria::default());
+    engine.initialize(); // Initialize with current time
     
     YIELD_OPTIMIZER.with(|opt| *opt.borrow_mut() = Some(optimizer));
     STRATEGY_ENGINE.with(|eng| *eng.borrow_mut() = Some(engine));
@@ -53,6 +54,7 @@ pub async fn add_yield_strategy(
     strategy.liquidity_usd = liquidity_usd;
     strategy.min_deposit_usd = min_deposit_usd;
     strategy.verified = true; // Auto-verify for demo
+    strategy.initialize(); // Initialize with current time
     
     // Add to strategy engine
     STRATEGY_ENGINE.with(|eng| {
@@ -465,6 +467,7 @@ pub async fn initialize_demo_strategies() -> Result<String, String> {
 pub async fn initialize_arbitrage_engine() -> Result<String, String> {
     let config = ArbitrageConfiguration::default();
     let mut engine = CrossChainArbitrageEngine::new(config);
+    engine.initialize();
     engine.initialize_price_oracles();
     
     ARBITRAGE_ENGINE.with(|arb| *arb.borrow_mut() = Some(engine));

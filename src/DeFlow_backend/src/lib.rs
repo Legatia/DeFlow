@@ -42,6 +42,9 @@ fn init() {
         }
     });
     
+    // Initialize portfolio management system
+    defi::portfolio_api::init_portfolio_system();
+    
     ic_cdk::println!("DeFlow backend initialized");
 }
 
@@ -82,6 +85,9 @@ fn post_upgrade() {
             ic_cdk::println!("Failed to re-initialize DeFi system after upgrade: {}", e);
         }
     });
+    
+    // Re-initialize portfolio management system
+    defi::portfolio_api::init_portfolio_system();
     
     ic_cdk::println!("DeFlow backend post_upgrade completed");
 }
