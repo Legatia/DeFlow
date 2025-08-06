@@ -33,3 +33,6 @@ bs58 = "0.5"
 # sol-rpc-types = { git = "https://github.com/dfinity/sol-rpc-canister", package = "sol_rpc_types" }
 # Will use pure ICP implementation instead for WASM compatibility
 
+[dev-dependencies]
+tokio = { version = "1.0", features = ["macros", "rt"] }
+

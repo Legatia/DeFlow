@@ -16,6 +16,13 @@ pub mod arbitrage;
 // Day 11: Advanced Portfolio Management System
 pub mod portfolio_manager;
 pub mod portfolio_api;
+// Day 12: Automated DeFi Strategies System
+pub mod automated_strategies;
+pub mod automated_strategy_api;
+// Cross-chain price oracle for real-time market data
+pub mod price_oracle;
+// Live DeFi protocol integrations for real yield/arbitrage data
+pub mod protocol_integrations;
 
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
@@ -171,6 +178,12 @@ pub fn with_defi_manager_mut<R>(f: impl FnOnce(&mut DeFiChainManager) -> R) -> R
 // Initialize DeFi system
 pub async fn initialize_defi_system() -> Result<(), String> {
     ic_cdk::println!("Initializing DeFlow DeFi system...");
+    
+    // Initialize portfolio management system
+    portfolio_api::init_portfolio_system();
+    
+    // Initialize automated strategy system
+    automated_strategy_api::init_automated_strategy_system().await;
     
     // Bitcoin service initialization will be handled on-demand in API calls
     // This avoids complex async lifetime issues during initialization

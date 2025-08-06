@@ -4,6 +4,7 @@
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
 use std::collections::HashMap;
+use std::fmt;
 use ic_cdk::api::time;
 
 /// Core yield farming types and structures
@@ -76,6 +77,33 @@ pub enum DeFiProtocol {
     LightningNetwork,
     StacksDefi,
     RootStock,
+}
+
+impl fmt::Display for DeFiProtocol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DeFiProtocol::Uniswap(version) => write!(f, "Uniswap{:?}", version),
+            DeFiProtocol::Aave => write!(f, "Aave"),
+            DeFiProtocol::Compound => write!(f, "Compound"),
+            DeFiProtocol::Curve => write!(f, "Curve"),
+            DeFiProtocol::Balancer => write!(f, "Balancer"),
+            DeFiProtocol::Convex => write!(f, "Convex"),
+            DeFiProtocol::Yearn => write!(f, "Yearn"),
+            DeFiProtocol::QuickSwap => write!(f, "QuickSwap"),
+            DeFiProtocol::SushiSwap => write!(f, "SushiSwap"),
+            DeFiProtocol::PancakeSwap => write!(f, "PancakeSwap"),
+            DeFiProtocol::SpookySwap => write!(f, "SpookySwap"),
+            DeFiProtocol::TraderJoe => write!(f, "TraderJoe"),
+            DeFiProtocol::Raydium => write!(f, "Raydium"),
+            DeFiProtocol::Serum => write!(f, "Serum"),
+            DeFiProtocol::Mango => write!(f, "Mango"),
+            DeFiProtocol::Orca => write!(f, "Orca"),
+            DeFiProtocol::Marinade => write!(f, "Marinade"),
+            DeFiProtocol::LightningNetwork => write!(f, "LightningNetwork"),
+            DeFiProtocol::StacksDefi => write!(f, "StacksDefi"),
+            DeFiProtocol::RootStock => write!(f, "RootStock"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, CandidType, Serialize, Deserialize, PartialEq, Eq, Hash)]

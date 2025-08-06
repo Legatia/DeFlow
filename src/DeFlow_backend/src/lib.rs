@@ -45,6 +45,13 @@ fn init() {
     // Initialize portfolio management system
     defi::portfolio_api::init_portfolio_system();
     
+    // Initialize automated strategy system
+    ic_cdk::spawn(async {
+        if let Err(e) = defi::automated_strategy_api::init_automated_strategy_system().await {
+            ic_cdk::println!("Failed to initialize automated strategy system: {}", e);
+        }
+    });
+    
     ic_cdk::println!("DeFlow backend initialized");
 }
 
@@ -88,6 +95,13 @@ fn post_upgrade() {
     
     // Re-initialize portfolio management system
     defi::portfolio_api::init_portfolio_system();
+    
+    // Re-initialize automated strategy system  
+    ic_cdk::spawn(async {
+        if let Err(e) = defi::automated_strategy_api::init_automated_strategy_system().await {
+            ic_cdk::println!("Failed to re-initialize automated strategy system: {}", e);
+        }
+    });
     
     ic_cdk::println!("DeFlow backend post_upgrade completed");
 }
