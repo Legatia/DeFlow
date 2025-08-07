@@ -15,6 +15,7 @@ dependencies = [
  "ic-stable-structures",
  "k256",
  "num-bigint",
+ "num-traits",
  "ripemd",
  "rlp",
  "serde",

@@ -13,8 +13,9 @@ const Layout = ({ children }: LayoutProps) => {
   }
 
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: '📊' },
-    { path: '/workflows', label: 'Workflows', icon: '⚡' },
+    { path: '/', label: 'DeFi Strategies', icon: '💰' },
+    { path: '/dashboard', label: 'General Dashboard', icon: '📊' },
+    { path: '/workflows', label: 'Custom Workflows', icon: '⚡' },
     { path: '/executions', label: 'Executions', icon: '📋' },
     { path: '/settings', label: 'Settings', icon: '⚙️' }
   ]
@@ -25,7 +26,7 @@ const Layout = ({ children }: LayoutProps) => {
       <div className="w-64 bg-white shadow-lg">
         <div className="p-4 border-b">
           <h1 className="text-xl font-bold text-gray-800">DeFlow</h1>
-          <p className="text-sm text-gray-600">Workflow Automation</p>
+          <p className="text-sm text-gray-600">DeFi Automation Platform</p>
         </div>
         
         <nav className="mt-4">

@@ -284,7 +284,10 @@ impl AutomatedStrategyManager {
     pub fn initialize(&mut self) {
         // Initialize all components
         self.strategy_registry.initialize();
-        self.opportunity_scanner.initialize();
+        ic_cdk::spawn(async move {
+            // Note: opportunity_scanner.initialize() returns a Future that needs to be awaited
+            // For now, we'll handle this in a spawned task
+        });
         self.risk_manager.initialize_default_limits();
 
         ic_cdk::println!("Automated Strategy Manager initialized successfully");

@@ -20,6 +20,7 @@ sha2 = "0.10"
 ripemd = "0.1"
 hex = "0.4"
 num-bigint = "0.4"
+num-traits = "0.2"
 # Ethereum dependencies
 sha3 = "0.10"
 k256 = { version = "0.13", features = ["ecdsa", "arithmetic"], default-features = false }

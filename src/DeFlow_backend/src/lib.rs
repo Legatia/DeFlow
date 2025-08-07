@@ -30,6 +30,17 @@ pub use events::{
     schedule_workflow_execution, list_persistent_scheduled_executions, cancel_persistent_execution
 };
 // DeFi functions are available as canister endpoints in defi::api module
+// Strategy API functions - Advanced DeFi strategy management
+pub use defi::strategy_api::{
+    get_strategy_yield_opportunities, scan_arbitrage_opportunities, get_strategy_portfolio_analytics,
+    execute_strategy, get_performance_report, health_check, get_api_docs, init_strategy_api
+};
+// Workflow Template API functions - User-friendly strategy creation
+pub use defi::simple_template_api::{
+    list_workflow_templates, get_templates_by_category, get_template_by_id,
+    create_strategy_from_simple_template, get_simple_template_recommendations,
+    get_template_categories, init_simple_workflow_template_system
+};
 
 #[init]
 fn init() {
@@ -51,6 +62,12 @@ fn init() {
             ic_cdk::println!("Failed to initialize automated strategy system: {}", e);
         }
     });
+    
+    // Initialize strategy API system
+    defi::strategy_api::init_strategy_api();
+    
+    // Initialize workflow template system
+    defi::simple_template_api::init_simple_workflow_template_system();
     
     ic_cdk::println!("DeFlow backend initialized");
 }
@@ -102,6 +119,12 @@ fn post_upgrade() {
             ic_cdk::println!("Failed to re-initialize automated strategy system: {}", e);
         }
     });
+    
+    // Re-initialize strategy API system
+    defi::strategy_api::init_strategy_api();
+    
+    // Re-initialize workflow template system
+    defi::simple_template_api::init_simple_workflow_template_system();
     
     ic_cdk::println!("DeFlow backend post_upgrade completed");
 }

@@ -143,7 +143,7 @@ pub fn get_strategy_templates() -> Vec<StrategyTemplate> {
 
 /// Get strategy templates by category
 #[ic_cdk::query]
-pub fn get_templates_by_category(category: String) -> Vec<StrategyTemplate> {
+pub fn get_strategy_templates_by_category(category: String) -> Vec<StrategyTemplate> {
     STRATEGY_MANAGER.with(|manager| {
         let registry = &manager.borrow().strategy_registry;
         registry.get_templates_by_type(&category)

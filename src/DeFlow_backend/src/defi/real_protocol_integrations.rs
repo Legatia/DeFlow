@@ -1,16 +1,15 @@
 // Real-World DeFi Protocol Integrations
 // Actual API connections to major DeFi protocols for live data and execution
 
-use super::yield_farming::{DeFi
-
 use super::yield_farming::{DeFiProtocol, ChainId};
-use super::price_oracle::{CrossChainPriceOracle, Price};
-use candid::{CandidType, Deserialize};
+use super::price_oracle::CrossChainPriceOracle;
+use candid::CandidType;
 use serde::{Serialize, Deserialize as SerdeDeserialize};
 use std::collections::HashMap;
 use ic_cdk::api::management_canister::http_request::{
-    http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, HttpResponse,
+    http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod,
 };
+use num_traits::cast::ToPrimitive;
 
 /// Real-time protocol integration manager
 #[derive(Debug, Clone)]
@@ -46,7 +45,7 @@ impl RealProtocolIntegrationManager {
         self.uniswap_integration.initialize().await?;
         self.compound_integration.initialize().await?;
         self.curve_integration.initialize().await?;
-        self.price_oracle.initialize().await?;
+        self.price_oracle.initialize()?;
 
         ic_cdk::println!("All protocol integrations initialized successfully");
         Ok(())
@@ -64,7 +63,7 @@ impl RealProtocolIntegrationManager {
         // Check cache first
         if let Some(cached_opportunities) = self.cache.get_yield_opportunities() {
             if !self.cache.is_stale(&cached_opportunities) {
-                return Ok(cached_opportunities.data);
+                return Ok(cached_opportunities.data.clone());
             }
         }
 
@@ -106,7 +105,7 @@ impl RealProtocolIntegrationManager {
         // Check cache
         if let Some(cached_arbitrage) = self.cache.get_arbitrage_opportunities() {
             if !self.cache.is_stale(&cached_arbitrage) {
-                return Ok(cached_arbitrage.data);
+                return Ok(cached_arbitrage.data.clone());
             }
         }
 
@@ -271,13 +270,14 @@ impl AaveIntegration {
         let mut opportunities = Vec::new();
         for reserve in aave_reserves {
             if reserve.supply_apy > 3.0 { // Minimum 3% APY
+                let risk_score = self.calculate_risk_score(&reserve);
                 opportunities.push(RealYieldOpportunity {
                     protocol: DeFiProtocol::Aave,
                     chain: self.chain_id.clone(),
                     token_symbol: reserve.symbol,
                     apy: reserve.supply_apy,
                     tvl: reserve.total_liquidity,
-                    risk_score: self.calculate_risk_score(&reserve),
+                    risk_score,
                     min_deposit: reserve.min_deposit,
                     max_deposit: reserve.max_deposit,
                     liquidity_available: reserve.available_liquidity,
@@ -342,16 +342,29 @@ impl AaveIntegration {
             headers,
         };
 
-        match http_request(request).await {
+        match http_request(request, 10_000_000_000_u128).await {
             Ok((response,)) => {
-                if response.status == 200 {
+                // Convert status to u16 for comparison
+                let status_u16 = response.status.0.to_u64().unwrap_or(500) as u16;
+                if status_u16 == 200 {
                     String::from_utf8(response.body)
                         .map_err(|e| IntegrationError::ParseError(format!("Invalid UTF-8 response: {}", e)))
                 } else {
-                    Err(IntegrationError::HttpError(response.status, String::from_utf8_lossy(&response.body).to_string()))
+                    Err(IntegrationError::HttpError(status_u16, String::from_utf8_lossy(&response.body).to_string()))
                 }
             }
-            Err((code, msg)) => Err(IntegrationError::HttpError(code as u16, msg)),
+            Err((code, msg)) => {
+                let error_code = match code {
+                    ic_cdk::api::call::RejectionCode::NoError => 200,
+                    ic_cdk::api::call::RejectionCode::SysFatal => 500,
+                    ic_cdk::api::call::RejectionCode::SysTransient => 503,
+                    ic_cdk::api::call::RejectionCode::DestinationInvalid => 400,
+                    ic_cdk::api::call::RejectionCode::CanisterReject => 400,
+                    ic_cdk::api::call::RejectionCode::CanisterError => 500,
+                    ic_cdk::api::call::RejectionCode::Unknown => 500,
+                };
+                Err(IntegrationError::HttpError(error_code, msg))
+            },
         }
     }
 
@@ -529,16 +542,29 @@ impl UniswapIntegration {
             headers,
         };
 
-        match http_request(request).await {
+        match http_request(request, 10_000_000_000_u128).await {
             Ok((response,)) => {
-                if response.status == 200 {
+                // Convert status to u16 for comparison
+                let status_u16 = response.status.0.to_u64().unwrap_or(500) as u16;
+                if status_u16 == 200 {
                     String::from_utf8(response.body)
                         .map_err(|e| IntegrationError::ParseError(format!("Invalid UTF-8 response: {}", e)))
                 } else {
-                    Err(IntegrationError::HttpError(response.status, String::from_utf8_lossy(&response.body).to_string()))
+                    Err(IntegrationError::HttpError(status_u16, String::from_utf8_lossy(&response.body).to_string()))
                 }
             }
-            Err((code, msg)) => Err(IntegrationError::HttpError(code as u16, msg)),
+            Err((code, msg)) => {
+                let error_code = match code {
+                    ic_cdk::api::call::RejectionCode::NoError => 200,
+                    ic_cdk::api::call::RejectionCode::SysFatal => 500,
+                    ic_cdk::api::call::RejectionCode::SysTransient => 503,
+                    ic_cdk::api::call::RejectionCode::DestinationInvalid => 400,
+                    ic_cdk::api::call::RejectionCode::CanisterReject => 400,
+                    ic_cdk::api::call::RejectionCode::CanisterError => 500,
+                    ic_cdk::api::call::RejectionCode::Unknown => 500,
+                };
+                Err(IntegrationError::HttpError(error_code, msg))
+            },
         }
     }
 
@@ -944,6 +970,12 @@ pub enum IntegrationError {
     RateLimited(String),
     InsufficientLiquidity(String),
     ExecutionFailed(String),
+}
+
+impl From<super::price_oracle::OracleError> for IntegrationError {
+    fn from(error: super::price_oracle::OracleError) -> Self {
+        IntegrationError::ExecutionFailed(format!("Oracle error: {:?}", error))
+    }
 }
 
 impl std::fmt::Display for IntegrationError {

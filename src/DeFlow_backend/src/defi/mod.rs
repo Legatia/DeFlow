@@ -19,10 +19,15 @@ pub mod portfolio_api;
 // Day 12: Automated DeFi Strategies System
 pub mod automated_strategies;
 pub mod automated_strategy_api;
+pub mod strategy_api;
+// Day 13: User-friendly Workflow Templates
+pub mod simple_workflow_templates;
+pub mod simple_template_api;
 // Cross-chain price oracle for real-time market data
 pub mod price_oracle;
 // Live DeFi protocol integrations for real yield/arbitrage data
 pub mod protocol_integrations;
+pub mod real_protocol_integrations;
 
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
@@ -183,7 +188,15 @@ pub async fn initialize_defi_system() -> Result<(), String> {
     portfolio_api::init_portfolio_system();
     
     // Initialize automated strategy system
-    automated_strategy_api::init_automated_strategy_system().await;
+    if let Err(e) = automated_strategy_api::init_automated_strategy_system().await {
+        ic_cdk::println!("Failed to initialize automated strategy system in defi module: {}", e);
+    }
+    
+    // Initialize strategy API system  
+    ic_cdk::println!("DeFlow Strategy API components ready");
+    
+    // Initialize workflow template system
+    simple_template_api::init_simple_workflow_template_system();
     
     // Bitcoin service initialization will be handled on-demand in API calls
     // This avoids complex async lifetime issues during initialization

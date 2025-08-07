@@ -7,6 +7,7 @@ import WorkflowList from './pages/WorkflowList'
 import WorkflowEditor from './pages/WorkflowEditor'
 import ExecutionHistory from './pages/ExecutionHistory'
 import Settings from './pages/Settings'
+import DeFiDashboard from './pages/DeFiDashboard'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -28,7 +29,9 @@ function App() {
     <Router>
       <Layout>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<DeFiDashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/defi" element={<DeFiDashboard />} />
           <Route path="/workflows" element={<WorkflowList />} />
           <Route path="/workflows/new" element={<WorkflowEditor />} />
           <Route path="/workflows/:id" element={<WorkflowEditor />} />
