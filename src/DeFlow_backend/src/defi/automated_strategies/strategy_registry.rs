@@ -36,6 +36,7 @@ impl StrategyRegistry {
                 }),
                 target_chains: vec![ChainId::Ethereum],
                 target_protocols: vec![DeFiProtocol::Aave],
+                required_wallet_addresses: vec![ChainId::Ethereum], // Required wallet for Ethereum
                 risk_level: 3,
                 max_allocation_usd: 10000.0,
                 min_return_threshold: 5.0,

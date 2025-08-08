@@ -9,6 +9,7 @@ import {
   createMockBitcoinAddress,
   createMockUser 
 } from '../utils/testUtils'
+import { BigIntUtils } from '../../utils/bigint-utils'
 
 // Mock services
 const mockIcpService = {
@@ -150,8 +151,8 @@ describe('Bitcoin DeFi Workflow Integration', () => {
           {
             node_id: 'portfolio-1',
             status: 'Completed',
-            started_at: BigInt(Date.now() * 1000000 - 1000000000),
-            completed_at: BigInt(Date.now() * 1000000),
+            started_at: BigIntUtils.dateToTimestamp(new Date(Date.now() - 1000)),
+            completed_at: BigIntUtils.dateToTimestamp(),
             output_data: {
               total_btc: mockPortfolio.total_btc,
               total_value_usd: mockPortfolio.total_value_usd,

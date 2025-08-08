@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { vi } from 'vitest'
 import { Workflow, WorkflowExecution, User } from '../../types'
 import { TimestampUtils } from '../../utils/timestamp-utils'
+import { BigIntUtils } from '../../utils/bigint-utils'
 
 // Bitcoin DeFi types for testing
 export interface BitcoinPortfolio {
@@ -139,11 +140,11 @@ export const createMockWorkflowExecution = (overrides: Partial<WorkflowExecution
       input_data: {},
       output_data: { trigger: 'manual' },
       error_message: null,
-      duration: BigInt(30000000000) // 30 seconds in nanoseconds
+      duration: BigIntUtils.dateToTimestamp(new Date(Date.now() + 30000)) // 30 seconds from now
     }
   ],
   error_message: null,
-  duration: BigInt(60000000000), // 60 seconds in nanoseconds
+  duration: BigIntUtils.dateToTimestamp(new Date(Date.now() + 60000)), // 60 seconds from now
   ...overrides
 })
 
@@ -463,7 +464,7 @@ export const createMockBitcoinPortfolio = (overrides: Partial<BitcoinPortfolio> 
     total_satoshis: overrides.total_satoshis || totalSatoshis,
     total_value_usd: overrides.total_value_usd || (totalBtc * btcPrice),
     utxos,
-    last_updated: overrides.last_updated || BigInt(Date.now() * 1000000),
+    last_updated: overrides.last_updated || BigIntUtils.dateToTimestamp(),
     ...overrides
   }
 }
@@ -586,9 +587,9 @@ export const createMockBitcoinNodeExecution = (
 ) => ({
   node_id: nodeId,
   status,
-  started_at: overrides.started_at || BigInt(Date.now() * 1000000 - 1000000000),
+  started_at: overrides.started_at || BigIntUtils.dateToTimestamp(new Date(Date.now() - 1000)),
   completed_at: status === 'Completed' || status === 'Failed' ? 
-    (overrides.completed_at || BigInt(Date.now() * 1000000)) : undefined,
+    (overrides.completed_at || BigIntUtils.dateToTimestamp()) : undefined,
   input_data: overrides.input_data,
   output_data: overrides.output_data,
   error_message: status === 'Failed' ? 

@@ -3,11 +3,9 @@
  * Run this script to test the main application functionality
  */
 
-import { icpService } from './services/icpService';
-import { useWorkflowStore } from './stores/workflowStore';
-import { useUIStore } from './stores/uiStore';
-import { bigintToNumber, timestampToBigint, formatBigintTimestamp } from './utils/bigint';
-import type { Workflow } from './types';
+import { icpService } from '../src/services/icpService';
+import { BigIntUtils } from '../src/utils/bigint-utils';
+import type { Workflow } from '../src/types';
 
 // Test data
 const testWorkflow: Workflow = {
@@ -33,8 +31,8 @@ const testWorkflow: Workflow = {
       config: {}
     }
   ],
-  created_at: timestampToBigint(),
-  updated_at: timestampToBigint(),
+  created_at: BigIntUtils.dateToTimestamp(),
+  updated_at: BigIntUtils.dateToTimestamp(),
   active: true
 };
 
@@ -54,38 +52,38 @@ export class AppValidationSuite {
    * Test BigInt utility functions
    */
   async testBigIntUtils() {
-    console.log('\n🧪 Testing BigInt Utilities...');
+    console.log('\n🧪 Testing BigNumber Utilities...');
     
     try {
       // Test basic conversion
       const timestamp = Date.now();
-      const bigintTimestamp = timestampToBigint(timestamp);
-      const convertedBack = bigintToNumber(bigintTimestamp / BigInt(1000000));
+      const bigintTimestamp = BigIntUtils.dateToTimestamp(new Date(timestamp));
+      const convertedBack = BigIntUtils.toNumber(BigIntUtils.toBigInt(bigintTimestamp) / BigIntUtils.toBigInt(1000000));
       
       if (Math.abs(convertedBack - timestamp) < 1000) {
-        this.logResult('BigInt timestamp conversion', 'PASS');
+        this.logResult('BigNumber timestamp conversion', 'PASS');
       } else {
-        this.logResult('BigInt timestamp conversion', 'FAIL', 'Conversion precision issue');
+        this.logResult('BigNumber timestamp conversion', 'FAIL', 'Conversion precision issue');
       }
 
       // Test formatting
-      const formatted = formatBigintTimestamp(bigintTimestamp);
+      const formatted = BigIntUtils.timestampToDate(bigintTimestamp).toISOString();
       if (formatted.includes('T') && formatted.includes('Z')) {
-        this.logResult('BigInt timestamp formatting', 'PASS');
+        this.logResult('BigNumber timestamp formatting', 'PASS');
       } else {
-        this.logResult('BigInt timestamp formatting', 'FAIL', 'Invalid ISO format');
+        this.logResult('BigNumber timestamp formatting', 'FAIL', 'Invalid ISO format');
       }
 
       // Test edge cases
-      const maxSafe = bigintToNumber(BigInt(Number.MAX_SAFE_INTEGER));
+      const maxSafe = BigIntUtils.toNumber(BigIntUtils.toBigInt(Number.MAX_SAFE_INTEGER));
       if (maxSafe === Number.MAX_SAFE_INTEGER) {
-        this.logResult('BigInt safe integer handling', 'PASS');
+        this.logResult('BigNumber safe integer handling', 'PASS');
       } else {
-        this.logResult('BigInt safe integer handling', 'FAIL', 'Safe integer conversion failed');
+        this.logResult('BigNumber safe integer handling', 'FAIL', 'Safe integer conversion failed');
       }
 
     } catch (error) {
-      this.logResult('BigInt utilities', 'FAIL', (error as Error).message);
+      this.logResult('BigNumber utilities', 'FAIL', (error as Error).message);
     }
   }
 
@@ -261,12 +259,12 @@ export class AppValidationSuite {
         this.logResult('Workflow type definition', 'FAIL', 'Missing required workflow properties');
       }
 
-      // Test BigInt type handling
+      // Test BigNumber type handling
       const timestamp: bigint = workflow.created_at;
-      if (typeof timestamp === 'bigint') {
-        this.logResult('BigInt type integration', 'PASS');
+      if (timestamp && BigIntUtils.isPositive(timestamp)) {
+        this.logResult('BigNumber type integration', 'PASS');
       } else {
-        this.logResult('BigInt type integration', 'FAIL', 'Timestamp not properly typed as BigInt');
+        this.logResult('BigNumber type integration', 'FAIL', 'Timestamp not properly handled');
       }
 
       // Test node configuration typing
@@ -320,7 +318,7 @@ export class AppValidationSuite {
     }
     
     console.log('\n🎯 Core Functionality Status:');
-    console.log(`BigInt Utils: ${this.getCategoryStatus('BigInt')}`);
+    console.log(`BigNumber Utils: ${this.getCategoryStatus('BigNumber')}`);
     console.log(`UI Store: ${this.getCategoryStatus('UI')}`);
     console.log(`Workflow Store: ${this.getCategoryStatus('Workflow')}`);
     console.log(`ICP Service: ${this.getCategoryStatus('ICP')}`);

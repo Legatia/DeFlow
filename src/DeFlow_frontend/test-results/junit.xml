@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="52" failures="41" errors="0" time="0.160910126">
-    <testsuite name="src/tests/components/BitcoinNodes.test.tsx" timestamp="2025-08-04T08:27:59.431Z" hostname="macbookair.home" tests="20" failures="9" errors="0" skipped="0" time="0.099811209">
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Portfolio Node &gt; should render portfolio node correctly" time="0.041014917">
+<testsuites name="vitest tests" tests="151" failures="86" errors="0" time="6.87297971">
+    <testsuite name="src/tests/components/BitcoinNodes.test.tsx" timestamp="2025-08-08T17:10:32.395Z" hostname="macbookair.home" tests="20" failures="9" errors="0" skipped="0" time="0.088035167">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Portfolio Node &gt; should render portfolio node correctly" time="0.04044325">
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Portfolio Node &gt; should handle portfolio refresh" time="0.040813166">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Portfolio Node &gt; should handle portfolio refresh" time="0.040242">
             <failure message="Found multiple elements by: [data-testid=&quot;refresh-portfolio&quot;]
 
 Here are the matching elements:
@@ -306,7 +306,7 @@ Ignored nodes: comments, script, style
  ❯ src/tests/components/BitcoinNodes.test.tsx:272:30
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Portfolio Node &gt; should display zero values for empty portfolio" time="0.040827583">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Portfolio Node &gt; should display zero values for empty portfolio" time="0.040253333">
             <failure message="Found multiple elements by: [data-testid=&quot;total-btc&quot;]
 
 Here are the matching elements:
@@ -753,9 +753,9 @@ Ignored nodes: comments, script, style
  ❯ src/tests/components/BitcoinNodes.test.tsx:294:21
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Send Node &gt; should render send node correctly" time="0.040821042">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Send Node &gt; should render send node correctly" time="0.040250625">
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Send Node &gt; should handle address input changes" time="0.04080175">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Send Node &gt; should handle address input changes" time="0.040225084">
             <failure message="Found multiple elements by: [data-testid=&quot;to-address-input&quot;]
 
 Here are the matching elements:
@@ -1618,9 +1618,9 @@ Ignored nodes: comments, script, style
  ❯ src/tests/components/BitcoinNodes.test.tsx:342:31
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Send Node &gt; should handle amount input changes" time="0.023371917">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Send Node &gt; should handle amount input changes" time="0.018041541">
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Send Node &gt; should handle fee priority selection" time="0.02327025">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Send Node &gt; should handle fee priority selection" time="0.01800275">
             <failure message="Found multiple elements by: [data-testid=&quot;fee-priority-select&quot;]
 
 Here are the matching elements:
@@ -2183,7 +2183,7 @@ Ignored nodes: comments, script, style
  ❯ src/tests/components/BitcoinNodes.test.tsx:392:31
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Send Node &gt; should handle invalid amount input gracefully" time="0.023251417">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Send Node &gt; should handle invalid amount input gracefully" time="0.017994292">
             <failure message="Found multiple elements by: [data-testid=&quot;amount-input&quot;]
 
 Here are the matching elements:
@@ -2906,9 +2906,9 @@ Ignored nodes: comments, script, style
  ❯ src/tests/components/BitcoinNodes.test.tsx:417:31
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Address Node &gt; should render address node correctly" time="0.023247125">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Address Node &gt; should render address node correctly" time="0.017992208">
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Address Node &gt; should handle address type selection" time="0.023220542">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Address Node &gt; should handle address type selection" time="0.017971625">
             <failure message="Found multiple elements by: [data-testid=&quot;address-type-select&quot;]
 
 Here are the matching elements:
@@ -3941,13 +3941,13 @@ Ignored nodes: comments, script, style
  ❯ src/tests/components/BitcoinNodes.test.tsx:462:31
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Address Node &gt; should generate address when button clicked" time="0.012955833">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Address Node &gt; should generate address when button clicked" time="0.011703041">
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Address Node &gt; should display generated address" time="0.012938708">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Address Node &gt; should display generated address" time="0.011685625">
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Balance Node &gt; should render balance node correctly" time="0.012931584">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Balance Node &gt; should render balance node correctly" time="0.011678542">
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Balance Node &gt; should handle address input for balance check" time="0.012919125">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Balance Node &gt; should handle address input for balance check" time="0.011666791">
             <failure message="Found multiple elements by: [data-testid=&quot;check-address-input&quot;]
 
 Here are the matching elements:
@@ -4554,7 +4554,7 @@ Ignored nodes: comments, script, style
  ❯ src/tests/components/BitcoinNodes.test.tsx:557:31
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Balance Node &gt; should check balance when button clicked" time="0.012913">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Balance Node &gt; should check balance when button clicked" time="0.01165625">
             <failure message="Found multiple elements by: [data-testid=&quot;check-balance&quot;]
 
 Here are the matching elements:
@@ -5291,11 +5291,11 @@ Ignored nodes: comments, script, style
  ❯ src/tests/components/BitcoinNodes.test.tsx:582:30
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Balance Node &gt; should display balance results" time="0.021677709">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Bitcoin Balance Node &gt; should display balance results" time="0.017159667">
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Node Integration &gt; should handle node data updates correctly" time="0.021654791">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Node Integration &gt; should handle node data updates correctly" time="0.0171375">
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Node Integration &gt; should maintain node state between renders" time="0.021636875">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Node Integration &gt; should maintain node state between renders" time="0.017124959">
             <failure message="Found multiple elements by: [data-testid=&quot;to-address-input&quot;]
 
 Here are the matching elements:
@@ -5938,13 +5938,13 @@ Ignored nodes: comments, script, style
  ❯ src/tests/components/BitcoinNodes.test.tsx:672:31
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Accessibility &gt; should have proper ARIA labels and roles" time="0.021635">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Accessibility &gt; should have proper ARIA labels and roles" time="0.017122375">
         </testcase>
-        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Accessibility &gt; should support keyboard navigation" time="0.02162875">
+        <testcase classname="src/tests/components/BitcoinNodes.test.tsx" name="Bitcoin DeFi Workflow Nodes &gt; Accessibility &gt; should support keyboard navigation" time="0.01711525">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/components/WorkflowBuilder.test.tsx" timestamp="2025-08-04T08:27:59.440Z" hostname="macbookair.home" tests="32" failures="32" errors="0" skipped="0" time="0.061098917">
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Rendering &gt; should render workflow builder with all components" time="0.026313542">
+    <testsuite name="src/tests/components/WorkflowBuilder.test.tsx" timestamp="2025-08-08T17:10:32.407Z" hostname="macbookair.home" tests="32" failures="32" errors="0" skipped="0" time="0.05593475">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Rendering &gt; should render workflow builder with all components" time="0.023427666">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -5969,7 +5969,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Rendering &gt; should render node palette" time="0.026197">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Rendering &gt; should render node palette" time="0.023316333">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -5994,7 +5994,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Rendering &gt; should render toolbar with save button" time="0.026182458">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Rendering &gt; should render toolbar with save button" time="0.023301834">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6019,7 +6019,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Rendering &gt; should render with initial nodes and edges" time="0.026177584">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Rendering &gt; should render with initial nodes and edges" time="0.023292792">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6044,7 +6044,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Node Palette &gt; should show node categories" time="0.026168916">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Node Palette &gt; should show node categories" time="0.023284">
             <system-err>
 Error: Uncaught [Error: [vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
@@ -6402,7 +6402,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Node Palette &gt; should allow category selection" time="0.006793708">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Node Palette &gt; should allow category selection" time="0.00626675">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6427,7 +6427,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Node Palette &gt; should show search functionality" time="0.006754625">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Node Palette &gt; should show search functionality" time="0.006227375">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6452,7 +6452,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Node Palette &gt; should support drag and drop from palette" time="0.006743291">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Node Palette &gt; should support drag and drop from palette" time="0.006216875">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6477,7 +6477,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Workflow Operations &gt; should save workflow when save button is clicked" time="0.006736042">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Workflow Operations &gt; should save workflow when save button is clicked" time="0.00620925">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6502,7 +6502,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Workflow Operations &gt; should validate workflow when validate button is clicked" time="0.006724459">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Workflow Operations &gt; should validate workflow when validate button is clicked" time="0.006198625">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6527,7 +6527,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Workflow Operations &gt; should clear workflow when clear button is clicked" time="0.00572275">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Workflow Operations &gt; should clear workflow when clear button is clicked" time="0.006133792">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6552,7 +6552,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Workflow Operations &gt; should show validation errors" time="0.005694166">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Workflow Operations &gt; should show validation errors" time="0.006111042">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6577,7 +6577,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Node Configuration &gt; should show configuration panel when node is selected" time="0.005690125">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Node Configuration &gt; should show configuration panel when node is selected" time="0.006106042">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6602,7 +6602,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Node Configuration &gt; should hide configuration panel when no node is selected" time="0.00568125">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Node Configuration &gt; should hide configuration panel when no node is selected" time="0.006098666">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6627,7 +6627,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Node Configuration &gt; should update node configuration" time="0.005675958">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Node Configuration &gt; should update node configuration" time="0.006093459">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6652,7 +6652,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Node Configuration &gt; should delete node from configuration panel" time="0.005212375">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Node Configuration &gt; should delete node from configuration panel" time="0.00528175">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6677,7 +6677,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Keyboard Shortcuts &gt; should handle save shortcut (Ctrl+S)" time="0.00518975">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Keyboard Shortcuts &gt; should handle save shortcut (Ctrl+S)" time="0.0052545">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6702,7 +6702,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Keyboard Shortcuts &gt; should handle delete shortcut when node is selected" time="0.005182834">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Keyboard Shortcuts &gt; should handle delete shortcut when node is selected" time="0.0052475">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6727,7 +6727,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Keyboard Shortcuts &gt; should handle undo shortcut (Ctrl+Z)" time="0.005176416">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Keyboard Shortcuts &gt; should handle undo shortcut (Ctrl+Z)" time="0.005241083">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6752,7 +6752,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Keyboard Shortcuts &gt; should handle redo shortcut (Ctrl+Y)" time="0.005158667">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Keyboard Shortcuts &gt; should handle redo shortcut (Ctrl+Y)" time="0.005223">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6777,7 +6777,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Workflow Validation &gt; should validate workflow structure" time="0.0083835">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Workflow Validation &gt; should validate workflow structure" time="0.007200958">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6802,7 +6802,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Workflow Validation &gt; should validate node connections" time="0.008369333">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Workflow Validation &gt; should validate node connections" time="0.007186042">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6827,7 +6827,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Workflow Validation &gt; should validate node configurations" time="0.008362084">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Workflow Validation &gt; should validate node configurations" time="0.007178083">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6852,7 +6852,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Workflow Validation &gt; should show validation results" time="0.008355875">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Workflow Validation &gt; should show validation results" time="0.007172209">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6877,7 +6877,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Accessibility &gt; should be keyboard navigable" time="0.00834625">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Accessibility &gt; should be keyboard navigable" time="0.007162375">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6902,7 +6902,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Accessibility &gt; should have proper ARIA labels" time="0.005105375">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Accessibility &gt; should have proper ARIA labels" time="0.0049185">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6927,7 +6927,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Accessibility &gt; should announce status changes to screen readers" time="0.005087791">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Accessibility &gt; should announce status changes to screen readers" time="0.004901917">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6952,7 +6952,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Performance &gt; should handle large workflows efficiently" time="0.005079125">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Performance &gt; should handle large workflows efficiently" time="0.004895333">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -6977,7 +6977,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Performance &gt; should not re-render unnecessarily" time="0.005073">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Performance &gt; should not re-render unnecessarily" time="0.004889291">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -7002,7 +7002,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Error Handling &gt; should handle invalid node types gracefully" time="0.005062167">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Error Handling &gt; should handle invalid node types gracefully" time="0.004863084">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -7027,7 +7027,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Error Handling &gt; should handle save errors gracefully" time="0.00280225">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Error Handling &gt; should handle save errors gracefully" time="0.001974583">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -7052,7 +7052,7 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
             </failure>
         </testcase>
-        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Error Handling &gt; should recover from component errors" time="0.002781375">
+        <testcase classname="src/tests/components/WorkflowBuilder.test.tsx" name="WorkflowBuilder &gt; Error Handling &gt; should recover from component errors" time="0.001957875">
             <failure message="[vitest] No &quot;useNodesState&quot; export is defined on the &quot;reactflow&quot; mock. Did you forget to return it from &quot;vi.mock&quot;?
 If you need to partially mock a module, you can use &quot;importOriginal&quot; helper inside:
 " type="Error">
@@ -7075,6 +7075,649 @@ vi.mock(import(&quot;reactflow&quot;), async (importOriginal) =&gt; {
  ❯ performUnitOfWork ../../node_modules/react-dom/cjs/react-dom.development.js:26599:12
  ❯ workLoopSync ../../node_modules/react-dom/cjs/react-dom.development.js:26505:5
  ❯ renderRootSync ../../node_modules/react-dom/cjs/react-dom.development.js:26473:7
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/tests/services/authService.test.ts" timestamp="2025-08-08T17:10:32.417Z" hostname="macbookair.home" tests="34" failures="13" errors="0" skipped="0" time="0.015396083">
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Login &gt; should login successfully with valid credentials" time="0.006053">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Login &gt; should reject login with invalid email" time="0.005955291">
+            <failure message="expected true to be false // Object.is equality" type="AssertionError">
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/tests/services/authService.test.ts:37:45
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Login &gt; should reject login with invalid password" time="0.005947875">
+            <failure message="expected true to be false // Object.is equality" type="AssertionError">
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/tests/services/authService.test.ts:47:45
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Login &gt; should reject login for disabled account" time="0.00590175">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Login &gt; should save session to localStorage when rememberMe is true" time="0.005903417">
+            <failure message="expected undefined to be defined" type="AssertionError">
+AssertionError: expected undefined to be defined
+ ❯ src/tests/services/authService.test.ts:75:28
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Registration &gt; should register new user successfully" time="0.002825416">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Registration &gt; should reject registration without accepting terms" time="0.002820334">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Registration &gt; should reject registration with existing email" time="0.002797333">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Registration &gt; should reject registration with existing username" time="0.002792625">
+            <failure message="expected [Function] to throw error including &apos;Username already taken&apos; but got &apos;Email already registered&apos;" type="AssertionError">
+AssertionError: expected [Function] to throw error including &apos;Username already taken&apos; but got &apos;Email already registered&apos;
+
+Expected: &quot;Username already taken&quot;
+Received: &quot;Email already registered&quot;
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Registration &gt; should create user with default permissions" time="0.002770625">
+            <failure message="Email already registered" type="Error">
+Error: Email already registered
+ ❯ AuthService.register src/services/authService.ts:144:13
+ ❯ src/tests/services/authService.test.ts:148:40
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Logout &gt; should logout successfully" time="0.001239084">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Logout &gt; should clear localStorage on logout" time="0.002112833">
+            <failure message="expected undefined to be defined" type="AssertionError">
+AssertionError: expected undefined to be defined
+ ❯ src/tests/services/authService.test.ts:185:54
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Session Management &gt; should refresh session successfully" time="0.002031708">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Session Management &gt; should reject refresh without active session" time="0.002056792">
+            <failure message="promise resolved &quot;{ …(8) }&quot; instead of rejecting" type="AssertionError">
+AssertionError: promise resolved &quot;{ …(8) }&quot; instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   &quot;message&quot;: &quot;rejected promise&quot;,
++ {
++   &quot;createdAt&quot;: &quot;1.754673029413e+18&quot;,
++   &quot;deviceInfo&quot;: {
++     &quot;deviceType&quot;: &quot;desktop&quot;,
++     &quot;ip&quot;: &quot;127.0.0.1&quot;,
++     &quot;userAgent&quot;: &quot;Mozilla/5.0 (darwin) AppleWebKit/537.36 (KHTML, like Gecko) jsdom/26.1.0&quot;,
++   },
++   &quot;expiresAt&quot;: &quot;1.757265029413e+18&quot;,
++   &quot;id&quot;: &quot;session_1754673029413_fr3nw0bfn&quot;,
++   &quot;isActive&quot;: false,
++   &quot;refreshToken&quot;: &quot;refresh_1754673029413_4dmcs3752zo&quot;,
++   &quot;token&quot;: &quot;token_1754673029413_skbi5ltq618&quot;,
++   &quot;userId&quot;: &quot;user_001&quot;,
+  }
+
+ ❯ src/tests/services/authService.test.ts:212:48
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Session Management &gt; should load session from localStorage on initialization" time="0.001972708">
+            <failure message="expected undefined to be defined" type="AssertionError">
+AssertionError: expected undefined to be defined
+ ❯ src/tests/services/authService.test.ts:224:28
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; User Management &gt; should update user profile" time="0.00146425">
+            <failure message="Not authenticated" type="Error">
+Error: Not authenticated
+ ❯ AuthService.updateProfile src/services/authService.ts:272:13
+ ❯ src/tests/services/authService.test.ts:261:45
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; User Management &gt; should update user basic information" time="0.001458709">
+            <failure message="Not authenticated" type="Error">
+Error: Not authenticated
+ ❯ AuthService.updateUser src/services/authService.ts:283:13
+ ❯ src/tests/services/authService.test.ts:274:45
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; User Management &gt; should reject email update if email already exists" time="0.001475667">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; User Management &gt; should get all users as admin" time="0.001298125">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; User Management &gt; should create new user as admin" time="0.001335958">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Authorization &gt; should check permissions correctly" time="0.000670625">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Authorization &gt; should check workflow access permissions" time="0.000661542">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Authorization &gt; should check user management permissions" time="0.00062625">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Authorization &gt; should check analytics permissions" time="0.000602834">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Password Management &gt; should request password reset" time="0.000698167">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Password Management &gt; should not reveal if email exists during password reset" time="0.000604959">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Password Management &gt; should reset password with valid token" time="0.000821792">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Password Management &gt; should change password when authenticated" time="0.000802167">
+            <system-out>
+Password reset completed
+
+            </system-out>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Password Management &gt; should reject password change when not authenticated" time="0.000695084">
+            <failure message="promise resolved &quot;undefined&quot; instead of rejecting" type="AssertionError">
+AssertionError: promise resolved &quot;undefined&quot; instead of rejecting
+
+- Expected: 
+Error {
+  &quot;message&quot;: &quot;rejected promise&quot;,
+}
+
++ Received: 
+undefined
+
+ ❯ src/tests/services/authService.test.ts:406:7
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Session Monitoring &gt; should get user sessions" time="0.000609291">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Session Monitoring &gt; should terminate session" time="0.000574583">
+            <failure message="Cannot read properties of undefined (reading &apos;id&apos;)" type="TypeError">
+TypeError: Cannot read properties of undefined (reading &apos;id&apos;)
+ ❯ src/tests/services/authService.test.ts:435:61
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Error Handling &gt; should handle authentication errors gracefully" time="0.000525792">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Error Handling &gt; should handle session expiration" time="0.000470541">
+        </testcase>
+        <testcase classname="src/tests/services/authService.test.ts" name="AuthService &gt; Error Handling &gt; should handle unauthorized operations" time="0.000300166">
+            <failure message="You must provide a Promise to expect() when using .rejects, not &apos;object&apos;." type="TypeError">
+TypeError: You must provide a Promise to expect() when using .rejects, not &apos;object&apos;.
+ ❯ src/tests/services/authService.test.ts:471:45
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/tests/services/defiService.test.ts" timestamp="2025-08-08T17:10:32.420Z" hostname="macbookair.home" tests="20" failures="5" errors="0" skipped="0" time="0.015045709">
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Bitcoin Portfolio Management &gt; should get Bitcoin portfolio successfully" time="0.003276375">
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Bitcoin Portfolio Management &gt; should handle portfolio fetch errors" time="0.00320425">
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Bitcoin Portfolio Management &gt; should get empty portfolio for new user" time="0.003142667">
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Bitcoin Address Management &gt; should generate P2WPKH address" time="0.003133291">
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Bitcoin Address Management &gt; should generate P2PKH address" time="0.003145792">
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Bitcoin Address Management &gt; should generate P2TR address" time="0.004221959">
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Bitcoin Address Management &gt; should get all user addresses" time="0.004203875">
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Bitcoin Address Management &gt; should validate Bitcoin addresses correctly" time="0.004183708">
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Bitcoin Address Management &gt; should throw error for invalid address format" time="0.004140208">
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Bitcoin Transactions &gt; should send Bitcoin successfully" time="0.004142875">
+            <failure message="expected &quot;spy&quot; to be called with arguments: [ &apos;send_bitcoin&apos;, [ …(4) ] ][90m
+
+Number of calls: [1m0[22m
+[39m" type="AssertionError">
+AssertionError: expected &quot;spy&quot; to be called with arguments: [ &apos;send_bitcoin&apos;, [ …(4) ] ]
+
+Number of calls: 0
+
+ ❯ src/tests/services/defiService.test.ts:293:35
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Bitcoin Transactions &gt; should handle insufficient funds error" time="0.000863625">
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Bitcoin Transactions &gt; should send Bitcoin with default fee" time="0.000810583">
+            <failure message="expected &quot;spy&quot; to be called with arguments: [ &apos;send_bitcoin&apos;, [ …(4) ] ][90m
+
+Number of calls: [1m0[22m
+[39m" type="AssertionError">
+AssertionError: expected &quot;spy&quot; to be called with arguments: [ &apos;send_bitcoin&apos;, [ …(4) ] ]
+
+Number of calls: 0
+
+ ❯ src/tests/services/defiService.test.ts:334:35
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Bitcoin Transactions &gt; should handle transaction broadcast failure" time="0.000801541">
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Fee Estimation &gt; should estimate fees for different priorities" time="0.000800083">
+            <failure message="expected &quot;spy&quot; to be called with arguments: [ &apos;estimate_bitcoin_fee&apos;, …(1) ][90m
+
+Number of calls: [1m0[22m
+[39m" type="AssertionError">
+AssertionError: expected &quot;spy&quot; to be called with arguments: [ &apos;estimate_bitcoin_fee&apos;, …(1) ]
+
+Number of calls: 0
+
+ ❯ src/tests/services/defiService.test.ts:382:36
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Fee Estimation &gt; should handle different priority levels" time="0.000763417">
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Edge Cases and Error Handling &gt; should handle network timeouts gracefully" time="0.005972917">
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Edge Cases and Error Handling &gt; should handle malformed responses" time="0.005974125">
+            <failure message="promise resolved &quot;undefined&quot; instead of rejecting" type="AssertionError">
+AssertionError: promise resolved &quot;undefined&quot; instead of rejecting
+
+- Expected: 
+Error {
+  &quot;message&quot;: &quot;rejected promise&quot;,
+}
+
++ Received: 
+undefined
+
+ ❯ src/tests/services/defiService.test.ts:424:53
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Edge Cases and Error Handling &gt; should validate input parameters" time="0.0059665">
+            <failure message="promise resolved &quot;undefined&quot; instead of rejecting" type="AssertionError">
+AssertionError: promise resolved &quot;undefined&quot; instead of rejecting
+
+- Expected: 
+Error {
+  &quot;message&quot;: &quot;rejected promise&quot;,
+}
+
++ Received: 
+undefined
+
+ ❯ src/tests/services/defiService.test.ts:429:55
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Performance Tests &gt; should handle large portfolios efficiently" time="0.005950125">
+        </testcase>
+        <testcase classname="src/tests/services/defiService.test.ts" name="DeFi Service - Bitcoin Integration &gt; Performance Tests &gt; should handle batch address generation" time="0.001370875">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/tests/services/executionEngine.test.ts" timestamp="2025-08-08T17:10:32.421Z" hostname="macbookair.home" tests="15" failures="5" errors="0" skipped="0" time="1.7198895">
+        <testcase classname="src/tests/services/executionEngine.test.ts" name="ExecutionEngine &gt; Workflow Execution &gt; should execute a simple workflow successfully" time="0.663103125">
+        </testcase>
+        <testcase classname="src/tests/services/executionEngine.test.ts" name="ExecutionEngine &gt; Workflow Execution &gt; should handle workflow execution failure" time="0.011578833">
+            <failure message="expected &apos;completed&apos; to be &apos;failed&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;completed&apos; to be &apos;failed&apos; // Object.is equality
+
+Expected: &quot;failed&quot;
+Received: &quot;completed&quot;
+
+ ❯ src/tests/services/executionEngine.test.ts:114:32
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/executionEngine.test.ts" name="ExecutionEngine &gt; Workflow Execution &gt; should handle workflows with no trigger nodes" time="0.0115085">
+        </testcase>
+        <testcase classname="src/tests/services/executionEngine.test.ts" name="ExecutionEngine &gt; Node Execution &gt; should execute manual trigger node" time="0.011533708">
+        </testcase>
+        <testcase classname="src/tests/services/executionEngine.test.ts" name="ExecutionEngine &gt; Node Execution &gt; should execute email node with template processing" time="0.895151666">
+        </testcase>
+        <testcase classname="src/tests/services/executionEngine.test.ts" name="ExecutionEngine &gt; Node Execution &gt; should execute HTTP request node" time="0.00130625">
+            <failure message="expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality
+
+Expected: &quot;completed&quot;
+Received: &quot;failed&quot;
+
+ ❯ src/tests/services/executionEngine.test.ts:295:32
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/executionEngine.test.ts" name="ExecutionEngine &gt; Node Execution &gt; should execute condition node with branching" time="0.00126225">
+        </testcase>
+        <testcase classname="src/tests/services/executionEngine.test.ts" name="ExecutionEngine &gt; Node Execution &gt; should execute delay node" time="0.102181042">
+        </testcase>
+        <testcase classname="src/tests/services/executionEngine.test.ts" name="ExecutionEngine &gt; Node Execution &gt; should execute data transformation node" time="0.000658083">
+            <failure message="expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality
+
+Expected: &quot;completed&quot;
+Received: &quot;failed&quot;
+
+ ❯ src/tests/services/executionEngine.test.ts:484:32
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/executionEngine.test.ts" name="ExecutionEngine &gt; Execution Management &gt; should track execution history" time="1.478181708">
+            <failure message="expected [ { …(9) } ] to have a length of 2 but got 1" type="AssertionError">
+AssertionError: expected [ { …(9) } ] to have a length of 2 but got 1
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ src/tests/services/executionEngine.test.ts:505:26
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/executionEngine.test.ts" name="ExecutionEngine &gt; Execution Management &gt; should retrieve specific execution by ID" time="0.737253333">
+        </testcase>
+        <testcase classname="src/tests/services/executionEngine.test.ts" name="ExecutionEngine &gt; Execution Management &gt; should retrieve execution logs" time="0.698744958">
+        </testcase>
+        <testcase classname="src/tests/services/executionEngine.test.ts" name="ExecutionEngine &gt; Execution Management &gt; should clear execution history" time="0.657215458">
+        </testcase>
+        <testcase classname="src/tests/services/executionEngine.test.ts" name="ExecutionEngine &gt; Error Handling &gt; should handle node execution errors gracefully" time="0.000709459">
+            <failure message="expected &apos;completed&apos; to be &apos;failed&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;completed&apos; to be &apos;failed&apos; // Object.is equality
+
+Expected: &quot;failed&quot;
+Received: &quot;completed&quot;
+
+ ❯ src/tests/services/executionEngine.test.ts:589:32
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/services/executionEngine.test.ts" name="ExecutionEngine &gt; Error Handling &gt; should handle execution timeout gracefully" time="0.967399167">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/tests/integration/bitcoin-workflow-simple.test.ts" timestamp="2025-08-08T17:10:32.423Z" hostname="macbookair.home" tests="10" failures="8" errors="0" skipped="0" time="0.01174575">
+        <testcase classname="src/tests/integration/bitcoin-workflow-simple.test.ts" name="Bitcoin DeFi Workflow Integration - Basic Tests &gt; Basic Workflow Execution &gt; should handle Bitcoin portfolio workflow execution" time="0.007144584">
+            <failure message="expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality
+
+Expected: &quot;completed&quot;
+Received: &quot;failed&quot;
+
+ ❯ src/tests/integration/bitcoin-workflow-simple.test.ts:73:29
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow-simple.test.ts" name="Bitcoin DeFi Workflow Integration - Basic Tests &gt; Basic Workflow Execution &gt; should handle Bitcoin send workflow execution" time="0.007026167">
+            <failure message="expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality
+
+Expected: &quot;completed&quot;
+Received: &quot;failed&quot;
+
+ ❯ src/tests/integration/bitcoin-workflow-simple.test.ts:118:29
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow-simple.test.ts" name="Bitcoin DeFi Workflow Integration - Basic Tests &gt; Basic Workflow Execution &gt; should handle Bitcoin address generation workflow" time="0.007007042">
+            <failure message="expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality
+
+Expected: &quot;completed&quot;
+Received: &quot;failed&quot;
+
+ ❯ src/tests/integration/bitcoin-workflow-simple.test.ts:155:29
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow-simple.test.ts" name="Bitcoin DeFi Workflow Integration - Basic Tests &gt; Basic Workflow Execution &gt; should handle workflow execution errors" time="0.006994042">
+            <failure message="expected null to be &apos;Bitcoin service not initialized&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected null to be &apos;Bitcoin service not initialized&apos; // Object.is equality
+
+- Expected: 
+&quot;Bitcoin service not initialized&quot;
+
++ Received: 
+null
+
+ ❯ src/tests/integration/bitcoin-workflow-simple.test.ts:183:36
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow-simple.test.ts" name="Bitcoin DeFi Workflow Integration - Basic Tests &gt; Basic Workflow Execution &gt; should handle insufficient funds scenarios" time="0.006984042">
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow-simple.test.ts" name="Bitcoin DeFi Workflow Integration - Basic Tests &gt; Basic Workflow Execution &gt; should handle transaction broadcast failures" time="0.0038665">
+            <failure message="expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality
+
+Expected: &quot;completed&quot;
+Received: &quot;failed&quot;
+
+ ❯ src/tests/integration/bitcoin-workflow-simple.test.ts:250:29
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow-simple.test.ts" name="Bitcoin DeFi Workflow Integration - Basic Tests &gt; Multi-Node Workflow Tests &gt; should handle multi-node Bitcoin workflow execution" time="0.003846">
+            <failure message="expected [ { node_id: &apos;portfolio-1&apos;, …(2) } ] to have a length of 3 but got 1" type="AssertionError">
+AssertionError: expected [ { node_id: &apos;portfolio-1&apos;, …(2) } ] to have a length of 3 but got 1
+
+- Expected
++ Received
+
+- 3
++ 1
+
+ ❯ src/tests/integration/bitcoin-workflow-simple.test.ts:296:38
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow-simple.test.ts" name="Bitcoin DeFi Workflow Integration - Basic Tests &gt; Multi-Node Workflow Tests &gt; should handle partial workflow failures" time="0.003835708">
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow-simple.test.ts" name="Bitcoin DeFi Workflow Integration - Basic Tests &gt; Error Recovery Tests &gt; should support retry operations" time="0.00383075">
+            <failure message="expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality
+
+Expected: &quot;completed&quot;
+Received: &quot;failed&quot;
+
+ ❯ src/tests/integration/bitcoin-workflow-simple.test.ts:379:29
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow-simple.test.ts" name="Bitcoin DeFi Workflow Integration - Basic Tests &gt; Error Recovery Tests &gt; should handle network disconnection gracefully" time="0.003857583">
+            <failure message="promise resolved &quot;{ id: &apos;exec_test_001&apos;, …(8) }&quot; instead of rejecting" type="AssertionError">
+AssertionError: promise resolved &quot;{ id: &apos;exec_test_001&apos;, …(8) }&quot; instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   &quot;message&quot;: &quot;rejected promise&quot;,
++ {
++   &quot;completed_at&quot;: &quot;1.70410326e+18&quot;,
++   &quot;duration&quot;: 1754673092338000000n,
++   &quot;error_message&quot;: null,
++   &quot;id&quot;: &quot;exec_test_001&quot;,
++   &quot;node_executions&quot;: [
++     {
++       &quot;node_id&quot;: &quot;portfolio-1&quot;,
++       &quot;output_data&quot;: {
++         &quot;total_btc&quot;: 1,
++       },
++       &quot;status&quot;: &quot;completed&quot;,
++     },
++   ],
++   &quot;started_at&quot;: &quot;1.7041032e+18&quot;,
++   &quot;status&quot;: &quot;completed&quot;,
++   &quot;trigger_data&quot;: {
++     &quot;manual&quot;: true,
++   },
++   &quot;workflow_id&quot;: &quot;workflow_test_001&quot;,
+  }
+
+ ❯ src/tests/integration/bitcoin-workflow-simple.test.ts:390:7
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/tests/integration/bitcoin-workflow.test.ts" timestamp="2025-08-08T17:10:32.424Z" hostname="macbookair.home" tests="12" failures="8" errors="0" skipped="0" time="1.033216459">
+        <testcase classname="src/tests/integration/bitcoin-workflow.test.ts" name="Bitcoin DeFi Workflow Integration &gt; Bitcoin Portfolio Workflow &gt; should execute portfolio fetch workflow successfully" time="0.013290125">
+            <failure message="expected &apos;send-1&apos; to be &apos;portfolio-1&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;send-1&apos; to be &apos;portfolio-1&apos; // Object.is equality
+
+Expected: &quot;portfolio-1&quot;
+Received: &quot;send-1&quot;
+
+ ❯ src/tests/integration/bitcoin-workflow.test.ts:200:37
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow.test.ts" name="Bitcoin DeFi Workflow Integration &gt; Bitcoin Portfolio Workflow &gt; should handle portfolio fetch errors gracefully" time="0.013155792">
+            <failure message="expected &apos;Completed&apos; to be &apos;Failed&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;Completed&apos; to be &apos;Failed&apos; // Object.is equality
+
+Expected: &quot;Failed&quot;
+Received: &quot;Completed&quot;
+
+ ❯ src/tests/integration/bitcoin-workflow.test.ts:260:29
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow.test.ts" name="Bitcoin DeFi Workflow Integration &gt; Bitcoin Send Workflow &gt; should execute send workflow successfully" time="0.013138041">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/tests/integration/bitcoin-workflow.test.ts:354:45
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow.test.ts" name="Bitcoin DeFi Workflow Integration &gt; Bitcoin Send Workflow &gt; should handle insufficient funds error" time="0.013127542">
+            <failure message="expected &apos;Completed&apos; to be &apos;Failed&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;Completed&apos; to be &apos;Failed&apos; // Object.is equality
+
+Expected: &quot;Failed&quot;
+Received: &quot;Completed&quot;
+
+ ❯ src/tests/integration/bitcoin-workflow.test.ts:414:29
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow.test.ts" name="Bitcoin DeFi Workflow Integration &gt; Bitcoin Send Workflow &gt; should handle transaction broadcast failure" time="0.013114166">
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow.test.ts" name="Bitcoin DeFi Workflow Integration &gt; Bitcoin Address Generation Workflow &gt; should execute address generation workflow for all types" time="1.014313125">
+            <failure message="Workflow execution timed out" type="Error">
+Error: Workflow execution timed out
+ ❯ BitcoinWorkflowService.waitForCompletion src/tests/integration/bitcoin-workflow.test.ts:102:11
+ ❯ src/tests/integration/bitcoin-workflow.test.ts:532:24
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow.test.ts" name="Bitcoin DeFi Workflow Integration &gt; Complex Bitcoin Workflows &gt; should execute multi-node Bitcoin workflow" time="1.017780959">
+            <failure message="Workflow execution timed out" type="Error">
+Error: Workflow execution timed out
+ ❯ BitcoinWorkflowService.waitForCompletion src/tests/integration/bitcoin-workflow.test.ts:102:11
+ ❯ src/tests/integration/bitcoin-workflow.test.ts:684:22
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow.test.ts" name="Bitcoin DeFi Workflow Integration &gt; Complex Bitcoin Workflows &gt; should handle partial workflow failures" time="1.018344292">
+            <failure message="Workflow execution timed out" type="Error">
+Error: Workflow execution timed out
+ ❯ BitcoinWorkflowService.waitForCompletion src/tests/integration/bitcoin-workflow.test.ts:102:11
+ ❯ src/tests/integration/bitcoin-workflow.test.ts:753:22
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow.test.ts" name="Bitcoin DeFi Workflow Integration &gt; Workflow Monitoring and Control &gt; should monitor workflow execution progress" time="1.019119125">
+            <failure message="Workflow execution timed out" type="Error">
+Error: Workflow execution timed out
+ ❯ BitcoinWorkflowService.waitForCompletion src/tests/integration/bitcoin-workflow.test.ts:102:11
+ ❯ src/tests/integration/bitcoin-workflow.test.ts:801:22
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow.test.ts" name="Bitcoin DeFi Workflow Integration &gt; Workflow Monitoring and Control &gt; should handle workflow execution timeout" time="1.018607709">
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow.test.ts" name="Bitcoin DeFi Workflow Integration &gt; Error Recovery and Resilience &gt; should retry failed Bitcoin operations" time="0.001705959">
+        </testcase>
+        <testcase classname="src/tests/integration/bitcoin-workflow.test.ts" name="Bitcoin DeFi Workflow Integration &gt; Error Recovery and Resilience &gt; should handle network disconnection gracefully" time="0.001378584">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/tests/integration/workflow-execution.test.ts" timestamp="2025-08-08T17:10:32.426Z" hostname="macbookair.home" tests="8" failures="6" errors="0" skipped="0" time="3.933716292">
+        <testcase classname="src/tests/integration/workflow-execution.test.ts" name="Workflow Execution Integration &gt; Complete Workflow Execution Flow &gt; should execute a complete workflow with monitoring and real-time updates" time="0.488928">
+            <failure message="expected [ { …(10) }, { …(10) } ] to have a length of 5 but got 2" type="AssertionError">
+AssertionError: expected [ { …(10) }, { …(10) } ] to have a length of 5 but got 2
+
+- Expected
++ Received
+
+- 5
++ 2
+
+ ❯ src/tests/integration/workflow-execution.test.ts:161:41
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/workflow-execution.test.ts" name="Workflow Execution Integration &gt; Complete Workflow Execution Flow &gt; should handle workflow execution failure with proper error tracking" time="0.008285625">
+            <failure message="expected &apos;completed&apos; to be &apos;failed&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;completed&apos; to be &apos;failed&apos; // Object.is equality
+
+Expected: &quot;failed&quot;
+Received: &quot;completed&quot;
+
+ ❯ src/tests/integration/workflow-execution.test.ts:244:32
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/workflow-execution.test.ts" name="Workflow Execution Integration &gt; Webhook Integration &gt; should trigger workflow execution via webhook" time="0.008237167">
+            <failure message="expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality
+
+Expected: &quot;completed&quot;
+Received: &quot;failed&quot;
+
+ ❯ src/tests/integration/workflow-execution.test.ts:357:33
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/workflow-execution.test.ts" name="Workflow Execution Integration &gt; Webhook Integration &gt; should handle webhook rate limiting" time="0.00827075">
+        </testcase>
+        <testcase classname="src/tests/integration/workflow-execution.test.ts" name="Workflow Execution Integration &gt; Multi-Node Workflow Execution &gt; should execute complex workflow with multiple branches" time="0.39357325">
+            <system-out>
+[WebSocket] Sending to test-connection-1: {
+  type: [32m&apos;execution_start&apos;[39m,
+  executionId: [32m&apos;system&apos;[39m,
+  workflowId: [32m&apos;system&apos;[39m,
+  timestamp: [32m&apos;1.754673028026e+18&apos;[39m,
+  data: {
+    message: [32m&apos;Connected to DeFlow real-time service&apos;[39m,
+    connectionId: [32m&apos;test-connection-1&apos;[39m,
+    subscribedWorkflows: [ [32m&apos;integration_test_workflow&apos;[39m ]
+  }
+}
+[WebSocket] Sending to test-connection-fail: {
+  type: [32m&apos;execution_start&apos;[39m,
+  executionId: [32m&apos;system&apos;[39m,
+  workflowId: [32m&apos;system&apos;[39m,
+  timestamp: [32m&apos;1.754673028027e+18&apos;[39m,
+  data: {
+    message: [32m&apos;Connected to DeFlow real-time service&apos;[39m,
+    connectionId: [32m&apos;test-connection-fail&apos;[39m,
+    subscribedWorkflows: [ [32m&apos;failing_workflow&apos;[39m ]
+  }
+}
+
+            </system-out>
+            <failure message="expected [ { …(10) }, { …(10) } ] to have a length of 8 but got 2" type="AssertionError">
+AssertionError: expected [ { …(10) }, { …(10) } ] to have a length of 8 but got 2
+
+- Expected
++ Received
+
+- 8
++ 2
+
+ ❯ src/tests/integration/workflow-execution.test.ts:503:41
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/workflow-execution.test.ts" name="Workflow Execution Integration &gt; Performance and Monitoring Integration &gt; should track performance metrics across multiple executions" time="3.924511083">
+            <failure message="expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;failed&apos; to be &apos;completed&apos; // Object.is equality
+
+Expected: &quot;completed&quot;
+Received: &quot;failed&quot;
+
+ ❯ src/tests/integration/workflow-execution.test.ts:559:34
+ ❯ src/tests/integration/workflow-execution.test.ts:558:18
+            </failure>
+        </testcase>
+        <testcase classname="src/tests/integration/workflow-execution.test.ts" name="Workflow Execution Integration &gt; Performance and Monitoring Integration &gt; should handle concurrent workflow executions" time="0.823668291">
+        </testcase>
+        <testcase classname="src/tests/integration/workflow-execution.test.ts" name="Workflow Execution Integration &gt; Error Recovery and Resilience &gt; should handle partial workflow failures gracefully" time="0.643598458">
+            <failure message="expected &apos;completed&apos; to be &apos;failed&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;completed&apos; to be &apos;failed&apos; // Object.is equality
+
+Expected: &quot;failed&quot;
+Received: &quot;completed&quot;
+
+ ❯ src/tests/integration/workflow-execution.test.ts:641:32
             </failure>
         </testcase>
     </testsuite>

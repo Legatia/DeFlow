@@ -3,10 +3,10 @@ import { Actor, HttpAgent } from '@dfinity/agent';
 import { AuthClient } from '@dfinity/auth-client';
 import { Principal } from '@dfinity/principal';
 import { Workflow, WorkflowExecution, NodeDefinition } from '../types';
-import { BigIntUtils } from '../utils/bigint-polyfill';
+import { BigIntUtils } from '../utils/bigint-utils';
 
-// Import polyfill before any @dfinity operations
-import '../utils/bigint-polyfill';
+// Import simple BigInt fix before any @dfinity operations
+import '../utils/simple-bigint-fix';
 
 // Type-safe interface for our backend canister
 interface BackendCanister {
@@ -202,32 +202,26 @@ class ICPService {
   private convertWorkflow(backendWorkflow: any): Workflow {
     return {
       ...backendWorkflow,
-      created_at: typeof backendWorkflow.created_at === 'bigint' 
-        ? BigIntUtils.toString(backendWorkflow.created_at)
-        : backendWorkflow.created_at,
-      updated_at: typeof backendWorkflow.updated_at === 'bigint'
-        ? BigIntUtils.toString(backendWorkflow.updated_at)
-        : backendWorkflow.updated_at
+      created_at: BigIntUtils.toBigInt(backendWorkflow.created_at || Date.now() * 1_000_000),
+      updated_at: BigIntUtils.toBigInt(backendWorkflow.updated_at || Date.now() * 1_000_000)
     };
   }
 
   private convertExecution(backendExecution: any): WorkflowExecution {
     return {
       ...backendExecution,
-      started_at: typeof backendExecution.started_at === 'bigint'
-        ? BigIntUtils.toString(backendExecution.started_at)
-        : backendExecution.started_at,
-      completed_at: backendExecution.completed_at && typeof backendExecution.completed_at === 'bigint'
-        ? BigIntUtils.toString(backendExecution.completed_at)
-        : backendExecution.completed_at,
+      started_at: BigIntUtils.toBigInt(backendExecution.started_at || Date.now() * 1_000_000),
+      completed_at: backendExecution.completed_at 
+        ? BigIntUtils.toBigInt(backendExecution.completed_at)
+        : undefined,
       node_executions: backendExecution.node_executions?.map((ne: any) => ({
         ...ne,
-        started_at: ne.started_at && typeof ne.started_at === 'bigint'
-          ? BigIntUtils.toString(ne.started_at)
-          : ne.started_at,
-        completed_at: ne.completed_at && typeof ne.completed_at === 'bigint'
-          ? BigIntUtils.toString(ne.completed_at)
-          : ne.completed_at
+        started_at: ne.started_at 
+          ? BigIntUtils.toBigInt(ne.started_at)
+          : undefined,
+        completed_at: ne.completed_at 
+          ? BigIntUtils.toBigInt(ne.completed_at)
+          : undefined
       })) || []
     };
   }

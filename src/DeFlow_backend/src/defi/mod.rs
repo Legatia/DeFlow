@@ -18,6 +18,8 @@ pub mod portfolio_manager;
 pub mod portfolio_api;
 // Day 12: Automated DeFi Strategies System
 pub mod automated_strategies;
+pub mod wallet_validation;
+pub mod strategy_authorization;
 pub mod automated_strategy_api;
 pub mod strategy_api;
 // Day 13: User-friendly Workflow Templates

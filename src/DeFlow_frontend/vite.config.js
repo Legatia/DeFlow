@@ -61,6 +61,13 @@ export default defineConfig({
     }),
     environment("all", { prefix: "CANISTER_" }),
     environment("all", { prefix: "DFX_" }),
+    {
+      name: 'commonjs-externals',
+      config(config) {
+        config.define = config.define || {};
+        config.define.global = 'globalThis';
+      },
+    },
   ],
   resolve: {
     alias: [
@@ -73,6 +80,14 @@ export default defineConfig({
       {
         find: "@",
         replacement: fileURLToPath(new URL("./src", import.meta.url)),
+      },
+      {
+        find: "borc",
+        replacement: fileURLToPath(new URL("../../node_modules/borc/src/index.js", import.meta.url)),
+      },
+      {
+        find: "simple-cbor",
+        replacement: fileURLToPath(new URL("../../node_modules/simple-cbor/src/index.js", import.meta.url)),
       },
     ],
     dedupe: ['@dfinity/agent'],

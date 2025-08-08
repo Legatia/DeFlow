@@ -12,9 +12,14 @@ BigNumber.config({
 // Completely disable native BigInt to prevent conversion issues
 const originalBigInt = (globalThis as any).BigInt;
 
-// Replace BigInt with BigNumber.js wrapper
+// Replace BigInt with BigNumber.js wrapper (silent for performance)
 (globalThis as any).BigInt = function(value: any): any {
-  console.warn('BigInt usage detected, converting to BigNumber.js:', value);
+  // Only log first few conversions to avoid console spam
+  if ((globalThis as any)._bigIntConversionCount < 5) {
+    console.warn('BigInt usage detected, converting to BigNumber.js:', value);
+    (globalThis as any)._bigIntConversionCount = ((globalThis as any)._bigIntConversionCount || 0) + 1;
+  }
+  
   const bn = new BigNumber(value.toString());
   
   // Return an object that behaves like BigInt but uses BigNumber internally

@@ -61,6 +61,12 @@ impl StrategyExecutionEngine {
             return Err(StrategyError::ExecutionFailed("Gas cost exceeds limit".to_string()));
         }
 
+        // Get wallet address for this chain
+        let wallet_address = strategy.wallet_addresses.get(&opportunity.chain)
+            .ok_or_else(|| StrategyError::ExecutionFailed(
+                format!("No wallet address found for chain: {:?}", opportunity.chain)
+            ))?;
+
         // Build and execute transactions
         // Execute with retry logic - move variables into closure
         let execution_result = self.retry_manager.execute_with_retry(|| async {
@@ -74,6 +80,7 @@ impl StrategyExecutionEngine {
                     token,
                     pool_address,
                     strategy.allocated_capital,
+                    wallet_address,
                 )?;
                 
                 let approve_result = self.execute_transaction(approve_tx).await?;
@@ -87,6 +94,7 @@ impl StrategyExecutionEngine {
                 pool_address,
                 tokens,
                 strategy.allocated_capital,
+                wallet_address,
             )?;
 
             let farm_result = self.execute_transaction(farm_tx).await?;
@@ -161,6 +169,12 @@ impl StrategyExecutionEngine {
             return Err(StrategyError::ExecutionFailed("Gas cost exceeds limit".to_string()));
         }
 
+        // Get wallet address for this chain
+        let wallet_address = strategy.wallet_addresses.get(&opportunity.chain)
+            .ok_or_else(|| StrategyError::ExecutionFailed(
+                format!("No wallet address found for chain: {:?}", opportunity.chain)
+            ))?;
+
         // Build arbitrage transaction sequence
         let mut transactions = Vec::new();
         let mut actual_return = 0.0;
@@ -230,6 +244,12 @@ impl StrategyExecutionEngine {
             return Err(StrategyError::ExecutionFailed("Total gas cost exceeds limit".to_string()));
         }
 
+        // Get wallet address for this chain
+        let wallet_address = strategy.wallet_addresses.get(&opportunity.chain)
+            .ok_or_else(|| StrategyError::ExecutionFailed(
+                format!("No wallet address found for chain: {:?}", opportunity.chain)
+            ))?;
+
         // Execute rebalancing trades
         let mut transactions = Vec::new();
         let mut actual_gas_cost = 0.0;
@@ -240,6 +260,7 @@ impl StrategyExecutionEngine {
                 &trade.from_token,
                 &trade.to_token,
                 trade.amount,
+                wallet_address,
             )?;
 
             let trade_result = self.execute_transaction(trade_tx).await?;
@@ -294,6 +315,12 @@ impl StrategyExecutionEngine {
             return Err(StrategyError::ExecutionFailed(format!("APR {} below threshold {}", apr, config.min_apr_threshold)));
         }
 
+        // Get wallet address for this chain
+        let wallet_address = strategy.wallet_addresses.get(&opportunity.chain)
+            .ok_or_else(|| StrategyError::ExecutionFailed(
+                format!("No wallet address found for chain: {:?}", opportunity.chain)
+            ))?;
+
         // Calculate liquidity provision amounts (50/50 split for simplicity)
         let amount_per_token = strategy.allocated_capital / 2.0;
         
@@ -306,6 +333,7 @@ impl StrategyExecutionEngine {
             &opportunity.chain,
             pool_info,
             amount_per_token,
+            wallet_address,
         )?;
 
         let lp_result = self.execute_transaction(lp_tx).await?;
@@ -349,6 +377,12 @@ impl StrategyExecutionEngine {
         // Safety checks
         self.safety_controller.pre_execution_safety_check(strategy, &opportunity)?;
 
+        // Get wallet address for this chain
+        let wallet_address = strategy.wallet_addresses.get(&opportunity.chain)
+            .ok_or_else(|| StrategyError::ExecutionFailed(
+                format!("No wallet address found for chain: {:?}", opportunity.chain)
+            ))?;
+
         // Calculate purchase amount
         let purchase_amount = config.amount_per_execution.min(strategy.allocated_capital);
 
@@ -357,6 +391,7 @@ impl StrategyExecutionEngine {
             &opportunity.chain,
             &config.target_token,
             purchase_amount,
+            wallet_address,
         )?;
 
         // Execute transaction
@@ -468,6 +503,12 @@ impl StrategyExecutionEngine {
         let mut transactions = Vec::new();
         let mut gas_cost = 0.0;
 
+        // Get wallet address for this chain
+        let wallet_address = strategy.wallet_addresses.get(&opportunity.chain)
+            .ok_or_else(|| StrategyError::ExecutionFailed(
+                format!("No wallet address found for chain: {:?}", opportunity.chain)
+            ))?;
+
         // Step 1: Buy on first DEX
         let buy_tx = self.transaction_builder.build_dex_trade_transaction(
             &opportunity.chain,
@@ -476,6 +517,7 @@ impl StrategyExecutionEngine {
             &token_pair.1,
             strategy.allocated_capital,
             true, // buy
+            wallet_address,
         )?;
 
         let buy_result = self.execute_transaction(buy_tx).await?;
@@ -490,6 +532,7 @@ impl StrategyExecutionEngine {
             &token_pair.0,
             strategy.allocated_capital, // This would be the amount of tokens bought
             false, // sell
+            wallet_address,
         )?;
 
         let sell_result = self.execute_transaction(sell_tx).await?;
@@ -653,7 +696,7 @@ impl GasEstimator {
     }
 
     pub fn estimate_yield_farming_gas(&self, chain: &ChainId, amount: f64) -> Result<f64, StrategyError> {
-        let base_key = format!("{}_lp_add", chain.name().to_lowercase());
+        let base_key = format!("{}_lp_add", format!("{:?}", chain).to_lowercase());
         let base_gas = self.base_gas_costs.get(&base_key).unwrap_or(&200000.0);
         
         // Scale with amount (larger amounts may require more gas)
@@ -663,7 +706,7 @@ impl GasEstimator {
     }
 
     pub fn estimate_arbitrage_gas(&self, chain: &ChainId, amount: f64) -> Result<f64, StrategyError> {
-        let swap_key = format!("{}_swap", chain.name().to_lowercase());
+        let swap_key = format!("{}_swap", format!("{:?}", chain).to_lowercase());
         let swap_gas = self.base_gas_costs.get(&swap_key).unwrap_or(&150000.0);
         
         // Arbitrage typically requires 2 swaps
@@ -674,7 +717,7 @@ impl GasEstimator {
     }
 
     pub fn estimate_rebalancing_gas(&self, chain: &ChainId, trades: &[RebalancingTrade]) -> Result<f64, StrategyError> {
-        let swap_key = format!("{}_swap", chain.name().to_lowercase());
+        let swap_key = format!("{}_swap", format!("{:?}", chain).to_lowercase());
         let swap_gas = self.base_gas_costs.get(&swap_key).unwrap_or(&150000.0);
         
         let total_gas = swap_gas * trades.len() as f64;
@@ -711,10 +754,11 @@ impl TransactionBuilder {
         Self
     }
 
-    pub fn build_approval_transaction(&self, chain: &ChainId, token: &str, spender: &str, amount: f64) -> Result<Transaction, StrategyError> {
+    pub fn build_approval_transaction(&self, chain: &ChainId, token: &str, spender: &str, amount: f64, from_address: &str) -> Result<Transaction, StrategyError> {
         Ok(Transaction {
             chain: chain.clone(),
             transaction_type: TransactionType::Approval,
+            from_address: from_address.to_string(),
             to_address: token.to_string(),
             data: format!("approve({}, {})", spender, amount),
             value: 0.0,
@@ -722,10 +766,11 @@ impl TransactionBuilder {
         })
     }
 
-    pub fn build_yield_farming_transaction(&self, chain: &ChainId, pool: &str, tokens: &[String], amount: f64) -> Result<Transaction, StrategyError> {
+    pub fn build_yield_farming_transaction(&self, chain: &ChainId, pool: &str, tokens: &[String], amount: f64, from_address: &str) -> Result<Transaction, StrategyError> {
         Ok(Transaction {
             chain: chain.clone(),
             transaction_type: TransactionType::LiquidityAdd,
+            from_address: from_address.to_string(),
             to_address: pool.to_string(),
             data: format!("addLiquidity({:?}, {})", tokens, amount),
             value: 0.0,
@@ -733,10 +778,11 @@ impl TransactionBuilder {
         })
     }
 
-    pub fn build_swap_transaction(&self, chain: &ChainId, from_token: &str, to_token: &str, amount: f64) -> Result<Transaction, StrategyError> {
+    pub fn build_swap_transaction(&self, chain: &ChainId, from_token: &str, to_token: &str, amount: f64, from_address: &str) -> Result<Transaction, StrategyError> {
         Ok(Transaction {
             chain: chain.clone(),
             transaction_type: TransactionType::Swap,
+            from_address: from_address.to_string(),
             to_address: "0xDEX_ROUTER".to_string(),
             data: format!("swap({}, {}, {})", from_token, to_token, amount),
             value: 0.0,
@@ -744,10 +790,11 @@ impl TransactionBuilder {
         })
     }
 
-    pub fn build_liquidity_provision_transaction(&self, chain: &ChainId, pool_info: &str, amount: f64) -> Result<Transaction, StrategyError> {
+    pub fn build_liquidity_provision_transaction(&self, chain: &ChainId, pool_info: &str, amount: f64, from_address: &str) -> Result<Transaction, StrategyError> {
         Ok(Transaction {
             chain: chain.clone(),
             transaction_type: TransactionType::LiquidityAdd,
+            from_address: from_address.to_string(),
             to_address: pool_info.to_string(),
             data: format!("provideLiquidity({})", amount),
             value: 0.0,
@@ -755,10 +802,11 @@ impl TransactionBuilder {
         })
     }
 
-    pub fn build_token_purchase_transaction(&self, chain: &ChainId, token: &str, amount: f64) -> Result<Transaction, StrategyError> {
+    pub fn build_token_purchase_transaction(&self, chain: &ChainId, token: &str, amount: f64, from_address: &str) -> Result<Transaction, StrategyError> {
         Ok(Transaction {
             chain: chain.clone(),
             transaction_type: TransactionType::Swap,
+            from_address: from_address.to_string(),
             to_address: "0xDEX_ROUTER".to_string(),
             data: format!("buyToken({}, {})", token, amount),
             value: 0.0,
@@ -766,11 +814,12 @@ impl TransactionBuilder {
         })
     }
 
-    pub fn build_dex_trade_transaction(&self, chain: &ChainId, dex: &str, token_a: &str, token_b: &str, amount: f64, is_buy: bool) -> Result<Transaction, StrategyError> {
+    pub fn build_dex_trade_transaction(&self, chain: &ChainId, dex: &str, token_a: &str, token_b: &str, amount: f64, is_buy: bool, from_address: &str) -> Result<Transaction, StrategyError> {
         let action = if is_buy { "buy" } else { "sell" };
         Ok(Transaction {
             chain: chain.clone(),
             transaction_type: TransactionType::Swap,
+            from_address: from_address.to_string(),
             to_address: dex.to_string(),
             data: format!("{}({}, {}, {})", action, token_a, token_b, amount),
             value: 0.0,
@@ -885,6 +934,7 @@ impl RetryManager {
 pub struct Transaction {
     pub chain: ChainId,
     pub transaction_type: TransactionType,
+    pub from_address: String, // Real user wallet address
     pub to_address: String,
     pub data: String,
     pub value: f64,

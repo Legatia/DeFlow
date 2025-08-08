@@ -888,8 +888,9 @@ fn compile_workflow_to_strategy(workflow: WorkflowDefinition) -> Result<Strategy
         name: workflow.name,
         description: workflow.description,
         strategy_type,
-        target_chains,
+        target_chains: target_chains.clone(),
         target_protocols,
+        required_wallet_addresses: target_chains, // Use target_chains as required wallet chains
         risk_level: workflow.risk_level,
         max_allocation_usd: workflow.max_allocation_usd,
         min_return_threshold: 1.0,

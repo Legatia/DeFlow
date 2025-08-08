@@ -12,12 +12,14 @@ let canisterModule: any = null
 async function getCanisterModule() {
   if (!canisterModule) {
     try {
+      console.log('Attempting to load canister declarations...')
       canisterModule = await import('../../../declarations/DeFlow_backend')
+      console.log('Canister declarations loaded:', canisterModule.canisterId)
     } catch (error) {
       console.warn('Failed to load canister declarations, using fallback:', error)
       // Return a mock module for development
       canisterModule = {
-        canisterId: 'rdmx6-jaaaa-aaaaa-aaadq-cai',
+        canisterId: 'uxrrr-q7777-77774-qaaaq-cai', // Use actual backend canister ID
         createActor: () => null
       }
     }
@@ -52,20 +54,39 @@ class ICPServiceV2 {
     try {
       console.log('Initializing ICP service with proper BigInt handling...')
 
-      // Initialize auth client
-      this.authClient = await AuthClient.create()
+      // Initialize auth client with timeout
+      const authPromise = AuthClient.create()
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Auth client creation timeout')), 5000)
+      )
+      
+      try {
+        this.authClient = await Promise.race([authPromise, timeoutPromise]) as AuthClient
+        console.log('✅ Auth client created')
+      } catch (error) {
+        console.warn('Auth client creation failed, continuing without it:', error)
+        this.authClient = null
+      }
 
       // Create agent
       const agent = new HttpAgent({
         host: this.isLocal ? 'http://localhost:4943' : 'https://ic0.app',
       })
 
-      // Fetch root key for local development
+      // Fetch root key for local development with timeout
       if (this.isLocal) {
         try {
-          await agent.fetchRootKey()
+          const rootKeyPromise = agent.fetchRootKey()
+          const rootKeyTimeout = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Root key fetch timeout')), 3000)
+          )
+          await Promise.race([rootKeyPromise, rootKeyTimeout])
+          console.log('✅ Root key fetched')
         } catch (error) {
-          console.warn('Could not fetch root key:', error)
+          console.warn('Could not fetch root key, using mock mode:', error)
+          this.actor = this.createMockActor()
+          this.isInitialized = true
+          return
         }
       }
 
@@ -209,33 +230,25 @@ class ICPServiceV2 {
   private convertWorkflow(backendWorkflow: any): Workflow {
     return {
       ...backendWorkflow,
-      created_at: typeof backendWorkflow.created_at === 'bigint' 
-        ? backendWorkflow.created_at 
-        : BigIntUtils.toBigInt(backendWorkflow.created_at || Date.now() * 1_000_000),
-      updated_at: typeof backendWorkflow.updated_at === 'bigint'
-        ? backendWorkflow.updated_at
-        : BigIntUtils.toBigInt(backendWorkflow.updated_at || Date.now() * 1_000_000)
+      created_at: BigIntUtils.toBigInt(backendWorkflow.created_at || Date.now() * 1_000_000),
+      updated_at: BigIntUtils.toBigInt(backendWorkflow.updated_at || Date.now() * 1_000_000)
     }
   }
 
   private convertExecution(backendExecution: any): WorkflowExecution {
     return {
       ...backendExecution,
-      started_at: typeof backendExecution.started_at === 'bigint'
-        ? backendExecution.started_at
-        : BigIntUtils.toBigInt(backendExecution.started_at || Date.now() * 1_000_000),
+      started_at: BigIntUtils.toBigInt(backendExecution.started_at || Date.now() * 1_000_000),
       completed_at: backendExecution.completed_at 
-        ? (typeof backendExecution.completed_at === 'bigint'
-            ? backendExecution.completed_at
-            : BigIntUtils.toBigInt(backendExecution.completed_at))
+        ? BigIntUtils.toBigInt(backendExecution.completed_at)
         : undefined,
       node_executions: backendExecution.node_executions?.map((ne: any) => ({
         ...ne,
         started_at: ne.started_at 
-          ? (typeof ne.started_at === 'bigint' ? ne.started_at : BigIntUtils.toBigInt(ne.started_at))
+          ? BigIntUtils.toBigInt(ne.started_at)
           : undefined,
         completed_at: ne.completed_at 
-          ? (typeof ne.completed_at === 'bigint' ? ne.completed_at : BigIntUtils.toBigInt(ne.completed_at))
+          ? BigIntUtils.toBigInt(ne.completed_at)
           : undefined
       })) || []
     }

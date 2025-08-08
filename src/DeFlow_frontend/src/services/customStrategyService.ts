@@ -1,6 +1,8 @@
 // Custom Strategy Service - API calls for workflow-based strategy creation
 import { StrategyConfig } from '../types/defi-strategy'
 import { Node, Edge } from 'reactflow'
+import strategyExecutionService from './strategyExecutionService'
+import multiChainWalletService, { ChainType } from './multiChainWalletService'
 
 export interface WorkflowDefinition {
   name: string
@@ -233,6 +235,171 @@ class CustomStrategyService {
       message: 'Custom strategy created successfully from workflow',
       deployment_status: 'ready'
     }
+  }
+
+  /**
+   * Activate strategy with wallet validation and authorization
+   */
+  async activateStrategyWithWallets(
+    strategyId: string,
+    capitalAmount: number,
+    requiredChains: ChainType[]
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      // Step 1: Validate wallet addresses
+      console.log('Validating wallet addresses for chains:', requiredChains)
+      const validationResult = await strategyExecutionService.validateWalletAddresses(requiredChains)
+      
+      if (!validationResult.all_valid) {
+        const invalidChains = Object.entries(validationResult.validation_results)
+          .filter(([_, result]) => !result.is_valid)
+          .map(([chain]) => chain)
+        
+        return {
+          success: false,
+          message: `Wallet validation failed for chains: ${invalidChains.join(', ')}`
+        }
+      }
+
+      // Step 2: Create execution authorization
+      console.log('Creating execution authorization...')
+      const authChallenge = await strategyExecutionService.createExecutionAuthorization(
+        strategyId,
+        capitalAmount
+      )
+
+      // Step 3: Request signature from user if required
+      let authorizationId = authChallenge.authorization_id
+      if (authChallenge.signature_required) {
+        console.log('Requesting signature from user...')
+        const primaryChain = requiredChains[0] // Use first chain as primary
+        
+        await strategyExecutionService.signAuthorizationChallenge(
+          authChallenge.authorization_id,
+          authChallenge.challenge_message,
+          primaryChain
+        )
+      }
+
+      // Step 4: Activate strategy with validated wallets
+      console.log('Activating strategy...')
+      const success = await strategyExecutionService.activateStrategyWithWallets(
+        strategyId,
+        capitalAmount,
+        requiredChains,
+        authorizationId
+      )
+
+      if (success) {
+        return {
+          success: true,
+          message: 'Strategy activated successfully with multi-chain wallet integration'
+        }
+      } else {
+        return {
+          success: false,
+          message: 'Strategy activation failed'
+        }
+      }
+    } catch (error) {
+      console.error('Strategy activation with wallets failed:', error)
+      return {
+        success: false,
+        message: `Activation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
+    }
+  }
+
+  /**
+   * Execute strategy with wallet addresses
+   */
+  async executeStrategy(strategyId: string): Promise<{ success: boolean; result?: any; error?: string }> {
+    try {
+      console.log('Executing strategy:', strategyId)
+      const result = await strategyExecutionService.executeStrategy(strategyId)
+      
+      return {
+        success: result.success,
+        result: result
+      }
+    } catch (error) {
+      console.error('Strategy execution failed:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  }
+
+  /**
+   * Check wallet compatibility with strategy requirements
+   */
+  async checkWalletCompatibility(requiredChains: ChainType[]): Promise<{
+    compatible: boolean
+    availableChains: ChainType[]
+    missingChains: ChainType[]
+    connectedChains: ChainType[]
+  }> {
+    const wallet = multiChainWalletService.getWallet()
+    
+    const availableChains = wallet.addresses.map(addr => addr.chain)
+    const connectedChains = wallet.addresses
+      .filter(addr => addr.isConnected)
+      .map(addr => addr.chain)
+    
+    const missingChains = requiredChains.filter(chain => !availableChains.includes(chain))
+    const compatible = missingChains.length === 0
+
+    return {
+      compatible,
+      availableChains,
+      missingChains,
+      connectedChains
+    }
+  }
+
+  /**
+   * Extract required chains from workflow definition
+   */
+  extractRequiredChainsFromWorkflow(workflowDefinition: WorkflowDefinition): ChainType[] {
+    const chains = new Set<ChainType>()
+
+    // Analyze nodes for chain requirements
+    workflowDefinition.nodes.forEach(node => {
+      if (node.node_type.includes('yield-farming') || 
+          node.node_type.includes('arbitrage') ||
+          node.node_type.includes('dca-strategy')) {
+        
+        // Extract chain from config
+        const chain = node.config.chain || node.config.target_chain
+        if (chain && this.isValidChainType(chain)) {
+          chains.add(chain as ChainType)
+        }
+      }
+    })
+
+    // If no specific chains found, default to Ethereum for DeFi strategies
+    if (chains.size === 0) {
+      const hasDeFiNodes = workflowDefinition.nodes.some(node =>
+        ['yield-farming', 'arbitrage', 'dca-strategy', 'rebalance'].some(type =>
+          node.node_type.includes(type)
+        )
+      )
+      
+      if (hasDeFiNodes) {
+        chains.add('Ethereum')
+      }
+    }
+
+    return Array.from(chains)
+  }
+
+  private isValidChainType(chain: string): boolean {
+    const validChains: ChainType[] = [
+      'Bitcoin', 'Ethereum', 'Arbitrum', 'Optimism', 
+      'Polygon', 'Base', 'Avalanche', 'Solana', 'BSC'
+    ]
+    return validChains.includes(chain as ChainType)
   }
 
   /**

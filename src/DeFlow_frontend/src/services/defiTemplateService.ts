@@ -363,8 +363,8 @@ class DeFiTemplateService {
   private sanitizeNumber(value: any): number {
     try {
       // Handle various input types including BigInt
-      if (typeof value === 'bigint') {
-        return BigIntUtils.toNumber(value);
+      if (value && typeof value === 'object' && 'toString' in value) {
+        return BigIntUtils.toNumber(value.toString());
       }
       if (typeof value === 'string') {
         return parseFloat(value) || 0;

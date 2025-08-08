@@ -144,6 +144,7 @@ impl SimpleWorkflowTemplateManager {
             strategy_type,
             target_chains: vec![ChainId::Ethereum],
             target_protocols: vec![DeFiProtocol::Aave, DeFiProtocol::Uniswap(UniswapVersion::V3)],
+            required_wallet_addresses: vec![ChainId::Ethereum], // Required wallet for Ethereum
             risk_level: template.risk_score,
             max_allocation_usd: capital_amount,
             min_return_threshold: 1.0,

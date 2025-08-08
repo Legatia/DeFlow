@@ -1,5 +1,5 @@
-// Load BigInt polyfill FIRST - replaces BigInt with BigNumber.js completely
-import './utils/bigint-polyfill'
+// Load simple BigInt error prevention FIRST
+import './utils/simple-bigint-fix'
 // Load timestamp utilities (BigNumber.js based, no BigInt)
 import './utils/timestamp-utils'
 

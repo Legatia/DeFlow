@@ -23,6 +23,8 @@ pub use coordination_engine::*;
 use crate::defi::yield_farming::ChainId;
 use crate::defi::yield_farming::{DeFiProtocol};
 use crate::defi::protocol_integrations::{DeFiProtocolIntegrations, LiveYieldOpportunity, LiveArbitrageOpportunity};
+use crate::defi::wallet_validation::WalletValidationService;
+use crate::defi::strategy_authorization::{StrategyAuthorizationService, AuthorizationCheck};
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -32,6 +34,7 @@ use std::collections::HashMap;
 pub struct ActiveStrategy {
     pub id: String,
     pub user_id: String,
+    pub wallet_addresses: HashMap<ChainId, String>, // Chain -> wallet address mapping
     pub config: StrategyConfig,
     pub status: StrategyStatus,
     pub allocated_capital: f64,
@@ -51,6 +54,7 @@ pub struct StrategyConfig {
     pub strategy_type: StrategyType,
     pub target_chains: Vec<ChainId>,
     pub target_protocols: Vec<DeFiProtocol>,
+    pub required_wallet_addresses: Vec<ChainId>, // Chains that require wallet addresses
     pub risk_level: u8, // 1-10 scale
     pub max_allocation_usd: f64,
     pub min_return_threshold: f64,
@@ -257,6 +261,8 @@ pub struct AutomatedStrategyManager {
     pub risk_manager: StrategyRiskManager,
     pub coordination_engine: MultiStrategyCoordinator,
     pub protocol_integrations: DeFiProtocolIntegrations,
+    pub wallet_validation: WalletValidationService,
+    pub authorization_service: StrategyAuthorizationService,
     pub active_strategies: HashMap<String, ActiveStrategy>,
     pub user_preferences: HashMap<String, UserPreferences>,
     pub last_execution: u64,
@@ -273,6 +279,8 @@ impl AutomatedStrategyManager {
             risk_manager: StrategyRiskManager::new(),
             coordination_engine: MultiStrategyCoordinator::new(),
             protocol_integrations: DeFiProtocolIntegrations::new(),
+            wallet_validation: WalletValidationService::new(),
+            authorization_service: StrategyAuthorizationService::new(),
             active_strategies: HashMap::new(),
             user_preferences: HashMap::new(),
             last_execution: 0,
@@ -295,6 +303,12 @@ impl AutomatedStrategyManager {
 
     /// Create a new strategy for a user
     pub fn create_strategy(&mut self, user_id: String, config: StrategyConfig) -> Result<String, StrategyError> {
+        // Validate that required wallet addresses are specified in config
+        if config.required_wallet_addresses.is_empty() {
+            return Err(StrategyError::ValidationFailed(
+                "At least one wallet address chain must be specified".to_string()
+            ));
+        }
         // Validate strategy configuration
         self.validate_strategy_config(&config)?;
 
@@ -305,6 +319,7 @@ impl AutomatedStrategyManager {
         let active_strategy = ActiveStrategy {
             id: strategy_id.clone(),
             user_id: user_id.clone(),
+            wallet_addresses: HashMap::new(), // Will be populated when strategy is activated
             config: config.clone(),
             status: StrategyStatus::Created,
             allocated_capital: 0.0,
@@ -329,7 +344,72 @@ impl AutomatedStrategyManager {
         Ok(strategy_id)
     }
 
-    /// Activate a strategy with capital allocation
+    /// Activate a strategy with capital allocation and wallet addresses
+    pub async fn activate_strategy_with_wallets(
+        &mut self, 
+        strategy_id: &str, 
+        capital_amount: f64,
+        wallet_addresses: HashMap<ChainId, String>
+    ) -> Result<(), StrategyError> {
+        let strategy = self.active_strategies.get_mut(strategy_id)
+            .ok_or(StrategyError::StrategyNotFound(strategy_id.to_string()))?;
+
+        // Validate that all required chains have wallet addresses
+        for required_chain in &strategy.config.required_wallet_addresses {
+            if !wallet_addresses.contains_key(required_chain) {
+                return Err(StrategyError::ValidationFailed(
+                    format!("Missing wallet address for chain: {:?}", required_chain)
+                ));
+            }
+        }
+
+        // Check authorization before proceeding
+        let user_principal = ic_cdk::caller();
+        let auth_check = self.authorization_service.is_authorized_to_execute(user_principal, strategy, capital_amount)?;
+        if !auth_check.authorized {
+            return Err(StrategyError::ValidationFailed(
+                format!("Authorization failed: {}", 
+                    auth_check.reason.unwrap_or("Unauthorized".to_string()))
+            ));
+        }
+
+        // Validate wallet address ownership
+        match self.wallet_validation.validate_wallet_addresses(user_principal, &wallet_addresses).await {
+            Ok(validation_results) => {
+                // Check if all addresses are valid
+                for (chain, result) in &validation_results {
+                    if !result.is_valid {
+                        return Err(StrategyError::ValidationFailed(
+                            format!("Invalid wallet address for chain {:?}: {}", 
+                                chain, 
+                                result.error_message.as_deref().unwrap_or("Unknown validation error"))
+                        ));
+                    }
+                }
+            },
+            Err(e) => {
+                return Err(StrategyError::ValidationFailed(
+                    format!("Wallet validation failed: {}", e)
+                ));
+            }
+        }
+
+        // Validate capital allocation with risk manager
+        self.risk_manager.validate_capital_allocation(strategy, capital_amount)?;
+
+        // Update strategy with wallet addresses
+        strategy.wallet_addresses = wallet_addresses;
+        strategy.allocated_capital = capital_amount;
+        strategy.status = StrategyStatus::Active;
+        strategy.last_updated = ic_cdk::api::time();
+        strategy.next_execution = Some(ic_cdk::api::time() + strategy.config.execution_interval_minutes * 60 * 1_000_000_000);
+
+        ic_cdk::println!("Activated strategy {} with ${:.2} capital and {} wallet addresses", 
+            strategy_id, capital_amount, strategy.wallet_addresses.len());
+        Ok(())
+    }
+
+    /// Legacy activate method - deprecated, use activate_strategy_with_wallets instead
     pub fn activate_strategy(&mut self, strategy_id: &str, capital_amount: f64) -> Result<(), StrategyError> {
         let strategy = self.active_strategies.get_mut(strategy_id)
             .ok_or(StrategyError::StrategyNotFound(strategy_id.to_string()))?;
