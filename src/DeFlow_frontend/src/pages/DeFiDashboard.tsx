@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import DeFiTemplates from '../components/DeFiTemplates';
 import StrategyCreationFlow from '../components/StrategyCreationFlow';
+import CustomStrategyBuilder from '../components/CustomStrategyBuilder';
 import simpleDefiTemplateService, { 
   DeFiWorkflowTemplate, 
   StrategyFromTemplateResponse 
 } from '../services/defiTemplateServiceSimple';
+import { StrategyConfig } from '../types/defi-strategy';
 
 interface ActiveStrategy extends StrategyFromTemplateResponse {
   template: DeFiWorkflowTemplate;
@@ -15,7 +17,7 @@ interface ActiveStrategy extends StrategyFromTemplateResponse {
   roi_percentage: number;
 }
 
-type ViewMode = 'templates' | 'create' | 'dashboard';
+type ViewMode = 'templates' | 'create' | 'dashboard' | 'custom';
 
 const DeFiDashboard = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('templates');
@@ -91,8 +93,50 @@ const DeFiDashboard = () => {
   };
 
   const handleCreateCustom = () => {
-    // In a full implementation, this would open the workflow builder
-    alert('Custom strategy builder coming soon! For now, please choose from our templates.');
+    setViewMode('custom');
+  };
+
+  const handleCustomStrategyCreated = async (strategyConfig: StrategyConfig) => {
+    try {
+      // Here we would call the backend API to create the custom strategy
+      console.log('Creating custom strategy:', strategyConfig);
+      
+      // Mock the creation process for now
+      const mockStrategy: ActiveStrategy = {
+        strategy_id: `custom-${Date.now()}`,
+        strategy_config: strategyConfig,
+        estimated_setup_time: 300, // 5 minutes
+        deployment_status: 'ready',
+        template: {
+          id: 'custom',
+          name: strategyConfig.name,
+          description: strategyConfig.description,
+          category: 'Custom',
+          difficulty: 'Advanced',
+          estimated_apy: 10.0, // Placeholder
+          risk_score: strategyConfig.risk_level,
+          min_capital_usd: 100
+        },
+        created_at: new Date().toISOString(),
+        status: 'active',
+        current_value: strategyConfig.max_allocation_usd,
+        total_return: 0,
+        roi_percentage: 0
+      };
+
+      // Save to localStorage (in real app, would save to backend)
+      const existingStrategies = JSON.parse(localStorage.getItem('defi_strategies') || '[]');
+      const updatedStrategies = [...existingStrategies, mockStrategy];
+      localStorage.setItem('defi_strategies', JSON.stringify(updatedStrategies));
+
+      setActiveStrategies(updatedStrategies);
+      setViewMode('dashboard');
+
+      alert('🎉 Custom strategy created successfully! You can now monitor it in your dashboard.');
+    } catch (error) {
+      console.error('Error creating custom strategy:', error);
+      alert('Failed to create custom strategy. Please try again.');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -241,6 +285,15 @@ const DeFiDashboard = () => {
           setViewMode('templates');
           setSelectedTemplate(null);
         }}
+      />
+    );
+  }
+
+  if (viewMode === 'custom') {
+    return (
+      <CustomStrategyBuilder
+        onStrategyCreated={handleCustomStrategyCreated}
+        onCancel={() => setViewMode('templates')}
       />
     );
   }

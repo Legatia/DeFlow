@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NODE_TYPES, NodeCategory } from '../types/nodes'
+import { getAllNodeTypes, NodeCategory, NodeType } from '../types/all-nodes'
 
 const CATEGORIES: { id: NodeCategory; name: string; icon: string }[] = [
   { id: 'triggers', name: 'Triggers', icon: '🚀' },
@@ -14,8 +14,11 @@ const NodePalette = () => {
   const [selectedCategory, setSelectedCategory] = useState<NodeCategory>('triggers')
   const [searchTerm, setSearchTerm] = useState('')
 
+  // Get all node types
+  const allNodeTypes = getAllNodeTypes()
+  
   // Filter nodes based on category and search
-  const filteredNodes = NODE_TYPES.filter(node => {
+  const filteredNodes = allNodeTypes.filter(node => {
     const matchesCategory = node.category === selectedCategory
     const matchesSearch = searchTerm === '' || 
       node.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -45,7 +48,7 @@ const NodePalette = () => {
       <div className="border-b border-gray-200">
         <div className="grid grid-cols-2 gap-1 p-2">
           {CATEGORIES.map((category) => {
-            const nodeCount = NODE_TYPES.filter(n => n.category === category.id).length
+            const nodeCount = allNodeTypes.filter((n) => n.category === category.id).length
             return (
               <button
                 key={category.id}

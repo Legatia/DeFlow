@@ -22,7 +22,7 @@ export interface NodePort {
 
 export type PortType = 'data' | 'trigger' | 'condition' | 'webhook' | 'email' | 'api' | 'file'
 
-export type NodeCategory = 'triggers' | 'actions' | 'conditions' | 'transformations' | 'integrations' | 'utilities'
+export type NodeCategory = 'triggers' | 'actions' | 'conditions' | 'transformations' | 'integrations' | 'utilities' | 'defi'
 
 export interface ConfigField {
   key: string
@@ -378,3 +378,5 @@ export const NODE_TYPES: NodeType[] = [
     defaultConfig: { operation: 'extract', config: '{}' }
   }
 ]
+
+// Combined export of all node types will be done in a separate file
