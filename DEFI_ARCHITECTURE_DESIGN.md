@@ -906,284 +906,235 @@ impl LiquidityPool {
 - Cross-chain yield optimization
 - LP NFTs and gamification
 
-### **🎯 Liquidity Bootstrapping Strategy**
+### **🎯 Fee-Based Liquidity Strategy** 💡 **UPDATED**
 
-**The Chicken-and-Egg Problem**: Need liquidity to attract users, need users to attract liquidity.
+**The Sustainable Solution**: Liquidity grows naturally with platform usage through intelligent fee structure.
 
-**DeFlow's Multi-Phase Bootstrap Solution**:
-
-#### **Phase 1: "Genesis Liquidity" (Month 0-1)**
+**DeFlow's Fee-Based Liquidity Model**:
 ```rust
 #[derive(CandidType, Deserialize, Serialize)]
-pub struct GenesisBootstrap {
-    // Protocol-owned liquidity (POL)
-    pub protocol_seed_funding: ProtocolSeedFunding {
-        initial_btc: 10.0,           // $600K at $60K BTC
-        initial_eth: 200.0,          // $600K at $3K ETH  
-        initial_sol: 5000.0,         // $600K at $120 SOL
-        initial_stablecoins: 1_800_000.0, // $1.8M USDC/USDT
-        total_seed_liquidity: 3_600_000.0, // $3.6M total
+pub struct FeeBasedLiquidityModel {
+    // Dynamic fee structure
+    pub fee_structure: FeeStructure {
+        standard_user_fee: 0.005,        // 0.5% per transaction
+        subscriber_fee: 0.001,           // 0.1% per transaction (5x reduction)
+        liquidity_pool_allocation: 1.0,  // 100% of difference goes to pool
     },
     
-    // Genesis LP program
-    pub genesis_lp_incentives: GenesisMining {
-        duration_days: 30,
-        bonus_multiplier: 5.0,       // 5x rewards for first 30 days
-        early_bird_nft: true,        // Exclusive NFT for genesis LPs
-        governance_power: 2.0,       // 2x voting power for genesis participants
-        minimum_deposit: 1000.0,     // $1K minimum for quality
+    // Subscription incentive system
+    pub subscription_tiers: Vec<SubscriptionTier>,
+    
+    // Pool growth mechanism
+    pub pool_growth: PoolGrowthMechanism {
+        fee_accumulation_rate: 0.004,    // 0.4% net per transaction to pool
+        organic_scaling: true,           // Grows with platform usage
+        no_upfront_capital: true,        // Zero initial investment required
     },
 }
 
-// Example: Genesis LP gets 25% APY (5x the normal 5%) + NFT + 2x governance
-impl GenesisBootstrap {
-    pub fn calculate_genesis_rewards(&self, lp_amount: f64, days: u64) -> GenesisRewards {
-        let base_apy = 5.0; // 5% normal APY
-        let genesis_apy = base_apy * self.genesis_lp_incentives.bonus_multiplier; // 25% APY
+#[derive(CandidType, Deserialize, Serialize)]
+pub struct SubscriptionTier {
+    pub tier_name: String,
+    pub monthly_fee: f64,
+    pub transaction_fee: f64,            // Reduced from 0.5% standard
+    pub fee_savings: f64,                // % savings vs standard users
+    pub additional_benefits: Vec<String>,
+}
+
+// Subscription tiers with fee incentives
+impl FeeBasedLiquidityModel {
+    pub fn get_subscription_tiers() -> Vec<SubscriptionTier> {
+        vec![
+            SubscriptionTier {
+                tier_name: "Standard User".to_string(),
+                monthly_fee: 0.0,        // Free
+                transaction_fee: 0.005,  // 0.5% per transaction
+                fee_savings: 0.0,        // No savings
+                additional_benefits: vec!["Basic features".to_string()],
+            },
+            SubscriptionTier {
+                tier_name: "Premium Subscriber".to_string(),
+                monthly_fee: 29.0,       // $29/month
+                transaction_fee: 0.001,  // 0.1% per transaction
+                fee_savings: 80.0,       // 80% fee savings
+                additional_benefits: vec![
+                    "Priority execution".to_string(),
+                    "Advanced analytics".to_string(),
+                    "24/7 support".to_string(),
+                ],
+            },
+            SubscriptionTier {
+                tier_name: "Pro Subscriber".to_string(),
+                monthly_fee: 99.0,       // $99/month
+                transaction_fee: 0.0005, // 0.05% per transaction
+                fee_savings: 90.0,       // 90% fee savings
+                additional_benefits: vec![
+                    "All Premium benefits".to_string(),
+                    "Custom strategies".to_string(),
+                    "API access".to_string(),
+                    "Portfolio insurance".to_string(),
+                ],
+            },
+        ]
+    }
+}
+```
+
+#### **🔥 Key Advantages of Fee-Based Model**
+
+**✅ Self-Sustaining Growth**
+- Pool grows automatically with every transaction
+- Higher platform usage = more liquidity
+- No initial capital risk or investor dependency
+
+**✅ Strong Subscription Incentives**  
+- 80-90% fee savings for subscribers
+- Clear ROI: High-volume users save thousands annually
+- Recurring revenue from subscriptions
+
+**✅ Business Model Alignment**
+- Revenue scales with platform success
+- Users benefit from growing liquidity pool
+- Sustainable long-term economics
+
+#### **💰 Fee-Based Revenue Model**
+
+```rust
+#[derive(CandidType, Deserialize, Serialize)]
+pub struct FeeBasedRevenue {
+    // Revenue from fee difference
+    pub transaction_revenue: TransactionRevenue {
+        standard_user_contribution: 0.005,  // 0.5% full fee
+        subscriber_savings: 0.004,           // 0.4% saved by subscribers
+        net_pool_contribution: 0.004,        // 0.4% goes to liquidity pool
+    },
+    
+    // Subscription revenue
+    pub subscription_revenue: SubscriptionRevenue {
+        monthly_recurring_revenue: f64,      // MRR from subscriptions
+        subscriber_conversion_rate: 0.15,    // 15% of users become subscribers
+        average_subscription_value: 64.0,    // Average between $29 and $99 tiers
+    },
+    
+    // Organic growth projections
+    pub growth_projections: GrowthProjections {
+        monthly_transaction_volume_growth: 0.20,  // 20% month-over-month
+        subscriber_growth_rate: 0.25,            // 25% month-over-month
+        liquidity_pool_compound_effect: true,    // More liquidity = better execution = more users
+    },
+}
+
+// Revenue calculation example
+impl FeeBasedRevenue {
+    pub fn calculate_monthly_revenue(&self, 
+        monthly_volume: f64, 
+        total_users: u64, 
+        subscriber_percentage: f64
+    ) -> MonthlyRevenue {
         
-        let daily_reward = lp_amount * (genesis_apy / 365.0) / 100.0;
-        let total_reward = daily_reward * days as f64;
+        let subscribers = total_users as f64 * subscriber_percentage;
+        let standard_users = total_users as f64 * (1.0 - subscriber_percentage);
         
-        GenesisPre Rewards {
-            cash_rewards: total_reward,
-            bonus_multiplier_active: true,
-            genesis_nft_earned: days >= 7, // Hold for 1 week to earn NFT
-            governance_weight: 2.0,
+        // Transaction fee revenue (difference between standard and subscriber fees)
+        let subscriber_volume = monthly_volume * subscriber_percentage;
+        let fee_difference_revenue = subscriber_volume * 0.004; // 0.4% difference
+        
+        // Subscription MRR
+        let subscription_revenue = subscribers * 64.0; // Average $64/month
+        
+        // Total monthly revenue
+        let total_revenue = fee_difference_revenue + subscription_revenue;
+        
+        // Liquidity pool growth
+        let pool_contribution = monthly_volume * 0.004; // 0.4% of all volume
+        
+        MonthlyRevenue {
+            subscription_revenue,
+            transaction_fee_revenue: fee_difference_revenue,
+            total_revenue,
+            liquidity_pool_growth: pool_contribution,
         }
     }
 }
 ```
 
-#### **Phase 2: "Strategic Partnerships" (Month 1-2)**
+#### **📊 Fee-Based Growth Projections**
+
 ```rust
-#[derive(CandidType, Deserialize, Serialize)]
-pub struct StrategicPartnerships {
-    // Partner protocol integrations
-    pub protocol_partnerships: Vec<ProtocolPartnership>,
+pub struct FeeBasedProjections {
+    // Month 1: Early adopters
+    month_1_volume: 1_000_000.0,           // $1M transaction volume
+    month_1_users: 1_000,                  // 1K users
+    month_1_subscribers: 100,              // 10% conversion rate
+    month_1_pool_growth: 4_000.0,          // $4K added to liquidity pool
+    month_1_revenue: 6_400.0,              // $6.4K revenue ($4K fees + $2.4K subscriptions)
     
-    // Institutional partnerships
-    pub institutional_lps: Vec<InstitutionalPartner>,
+    // Month 6: Growth phase
+    month_6_volume: 10_000_000.0,          // $10M transaction volume
+    month_6_users: 10_000,                 // 10K users
+    month_6_subscribers: 1_500,            // 15% conversion rate
+    month_6_pool_growth: 40_000.0,         // $40K added to liquidity pool
+    month_6_revenue: 136_000.0,            // $136K revenue ($40K fees + $96K subscriptions)
     
-    // Cross-pollination deals
-    pub liquidity_sharing_agreements: Vec<LiquidityPartnership>,
-}
-
-#[derive(CandidType, Deserialize, Serialize)]
-pub struct ProtocolPartnership {
-    pub partner_name: String,
-    pub partnership_type: PartnershipType,
-    pub liquidity_commitment: u64,
-    pub duration_months: u64,
-    pub mutual_benefits: Vec<String>,
-}
-
-pub enum PartnershipType {
-    // Example: Partner with Uniswap for initial ETH/USDC liquidity
-    CrossProtocolArbitrage {
-        partner_dex: String,           // "Uniswap V3"
-        shared_liquidity: u64,         // $500K shared liquidity
-        arbitrage_profit_split: f64,   // 50-50 profit sharing
-    },
+    // Month 12: Scale phase
+    month_12_volume: 50_000_000.0,         // $50M transaction volume  
+    month_12_users: 50_000,                // 50K users
+    month_12_subscribers: 10_000,          // 20% conversion rate
+    month_12_pool_growth: 200_000.0,       // $200K added to liquidity pool
+    month_12_revenue: 840_000.0,           // $840K revenue ($200K fees + $640K subscriptions)
     
-    // Example: Partner with Jupiter on Solana for SOL/USDC
-    JupiterIntegration {
-        routing_partnership: bool,     // Route some trades through Jupiter
-        liquidity_bootstrap: u64,      // Jupiter provides $300K initial SOL liquidity
-        marketing_collaboration: bool, // Joint marketing campaigns
-    },
+    // Liquidity pool accumulation
+    cumulative_pool_by_month_12: 1_500_000.0, // $1.5M total liquidity from fees
     
-    // Example: Partner with Lightning Network for Bitcoin liquidity
-    LightningLiquidity {
-        channel_capacity: u64,         // Open $200K Lightning channels
-        routing_node: bool,            // Become Lightning routing node
-        btc_defi_strategies: bool,     // Joint Bitcoin DeFi products
-    },
-    
-    // Institutional DeFi funds
-    InstitutionalLP {
-        fund_name: String,             // "Pantera Capital", "a16z crypto"
-        commitment_size: u64,          // $2-5M commitments
-        lock_period_months: u64,       // 6-12 month lock periods
-        custom_yield_strategies: bool, // Custom strategies for institutions
-    },
+    // Key metrics
+    break_even_month: 3,                   // Break even by month 3 (no upfront costs!)
+    zero_risk_model: true,                 // No initial capital required
+    sustainable_growth: true,              // Self-reinforcing model
 }
 ```
 
-#### **Phase 3: "Incentive Flywheel" (Month 2-4)**
-```rust
-#[derive(CandidType, Deserialize, Serialize)]
-pub struct IncentiveFlywheel {
-    // Progressive rewards that get better as TVL grows
-    pub tvl_milestone_bonuses: HashMap<u64, MilestoneBonus>,
-    
-    // Referral programs for LPs
-    pub lp_referral_program: ReferralProgram,
-    
-    // Gamification and competition
-    pub liquidity_competitions: Vec<LiquidityCompetition>,
-    
-    // Cross-chain incentives
-    pub chain_diversity_rewards: ChainDiversityRewards,
-}
+#### **🎯 Why Fee-Based Model is Superior**
 
-#[derive(CandidType, Deserialize, Serialize)]
-pub struct MilestoneBonus {
-    pub tvl_threshold: u64,
-    pub bonus_apy: f64,
-    pub special_rewards: Vec<String>,
-    pub duration_days: u64,
-}
+**vs. Bootstrap Model:**
 
-// Example milestone rewards
-impl IncentiveFlywheel {
-    pub fn get_milestone_bonuses() -> HashMap<u64, MilestoneBonus> {
-        let mut milestones = HashMap::new();
-        
-        milestones.insert(1_000_000, MilestoneBonus {  // $1M TVL
-            tvl_threshold: 1_000_000,
-            bonus_apy: 2.0,                            // +2% bonus APY
-            special_rewards: vec!["Bronze LP Badge".to_string()],
-            duration_days: 30,
-        });
-        
-        milestones.insert(5_000_000, MilestoneBonus {  // $5M TVL
-            tvl_threshold: 5_000_000,
-            bonus_apy: 3.0,                            // +3% bonus APY
-            special_rewards: vec!["Silver LP Badge".to_string(), "Exclusive Discord".to_string()],
-            duration_days: 30,
-        });
-        
-        milestones.insert(10_000_000, MilestoneBonus { // $10M TVL
-            tvl_threshold: 10_000_000,
-            bonus_apy: 5.0,                            // +5% bonus APY
-            special_rewards: vec![
-                "Gold LP Badge".to_string(),
-                "Governance Committee Access".to_string(),
-                "Custom Strategy Development".to_string()
-            ],
-            duration_days: 60,
-        });
-        
-        milestones.insert(25_000_000, MilestoneBonus { // $25M TVL
-            tvl_threshold: 25_000_000,
-            bonus_apy: 7.0,                            // +7% bonus APY  
-            special_rewards: vec![
-                "Diamond LP Badge".to_string(),
-                "Revenue Sharing Program".to_string(),
-                "Whitelabel Partnership Opportunities".to_string()
-            ],
-            duration_days: 90,
-        });
-        
-        milestones
-    }
-}
+| Metric | Bootstrap Model | Fee-Based Model |
+|--------|-----------------|-----------------|
+| **Upfront Capital** | $6M required | $0 required |
+| **Risk Level** | High (capital at risk) | Zero (no upfront investment) |
+| **Sustainability** | Depends on token economics | Self-sustaining from day 1 |
+| **User Incentives** | Complex reward schemes | Simple: pay less with subscription |
+| **Revenue Model** | Uncertain token appreciation | Clear MRR + transaction fees |
+| **Break Even** | Month 8 (after $6M investment) | Month 3 (with $0 investment) |
+| **Scalability** | Limited by initial funding | Unlimited scaling with usage |
 
-#[derive(CandidType, Deserialize, Serialize)]
-pub struct LiquidityCompetition {
-    pub competition_name: String,
-    pub duration_days: u64,
-    pub total_prize_pool: u64,
-    pub competition_type: CompetitionType,
-}
+**Business Logic:**
+1. **High-volume users gladly pay $29-99/month to save hundreds in fees**
+2. **Liquidity grows organically with every transaction (0.4% accumulation)**  
+3. **More liquidity = better execution = attracts more users (network effect)**
+4. **Zero capital risk enables faster iteration and market testing**
+5. **Subscription revenue provides predictable cashflow for development**
 
-pub enum CompetitionType {
-    TopLPContest {
-        top_n_winners: u64,           // Top 10 LPs win prizes
-        prize_distribution: Vec<u64>, // [50%, 25%, 15%, 10%] etc.
-    },
-    ChainPioneer {
-        target_chain: ChainId,        // First to provide $100K on new chain wins
-        pioneer_bonus: u64,           // $10K bonus
-    },
-    VolumeChampion {
-        min_volume_generated: u64,    // LPs whose liquidity generates most volume
-        volume_bonus_percentage: f64, // 0.1% of volume generated as bonus
-    },
-    LoyaltyReward {
-        min_duration_days: u64,       // LPs who stay longest win
-        loyalty_multiplier: f64,      // 1.5x rewards for staying 90+ days
-    },
-}
-```
+### **🚀 Implementation Strategy: Fee-Based Model**
 
-#### **Phase 4: "Self-Sustaining Growth" (Month 4+)**
-```rust
-#[derive(CandidType, Deserialize, Serialize)]
-pub struct SelfSustainingGrowth {
-    // Automated market making creates organic volume
-    pub algorithmic_mm: AlgorithmicMarketMaking {
-        bot_trading_percentage: 20.0,    // 20% of volume from internal AMM
-        spread_optimization: true,       // Tight spreads attract more traders
-        arbitrage_capture: true,         // Capture MEV for LP rewards
-    },
-    
-    // Protocol revenue reinvestment
-    pub revenue_reinvestment: RevenueReinvestment {
-        lp_reward_percentage: 60.0,      // 60% of fees back to LPs
-        protocol_growth_percentage: 25.0,// 25% for marketing/development
-        buyback_percentage: 15.0,        // 15% for token buybacks
-    },
-    
-    // Cross-chain arbitrage drives natural volume
-    pub arbitrage_volume: ArbitrageVolume {
-        estimated_daily_arb_volume: 1_000_000.0, // $1M daily arbitrage volume
-        fee_capture_rate: 0.002,                  // 0.2% fees = $2K daily revenue
-        lp_share_percentage: 80.0,                // $1.6K daily to LPs
-    },
-}
+#### **Phase 1: MVP Launch** (Month 1-2)
+- Launch with simple fee structure: 0.5% standard, 0.1% subscriber
+- Basic subscription tier at $29/month
+- Pool accumulates 0.4% of all transaction volume
+- Target: 1K users, $1M monthly volume
 
-// At scale: $1M daily volume × 0.2% fees × 80% to LPs = $1,600/day LP rewards
-// On $10M TVL = 58.4% APY just from trading fees (plus token rewards)
-impl SelfSustainingGrowth {
-    pub fn calculate_sustainable_apy(&self, tvl: f64, daily_volume: f64) -> f64 {
-        let daily_fees = daily_volume * 0.002; // 0.2% trading fees
-        let daily_lp_rewards = daily_fees * 0.8; // 80% to LPs
-        let annual_lp_rewards = daily_lp_rewards * 365.0;
-        
-        let trading_fee_apy = (annual_lp_rewards / tvl) * 100.0;
-        let token_rewards_apy = 15.0; // Additional token incentives
-        
-        trading_fee_apy + token_rewards_apy
-    }
-}
-```
+#### **Phase 2: Tier Expansion** (Month 3-4)  
+- Add Pro tier at $99/month with 0.05% fees
+- Implement advanced analytics for subscribers  
+- Pool reaches critical mass for better execution
+- Target: 10K users, $10M monthly volume
 
-### **🎯 Execution Timeline & Budget**
+#### **Phase 3: Scale & Optimize** (Month 5-12)
+- Dynamic pricing based on volume tiers
+- Enterprise plans for institutional users
+- Pool provides competitive execution vs external DEXs
+- Target: 50K users, $50M monthly volume
 
-#### **Budget Allocation**
-```rust
-pub struct BootstrapBudget {
-    // Initial protocol liquidity
-    protocol_owned_liquidity: 3_600_000.0,    // $3.6M (60%)
-    
-    // Incentive programs
-    genesis_mining_rewards: 600_000.0,        // $600K (10%)
-    milestone_bonuses: 900_000.0,             // $900K (15%)
-    competition_prizes: 300_000.0,            // $300K (5%)
-    
-    // Partnership deals
-    partnership_incentives: 600_000.0,        // $600K (10%)
-    
-    // Total bootstrap budget
-    total_budget: 6_000_000.0,                // $6M total
-}
-```
-
-#### **Expected Results**
-```rust
-pub struct BootstrapProjections {
-    month_1_tvl: 5_000_000.0,     // $5M (includes $3.6M protocol + $1.4M community)
-    month_3_tvl: 15_000_000.0,    // $15M (3x growth from incentives)
-    month_6_tvl: 50_000_000.0,    // $50M (organic growth + partnerships)
-    month_12_tvl: 150_000_000.0,  // $150M (self-sustaining flywheel)
-    
-    // Revenue projections
-    month_12_monthly_revenue: 300_000.0, // $300K/month from trading fees
-    break_even_month: 8,                  // Break even by month 8
-    roi_24_months: 500.0,                 // 5x ROI within 24 months
-}
-```
+**Result**: Self-sustaining liquidity model with zero upfront risk, strong user incentives, and predictable revenue growth.
 
 ## 🛠️ **Technical Implementation Strategy**
 
