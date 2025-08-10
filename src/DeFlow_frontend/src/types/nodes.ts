@@ -376,6 +376,396 @@ export const NODE_TYPES: NodeType[] = [
       }
     ],
     defaultConfig: { operation: 'extract', config: '{}' }
+  },
+
+  // Tier 1 Components - Communication & Web3
+  {
+    id: 'discord-integration',
+    name: 'Discord Message',
+    description: 'Send messages to Discord channels or users',
+    category: 'integrations',
+    icon: '💬',
+    color: '#5865f2',
+    inputs: [
+      { id: 'data', name: 'Message Data', type: 'data', required: false }
+    ],
+    outputs: [
+      { id: 'result', name: 'Discord Result', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'webhook_url',
+        name: 'Discord Webhook URL',
+        type: 'url',
+        required: true,
+        placeholder: 'https://discord.com/api/webhooks/...',
+        description: 'Discord webhook URL for the target channel'
+      },
+      {
+        key: 'message',
+        name: 'Message Content',
+        type: 'textarea',
+        required: true,
+        placeholder: 'Your message here...\nSupports {{variable}} templates',
+        description: 'Message content with template variable support'
+      },
+      {
+        key: 'username',
+        name: 'Bot Username',
+        type: 'text',
+        required: false,
+        placeholder: 'DeFlow Bot',
+        defaultValue: 'DeFlow Bot',
+        description: 'Custom username for the bot message'
+      },
+      {
+        key: 'avatar_url',
+        name: 'Bot Avatar URL',
+        type: 'url',
+        required: false,
+        placeholder: 'https://example.com/avatar.png',
+        description: 'Custom avatar image for the bot'
+      },
+      {
+        key: 'use_embed',
+        name: 'Use Rich Embed',
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        description: 'Send as rich embed with better formatting'
+      },
+      {
+        key: 'embed_color',
+        name: 'Embed Color',
+        type: 'text',
+        required: false,
+        placeholder: '#00ff00',
+        defaultValue: '#5865f2',
+        description: 'Hex color for embed (only if Use Rich Embed is enabled)'
+      },
+      {
+        key: 'embed_title',
+        name: 'Embed Title',
+        type: 'text',
+        required: false,
+        placeholder: 'Strategy Alert',
+        description: 'Title for rich embed (only if Use Rich Embed is enabled)'
+      }
+    ],
+    defaultConfig: { 
+      webhook_url: '', 
+      message: '', 
+      username: 'DeFlow Bot',
+      avatar_url: '',
+      use_embed: false,
+      embed_color: '#5865f2',
+      embed_title: ''
+    }
+  },
+
+  {
+    id: 'push-notification',
+    name: 'Push Notification',
+    description: 'Send browser/mobile push notifications',
+    category: 'integrations',
+    icon: '📱',
+    color: '#ff6b35',
+    inputs: [
+      { id: 'data', name: 'Notification Data', type: 'data', required: false }
+    ],
+    outputs: [
+      { id: 'result', name: 'Push Result', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'title',
+        name: 'Notification Title',
+        type: 'text',
+        required: true,
+        placeholder: 'DeFlow Alert',
+        validation: { maxLength: 50 }
+      },
+      {
+        key: 'message',
+        name: 'Notification Message',
+        type: 'textarea',
+        required: true,
+        placeholder: 'Your strategy has been executed successfully!',
+        validation: { maxLength: 200 },
+        description: 'Supports {{variable}} templates'
+      },
+      {
+        key: 'urgency',
+        name: 'Urgency Level',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Low', value: 'low' },
+          { label: 'Normal', value: 'normal' },
+          { label: 'High', value: 'high' },
+          { label: 'Critical', value: 'critical' }
+        ],
+        defaultValue: 'normal'
+      },
+      {
+        key: 'icon_url',
+        name: 'Notification Icon',
+        type: 'url',
+        required: false,
+        placeholder: 'https://example.com/icon.png',
+        description: 'Custom icon for notification'
+      },
+      {
+        key: 'action_url',
+        name: 'Action URL',
+        type: 'url',
+        required: false,
+        placeholder: 'https://app.deflow.com/strategies',
+        description: 'URL to open when notification is clicked'
+      },
+      {
+        key: 'tags',
+        name: 'User Tags',
+        type: 'text',
+        required: false,
+        placeholder: 'defi,alerts,trading',
+        description: 'Comma-separated tags to target specific users'
+      }
+    ],
+    defaultConfig: { 
+      title: 'DeFlow Alert', 
+      message: '', 
+      urgency: 'normal',
+      icon_url: '',
+      action_url: '',
+      tags: ''
+    }
+  },
+
+  {
+    id: 'telegram-bot',
+    name: 'Telegram Message',
+    description: 'Send messages via Telegram Bot',
+    category: 'integrations',
+    icon: '📬',
+    color: '#0088cc',
+    inputs: [
+      { id: 'data', name: 'Message Data', type: 'data', required: false }
+    ],
+    outputs: [
+      { id: 'result', name: 'Telegram Result', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'bot_token',
+        name: 'Bot Token',
+        type: 'password',
+        required: true,
+        placeholder: '1234567890:ABCdefGHIjklMNOpqrsTUVwxyz',
+        description: 'Telegram bot token from @BotFather'
+      },
+      {
+        key: 'chat_id',
+        name: 'Chat ID',
+        type: 'text',
+        required: true,
+        placeholder: '-1001234567890',
+        description: 'Chat ID (user ID, group ID, or channel username)'
+      },
+      {
+        key: 'message',
+        name: 'Message Text',
+        type: 'textarea',
+        required: true,
+        placeholder: 'Your message here...\nSupports {{variable}} templates',
+        description: 'Message text with template variable support'
+      },
+      {
+        key: 'parse_mode',
+        name: 'Parse Mode',
+        type: 'select',
+        required: false,
+        options: [
+          { label: 'Plain Text', value: '' },
+          { label: 'Markdown', value: 'Markdown' },
+          { label: 'HTML', value: 'HTML' }
+        ],
+        defaultValue: 'Markdown',
+        description: 'Text formatting mode'
+      },
+      {
+        key: 'disable_preview',
+        name: 'Disable Link Preview',
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        description: 'Disable web page preview for links'
+      },
+      {
+        key: 'silent',
+        name: 'Silent Message',
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        description: 'Send message silently (no notification sound)'
+      }
+    ],
+    defaultConfig: { 
+      bot_token: '', 
+      chat_id: '', 
+      message: '',
+      parse_mode: 'Markdown',
+      disable_preview: false,
+      silent: false
+    }
+  },
+
+  {
+    id: 'on-chain-analytics',
+    name: 'On-Chain Analytics',
+    description: 'Analyze wallet activity and transaction history',
+    category: 'utilities',
+    icon: '📊',
+    color: '#8b5cf6',
+    inputs: [
+      { id: 'trigger', name: 'Trigger', type: 'trigger', required: true }
+    ],
+    outputs: [
+      { id: 'analytics', name: 'Analytics Data', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'address',
+        name: 'Wallet Address',
+        type: 'text',
+        required: true,
+        placeholder: '0x742d35Cc6636C0532925a3b8D0C9e3d4d7b7C94A',
+        description: 'Wallet address to analyze'
+      },
+      {
+        key: 'chain',
+        name: 'Blockchain',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Ethereum', value: 'ethereum' },
+          { label: 'Bitcoin', value: 'bitcoin' },
+          { label: 'Arbitrum', value: 'arbitrum' },
+          { label: 'Optimism', value: 'optimism' },
+          { label: 'Polygon', value: 'polygon' },
+          { label: 'Solana', value: 'solana' }
+        ],
+        defaultValue: 'ethereum'
+      },
+      {
+        key: 'analysis_type',
+        name: 'Analysis Type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Transaction History', value: 'transactions' },
+          { label: 'Token Holdings', value: 'holdings' },
+          { label: 'DeFi Positions', value: 'defi_positions' },
+          { label: 'NFT Collection', value: 'nfts' },
+          { label: 'Trading Activity', value: 'trading' },
+          { label: 'Whale Behavior', value: 'whale_tracking' }
+        ],
+        defaultValue: 'transactions'
+      },
+      {
+        key: 'time_range',
+        name: 'Time Range',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Last 24 Hours', value: '24h' },
+          { label: 'Last 7 Days', value: '7d' },
+          { label: 'Last 30 Days', value: '30d' },
+          { label: 'Last 90 Days', value: '90d' },
+          { label: 'All Time', value: 'all' }
+        ],
+        defaultValue: '7d'
+      },
+      {
+        key: 'min_value_usd',
+        name: 'Minimum Value (USD)',
+        type: 'number',
+        required: false,
+        placeholder: '100',
+        validation: { min: 0 },
+        description: 'Filter transactions below this USD value'
+      }
+    ],
+    defaultConfig: { 
+      address: '', 
+      chain: 'ethereum',
+      analysis_type: 'transactions',
+      time_range: '7d',
+      min_value_usd: null
+    }
+  },
+
+  {
+    id: 'cross-chain-event-listener',
+    name: 'Cross-Chain Events',
+    description: 'Monitor events across multiple blockchains',
+    category: 'triggers',
+    icon: '🌍',
+    color: '#3b82f6',
+    inputs: [],
+    outputs: [
+      { id: 'event', name: 'Event Data', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'chains',
+        name: 'Target Chains',
+        type: 'text',
+        required: true,
+        placeholder: 'ethereum,arbitrum,polygon',
+        description: 'Comma-separated list of chains to monitor'
+      },
+      {
+        key: 'contract_addresses',
+        name: 'Contract Addresses',
+        type: 'textarea',
+        required: true,
+        placeholder: '0x742d35Cc...,0x123abc...',
+        description: 'Contract addresses to monitor (one per line or comma-separated)'
+      },
+      {
+        key: 'event_signatures',
+        name: 'Event Signatures',
+        type: 'textarea',
+        required: true,
+        placeholder: 'Transfer(address,address,uint256)\nSwap(uint256,uint256)',
+        description: 'Event signatures to listen for (one per line)'
+      },
+      {
+        key: 'filter_conditions',
+        name: 'Filter Conditions (JSON)',
+        type: 'textarea',
+        required: false,
+        placeholder: '{"from": "0x123...", "value": {"$gt": 1000}}',
+        description: 'JSON conditions to filter events'
+      },
+      {
+        key: 'poll_interval',
+        name: 'Polling Interval (seconds)',
+        type: 'number',
+        required: true,
+        validation: { min: 10, max: 3600 },
+        defaultValue: 60,
+        description: 'How often to check for new events'
+      }
+    ],
+    defaultConfig: { 
+      chains: 'ethereum',
+      contract_addresses: '',
+      event_signatures: '',
+      filter_conditions: '{}',
+      poll_interval: 60
+    }
   }
 ]
 

@@ -451,5 +451,113 @@ export const DEFI_NODE_TYPES: NodeType[] = [
       }
     ],
     defaultConfig: { chain: 'Ethereum', priority: 'medium', max_gas_price: null }
+  },
+
+  // Tier 1 Web3 Components
+  {
+    id: 'dao-governance',
+    name: 'DAO Governance',
+    description: 'Participate in DAO governance (vote, propose, delegate)',
+    category: 'actions',
+    icon: '🗳️',
+    color: '#10b981',
+    inputs: [
+      { id: 'trigger', name: 'Execute', type: 'trigger', required: true }
+    ],
+    outputs: [
+      { id: 'result', name: 'Governance Result', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'dao_address',
+        name: 'DAO Contract Address',
+        type: 'text',
+        required: true,
+        placeholder: '0x742d35Cc6636C0532925a3b8D0C9e3d4d7b7C94A',
+        description: 'Smart contract address of the DAO'
+      },
+      {
+        key: 'chain',
+        name: 'Blockchain',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Ethereum', value: 'Ethereum' },
+          { label: 'Arbitrum', value: 'Arbitrum' },
+          { label: 'Optimism', value: 'Optimism' },
+          { label: 'Polygon', value: 'Polygon' },
+          { label: 'Base', value: 'Base' }
+        ],
+        defaultValue: 'Ethereum'
+      },
+      {
+        key: 'action_type',
+        name: 'Governance Action',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Vote on Proposal', value: 'vote' },
+          { label: 'Create Proposal', value: 'propose' },
+          { label: 'Delegate Voting Power', value: 'delegate' },
+          { label: 'Check Proposal Status', value: 'check_proposal' }
+        ],
+        defaultValue: 'vote'
+      },
+      {
+        key: 'proposal_id',
+        name: 'Proposal ID',
+        type: 'text',
+        required: false,
+        placeholder: '123',
+        description: 'ID of the proposal (required for voting and checking)'
+      },
+      {
+        key: 'vote_choice',
+        name: 'Vote Choice',
+        type: 'select',
+        required: false,
+        options: [
+          { label: 'For', value: 'for' },
+          { label: 'Against', value: 'against' },
+          { label: 'Abstain', value: 'abstain' }
+        ],
+        defaultValue: 'for',
+        description: 'Vote choice (required for voting)'
+      },
+      {
+        key: 'delegate_address',
+        name: 'Delegate Address',
+        type: 'text',
+        required: false,
+        placeholder: '0x123...',
+        description: 'Address to delegate voting power to (required for delegation)'
+      },
+      {
+        key: 'proposal_title',
+        name: 'Proposal Title',
+        type: 'text',
+        required: false,
+        placeholder: 'Increase governance rewards',
+        description: 'Title for new proposal (required for creating proposals)'
+      },
+      {
+        key: 'proposal_description',
+        name: 'Proposal Description',
+        type: 'textarea',
+        required: false,
+        placeholder: 'This proposal aims to...',
+        description: 'Description for new proposal (required for creating proposals)'
+      }
+    ],
+    defaultConfig: { 
+      dao_address: '', 
+      chain: 'Ethereum',
+      action_type: 'vote',
+      proposal_id: '',
+      vote_choice: 'for',
+      delegate_address: '',
+      proposal_title: '',
+      proposal_description: ''
+    }
   }
 ]
