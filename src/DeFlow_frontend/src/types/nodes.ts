@@ -766,6 +766,587 @@ export const NODE_TYPES: NodeType[] = [
       filter_conditions: '{}',
       poll_interval: 60
     }
+  },
+
+  // Tier 2 Components - Social Media & Community
+  {
+    id: 'x-integration',
+    name: 'X Post',
+    description: 'Post on X (formerly Twitter), send DMs, schedule posts',
+    category: 'integrations',
+    icon: '✖️',
+    color: '#000000',
+    inputs: [
+      { id: 'data', name: 'Post Data', type: 'data', required: false }
+    ],
+    outputs: [
+      { id: 'result', name: 'X Result', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'api_key',
+        name: 'API Key',
+        type: 'password',
+        required: true,
+        placeholder: 'X API Key',
+        description: 'X API Key from Developer Portal'
+      },
+      {
+        key: 'api_secret',
+        name: 'API Secret',
+        type: 'password',
+        required: true,
+        placeholder: 'X API Secret',
+        description: 'X API Secret from Developer Portal'
+      },
+      {
+        key: 'access_token',
+        name: 'Access Token',
+        type: 'password',
+        required: true,
+        placeholder: 'X Access Token',
+        description: 'X Access Token for your account'
+      },
+      {
+        key: 'access_token_secret',
+        name: 'Access Token Secret',
+        type: 'password',
+        required: true,
+        placeholder: 'X Access Token Secret',
+        description: 'X Access Token Secret'
+      },
+      {
+        key: 'action_type',
+        name: 'Action Type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Post on X', value: 'post' },
+          { label: 'Reply to Post', value: 'reply' },
+          { label: 'Send Direct Message', value: 'dm' },
+          { label: 'Schedule Post', value: 'schedule' }
+        ],
+        defaultValue: 'post'
+      },
+      {
+        key: 'content',
+        name: 'Post Content',
+        type: 'textarea',
+        required: true,
+        placeholder: 'What\'s happening?\nSupports {{variable}} templates',
+        validation: { maxLength: 280 },
+        description: 'Post content (max 280 characters)'
+      },
+      {
+        key: 'reply_to_id',
+        name: 'Reply to Post ID',
+        type: 'text',
+        required: false,
+        placeholder: '1234567890123456789',
+        description: 'Post ID to reply to (only for replies)'
+      },
+      {
+        key: 'recipient_id',
+        name: 'DM Recipient ID',
+        type: 'text',
+        required: false,
+        placeholder: '1234567890',
+        description: 'User ID to send DM to (only for DMs)'
+      },
+      {
+        key: 'schedule_time',
+        name: 'Schedule Time (ISO)',
+        type: 'text',
+        required: false,
+        placeholder: '2024-01-01T12:00:00Z',
+        description: 'ISO timestamp for scheduled posts'
+      },
+      {
+        key: 'hashtags',
+        name: 'Hashtags',
+        type: 'text',
+        required: false,
+        placeholder: '#defi #crypto #automation',
+        description: 'Space-separated hashtags to append'
+      }
+    ],
+    defaultConfig: { 
+      api_key: '',
+      api_secret: '',
+      access_token: '',
+      access_token_secret: '',
+      action_type: 'post',
+      content: '',
+      reply_to_id: '',
+      recipient_id: '',
+      schedule_time: '',
+      hashtags: ''
+    }
+  },
+
+  {
+    id: 'nft-operations',
+    name: 'NFT Operations',
+    description: 'Mint, transfer, list NFTs across chains',
+    category: 'actions',
+    icon: '🏷️',
+    color: '#ff6b35',
+    inputs: [
+      { id: 'trigger', name: 'Execute', type: 'trigger', required: true }
+    ],
+    outputs: [
+      { id: 'result', name: 'NFT Result', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'chain',
+        name: 'Blockchain',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Ethereum', value: 'ethereum' },
+          { label: 'Arbitrum', value: 'arbitrum' },
+          { label: 'Optimism', value: 'optimism' },
+          { label: 'Polygon', value: 'polygon' },
+          { label: 'Base', value: 'base' },
+          { label: 'Solana', value: 'solana' }
+        ],
+        defaultValue: 'ethereum'
+      },
+      {
+        key: 'operation',
+        name: 'Operation Type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Mint NFT', value: 'mint' },
+          { label: 'Transfer NFT', value: 'transfer' },
+          { label: 'List on Marketplace', value: 'list' },
+          { label: 'Buy from Marketplace', value: 'buy' },
+          { label: 'Check Ownership', value: 'check_owner' }
+        ],
+        defaultValue: 'mint'
+      },
+      {
+        key: 'contract_address',
+        name: 'Contract Address',
+        type: 'text',
+        required: true,
+        placeholder: '0x742d35Cc6636C0532925a3b8D0C9e3d4d7b7C94A',
+        description: 'NFT contract address'
+      },
+      {
+        key: 'token_id',
+        name: 'Token ID',
+        type: 'text',
+        required: false,
+        placeholder: '1234',
+        description: 'Token ID (required for transfer/list/buy operations)'
+      },
+      {
+        key: 'recipient_address',
+        name: 'Recipient Address',
+        type: 'text',
+        required: false,
+        placeholder: '0x123...',
+        description: 'Address to send NFT to (for transfer/mint)'
+      },
+      {
+        key: 'metadata_uri',
+        name: 'Metadata URI',
+        type: 'url',
+        required: false,
+        placeholder: 'https://api.example.com/nft/metadata/1',
+        description: 'IPFS or HTTP URI for NFT metadata (for minting)'
+      },
+      {
+        key: 'marketplace',
+        name: 'Marketplace',
+        type: 'select',
+        required: false,
+        options: [
+          { label: 'OpenSea', value: 'opensea' },
+          { label: 'LooksRare', value: 'looksrare' },
+          { label: 'Magic Eden', value: 'magiceden' },
+          { label: 'Blur', value: 'blur' }
+        ],
+        defaultValue: 'opensea',
+        description: 'Marketplace for list/buy operations'
+      },
+      {
+        key: 'price_eth',
+        name: 'Price (ETH)',
+        type: 'number',
+        required: false,
+        placeholder: '0.5',
+        validation: { min: 0 },
+        description: 'Price in ETH (for listing/buying)'
+      },
+      {
+        key: 'auto_approve',
+        name: 'Auto Approve',
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        description: 'Automatically approve marketplace for transfers'
+      }
+    ],
+    defaultConfig: { 
+      chain: 'ethereum',
+      operation: 'mint',
+      contract_address: '',
+      token_id: '',
+      recipient_address: '',
+      metadata_uri: '',
+      marketplace: 'opensea',
+      price_eth: null,
+      auto_approve: false
+    }
+  },
+
+  {
+    id: 'advanced-scheduling',
+    name: 'Advanced Scheduler',
+    description: 'Complex scheduling (lunar calendar, market hours, events)',
+    category: 'triggers',
+    icon: '📅',
+    color: '#3b82f6',
+    inputs: [],
+    outputs: [
+      { id: 'time', name: 'Scheduled Trigger', type: 'trigger', required: true },
+      { id: 'context', name: 'Schedule Context', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'schedule_type',
+        name: 'Schedule Type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Market Hours Only', value: 'market_hours' },
+          { label: 'Lunar Calendar', value: 'lunar_calendar' },
+          { label: 'Economic Events', value: 'economic_events' },
+          { label: 'Custom Business Hours', value: 'business_hours' },
+          { label: 'Advanced Cron', value: 'advanced_cron' }
+        ],
+        defaultValue: 'market_hours'
+      },
+      {
+        key: 'market_timezone',
+        name: 'Market Timezone',
+        type: 'select',
+        required: false,
+        options: [
+          { label: 'NYSE (America/New_York)', value: 'America/New_York' },
+          { label: 'LSE (Europe/London)', value: 'Europe/London' },
+          { label: 'TSE (Asia/Tokyo)', value: 'Asia/Tokyo' },
+          { label: 'SSE (Asia/Shanghai)', value: 'Asia/Shanghai' },
+          { label: 'Crypto 24/7', value: 'crypto' }
+        ],
+        defaultValue: 'America/New_York',
+        description: 'Market timezone for market hours scheduling'
+      },
+      {
+        key: 'lunar_phase',
+        name: 'Lunar Phase',
+        type: 'select',
+        required: false,
+        options: [
+          { label: 'New Moon', value: 'new_moon' },
+          { label: 'First Quarter', value: 'first_quarter' },
+          { label: 'Full Moon', value: 'full_moon' },
+          { label: 'Last Quarter', value: 'last_quarter' }
+        ],
+        defaultValue: 'full_moon',
+        description: 'Lunar phase for lunar calendar scheduling'
+      },
+      {
+        key: 'economic_events',
+        name: 'Economic Events',
+        type: 'text',
+        required: false,
+        placeholder: 'FOMC,NFP,CPI,GDP',
+        description: 'Comma-separated economic events to trigger on'
+      },
+      {
+        key: 'business_start',
+        name: 'Business Start Time',
+        type: 'text',
+        required: false,
+        placeholder: '09:00',
+        description: 'Business hours start time (HH:MM format)'
+      },
+      {
+        key: 'business_end',
+        name: 'Business End Time',
+        type: 'text',
+        required: false,
+        placeholder: '17:00',
+        description: 'Business hours end time (HH:MM format)'
+      },
+      {
+        key: 'business_days',
+        name: 'Business Days',
+        type: 'text',
+        required: false,
+        placeholder: '1,2,3,4,5',
+        defaultValue: '1,2,3,4,5',
+        description: 'Days of week (1=Monday, 7=Sunday)'
+      },
+      {
+        key: 'advanced_cron',
+        name: 'Advanced Cron Expression',
+        type: 'text',
+        required: false,
+        placeholder: '0 9-17 * * 1-5',
+        description: 'Complex cron expression with conditions'
+      },
+      {
+        key: 'blackout_dates',
+        name: 'Blackout Dates',
+        type: 'textarea',
+        required: false,
+        placeholder: '2024-12-25\n2024-01-01\n2024-07-04',
+        description: 'Dates to skip (YYYY-MM-DD format, one per line)'
+      }
+    ],
+    defaultConfig: { 
+      schedule_type: 'market_hours',
+      market_timezone: 'America/New_York',
+      lunar_phase: 'full_moon',
+      economic_events: '',
+      business_start: '09:00',
+      business_end: '17:00',
+      business_days: '1,2,3,4,5',
+      advanced_cron: '',
+      blackout_dates: ''
+    }
+  },
+
+  {
+    id: 'loop-controller',
+    name: 'Loop Controller',
+    description: 'Repeat actions with conditions and limits',
+    category: 'utilities',
+    icon: '🔄',
+    color: '#8b5cf6',
+    inputs: [
+      { id: 'trigger', name: 'Start Loop', type: 'trigger', required: true },
+      { id: 'data', name: 'Loop Data', type: 'data', required: false }
+    ],
+    outputs: [
+      { id: 'iteration', name: 'Each Iteration', type: 'data', required: true },
+      { id: 'complete', name: 'Loop Complete', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'loop_type',
+        name: 'Loop Type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Fixed Count', value: 'count' },
+          { label: 'While Condition', value: 'while' },
+          { label: 'For Each Item', value: 'foreach' },
+          { label: 'Until Success', value: 'until_success' }
+        ],
+        defaultValue: 'count'
+      },
+      {
+        key: 'max_iterations',
+        name: 'Max Iterations',
+        type: 'number',
+        required: true,
+        validation: { min: 1, max: 1000 },
+        defaultValue: 10,
+        description: 'Maximum number of iterations (safety limit)'
+      },
+      {
+        key: 'break_condition',
+        name: 'Break Condition',
+        type: 'textarea',
+        required: false,
+        placeholder: 'data.success === true',
+        description: 'JavaScript expression to break the loop'
+      },
+      {
+        key: 'delay_between',
+        name: 'Delay Between Iterations (seconds)',
+        type: 'number',
+        required: true,
+        validation: { min: 0, max: 3600 },
+        defaultValue: 1,
+        description: 'Wait time between each iteration'
+      },
+      {
+        key: 'data_source',
+        name: 'Data Source Path',
+        type: 'text',
+        required: false,
+        placeholder: 'data.items',
+        description: 'Path to array for foreach loops'
+      },
+      {
+        key: 'iteration_variable',
+        name: 'Iteration Variable Name',
+        type: 'text',
+        required: false,
+        placeholder: 'item',
+        defaultValue: 'item',
+        description: 'Variable name for current iteration data'
+      },
+      {
+        key: 'continue_on_error',
+        name: 'Continue on Error',
+        type: 'boolean',
+        required: false,
+        defaultValue: true,
+        description: 'Continue loop if an iteration fails'
+      },
+      {
+        key: 'parallel_execution',
+        name: 'Parallel Execution',
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        description: 'Execute iterations in parallel (advanced)'
+      }
+    ],
+    defaultConfig: { 
+      loop_type: 'count',
+      max_iterations: 10,
+      break_condition: '',
+      delay_between: 1,
+      data_source: '',
+      iteration_variable: 'item',
+      continue_on_error: true,
+      parallel_execution: false
+    }
+  },
+
+  {
+    id: 'technical-indicators',
+    name: 'Technical Indicators',
+    description: 'RSI, MACD, Bollinger Bands triggers',
+    category: 'triggers',
+    icon: '📊',
+    color: '#3b82f6',
+    inputs: [],
+    outputs: [
+      { id: 'signal', name: 'Indicator Signal', type: 'trigger', required: true },
+      { id: 'data', name: 'Indicator Data', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'asset_symbol',
+        name: 'Asset Symbol',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Bitcoin (BTC)', value: 'BTC' },
+          { label: 'Ethereum (ETH)', value: 'ETH' },
+          { label: 'Solana (SOL)', value: 'SOL' },
+          { label: 'Cardano (ADA)', value: 'ADA' },
+          { label: 'Chainlink (LINK)', value: 'LINK' }
+        ],
+        defaultValue: 'BTC'
+      },
+      {
+        key: 'indicator_type',
+        name: 'Technical Indicator',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'RSI (Relative Strength Index)', value: 'rsi' },
+          { label: 'MACD (Moving Average Convergence Divergence)', value: 'macd' },
+          { label: 'Bollinger Bands', value: 'bollinger' },
+          { label: 'Moving Average', value: 'sma' },
+          { label: 'EMA (Exponential Moving Average)', value: 'ema' },
+          { label: 'Stochastic Oscillator', value: 'stochastic' }
+        ],
+        defaultValue: 'rsi'
+      },
+      {
+        key: 'timeframe',
+        name: 'Timeframe',
+        type: 'select',
+        required: true,
+        options: [
+          { label: '1 Minute', value: '1m' },
+          { label: '5 Minutes', value: '5m' },
+          { label: '15 Minutes', value: '15m' },
+          { label: '1 Hour', value: '1h' },
+          { label: '4 Hours', value: '4h' },
+          { label: '1 Day', value: '1d' }
+        ],
+        defaultValue: '1h'
+      },
+      {
+        key: 'trigger_condition',
+        name: 'Trigger Condition',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Above Threshold', value: 'above' },
+          { label: 'Below Threshold', value: 'below' },
+          { label: 'Crosses Above', value: 'crosses_above' },
+          { label: 'Crosses Below', value: 'crosses_below' },
+          { label: 'Bullish Signal', value: 'bullish' },
+          { label: 'Bearish Signal', value: 'bearish' }
+        ],
+        defaultValue: 'below'
+      },
+      {
+        key: 'threshold_value',
+        name: 'Threshold Value',
+        type: 'number',
+        required: true,
+        validation: { min: 0, max: 100 },
+        defaultValue: 30,
+        description: 'Threshold value for the indicator (0-100 for RSI, etc.)'
+      },
+      {
+        key: 'period',
+        name: 'Period',
+        type: 'number',
+        required: true,
+        validation: { min: 2, max: 200 },
+        defaultValue: 14,
+        description: 'Period for indicator calculation (e.g., 14 for RSI)'
+      },
+      {
+        key: 'data_source',
+        name: 'Data Source',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Binance', value: 'binance' },
+          { label: 'Coinbase', value: 'coinbase' },
+          { label: 'CoinGecko', value: 'coingecko' },
+          { label: 'TradingView', value: 'tradingview' }
+        ],
+        defaultValue: 'binance'
+      },
+      {
+        key: 'check_interval',
+        name: 'Check Interval (minutes)',
+        type: 'number',
+        required: true,
+        validation: { min: 1, max: 1440 },
+        defaultValue: 5,
+        description: 'How often to check the indicator'
+      }
+    ],
+    defaultConfig: { 
+      asset_symbol: 'BTC',
+      indicator_type: 'rsi',
+      timeframe: '1h',
+      trigger_condition: 'below',
+      threshold_value: 30,
+      period: 14,
+      data_source: 'binance',
+      check_interval: 5
+    }
   }
 ]
 
