@@ -675,6 +675,8 @@ const SUPPORTED_CHAINS = {
 
 **Solution**: DeFlow's native multi-chain liquidity pool providing instant, low-cost execution for all automated strategies.
 
+> **📋 Note**: Detailed liquidity pool and subscription strategy has been extracted to [`LIQUIDITY_POOL_STRATEGY.md`](./LIQUIDITY_POOL_STRATEGY.md) for comprehensive analysis and implementation planning.
+
 ### **🏗️ Native Liquidity Pool Architecture**
 
 ```rust
@@ -910,231 +912,35 @@ impl LiquidityPool {
 
 **The Sustainable Solution**: Liquidity grows naturally with platform usage through intelligent fee structure.
 
-**DeFlow's Fee-Based Liquidity Model**:
-```rust
-#[derive(CandidType, Deserialize, Serialize)]
-pub struct FeeBasedLiquidityModel {
-    // Dynamic fee structure
-    pub fee_structure: FeeStructure {
-        standard_user_fee: 0.005,        // 0.5% per transaction
-        subscriber_fee: 0.001,           // 0.1% per transaction (5x reduction)
-        liquidity_pool_allocation: 1.0,  // 100% of difference goes to pool
-    },
-    
-    // Subscription incentive system
-    pub subscription_tiers: Vec<SubscriptionTier>,
-    
-    // Pool growth mechanism
-    pub pool_growth: PoolGrowthMechanism {
-        fee_accumulation_rate: 0.004,    // 0.4% net per transaction to pool
-        organic_scaling: true,           // Grows with platform usage
-        no_upfront_capital: true,        // Zero initial investment required
-    },
-}
+> **📋 Complete Strategy**: Full fee-based liquidity model and subscription system detailed in [`LIQUIDITY_POOL_STRATEGY.md`](./LIQUIDITY_POOL_STRATEGY.md)
 
-#[derive(CandidType, Deserialize, Serialize)]
-pub struct SubscriptionTier {
-    pub tier_name: String,
-    pub monthly_fee: f64,
-    pub transaction_fee: f64,            // Reduced from 0.5% standard
-    pub fee_savings: f64,                // % savings vs standard users
-    pub additional_benefits: Vec<String>,
-}
+#### **Quick Summary: Zero-Risk Liquidity Model**
 
-// Subscription tiers with fee incentives
-impl FeeBasedLiquidityModel {
-    pub fn get_subscription_tiers() -> Vec<SubscriptionTier> {
-        vec![
-            SubscriptionTier {
-                tier_name: "Standard User".to_string(),
-                monthly_fee: 0.0,        // Free
-                transaction_fee: 0.005,  // 0.5% per transaction
-                fee_savings: 0.0,        // No savings
-                additional_benefits: vec!["Basic features".to_string()],
-            },
-            SubscriptionTier {
-                tier_name: "Premium Subscriber".to_string(),
-                monthly_fee: 29.0,       // $29/month
-                transaction_fee: 0.001,  // 0.1% per transaction
-                fee_savings: 80.0,       // 80% fee savings
-                additional_benefits: vec![
-                    "Priority execution".to_string(),
-                    "Advanced analytics".to_string(),
-                    "24/7 support".to_string(),
-                ],
-            },
-            SubscriptionTier {
-                tier_name: "Pro Subscriber".to_string(),
-                monthly_fee: 99.0,       // $99/month
-                transaction_fee: 0.0005, // 0.05% per transaction
-                fee_savings: 90.0,       // 90% fee savings
-                additional_benefits: vec![
-                    "All Premium benefits".to_string(),
-                    "Custom strategies".to_string(),
-                    "API access".to_string(),
-                    "Portfolio insurance".to_string(),
-                ],
-            },
-        ]
-    }
-}
-```
+**Fee Structure:**
+- **Standard users**: 0.5% per transaction  
+- **Subscribers**: 0.1% per transaction (80% savings!)
+- **Pool accumulates**: 0.4% difference automatically
 
-#### **🔥 Key Advantages of Fee-Based Model**
+**Subscription Tiers:**
+- **Premium**: $29/month → 0.1% fees → Save $400+ annually
+- **Pro**: $99/month → 0.05% fees → Save $1,500+ annually
 
-**✅ Self-Sustaining Growth**
-- Pool grows automatically with every transaction
-- Higher platform usage = more liquidity
-- No initial capital risk or investor dependency
+**Growth Projections:**
+- **Month 3**: Break even with $0 upfront investment
+- **Month 12**: $1.5M liquidity pool, $840K monthly revenue
+- **Network Effect**: More liquidity → better execution → more users
 
-**✅ Strong Subscription Incentives**  
-- 80-90% fee savings for subscribers
-- Clear ROI: High-volume users save thousands annually
-- Recurring revenue from subscriptions
+#### **🔥 Why This is Superior to Bootstrap Models**
 
-**✅ Business Model Alignment**
-- Revenue scales with platform success
-- Users benefit from growing liquidity pool
-- Sustainable long-term economics
+| Metric | Traditional Bootstrap | **DeFlow Fee-Based** |
+|--------|----------------------|----------------------|
+| Upfront Capital | $6M required | **$0 required** |
+| Risk Level | High | **Zero risk** |
+| Break Even | Month 8 | **Month 3** |
+| Scalability | Limited by funding | **Unlimited** |
+| User Incentives | Complex rewards | **Simple fee savings** |
 
-#### **💰 Fee-Based Revenue Model**
-
-```rust
-#[derive(CandidType, Deserialize, Serialize)]
-pub struct FeeBasedRevenue {
-    // Revenue from fee difference
-    pub transaction_revenue: TransactionRevenue {
-        standard_user_contribution: 0.005,  // 0.5% full fee
-        subscriber_savings: 0.004,           // 0.4% saved by subscribers
-        net_pool_contribution: 0.004,        // 0.4% goes to liquidity pool
-    },
-    
-    // Subscription revenue
-    pub subscription_revenue: SubscriptionRevenue {
-        monthly_recurring_revenue: f64,      // MRR from subscriptions
-        subscriber_conversion_rate: 0.15,    // 15% of users become subscribers
-        average_subscription_value: 64.0,    // Average between $29 and $99 tiers
-    },
-    
-    // Organic growth projections
-    pub growth_projections: GrowthProjections {
-        monthly_transaction_volume_growth: 0.20,  // 20% month-over-month
-        subscriber_growth_rate: 0.25,            // 25% month-over-month
-        liquidity_pool_compound_effect: true,    // More liquidity = better execution = more users
-    },
-}
-
-// Revenue calculation example
-impl FeeBasedRevenue {
-    pub fn calculate_monthly_revenue(&self, 
-        monthly_volume: f64, 
-        total_users: u64, 
-        subscriber_percentage: f64
-    ) -> MonthlyRevenue {
-        
-        let subscribers = total_users as f64 * subscriber_percentage;
-        let standard_users = total_users as f64 * (1.0 - subscriber_percentage);
-        
-        // Transaction fee revenue (difference between standard and subscriber fees)
-        let subscriber_volume = monthly_volume * subscriber_percentage;
-        let fee_difference_revenue = subscriber_volume * 0.004; // 0.4% difference
-        
-        // Subscription MRR
-        let subscription_revenue = subscribers * 64.0; // Average $64/month
-        
-        // Total monthly revenue
-        let total_revenue = fee_difference_revenue + subscription_revenue;
-        
-        // Liquidity pool growth
-        let pool_contribution = monthly_volume * 0.004; // 0.4% of all volume
-        
-        MonthlyRevenue {
-            subscription_revenue,
-            transaction_fee_revenue: fee_difference_revenue,
-            total_revenue,
-            liquidity_pool_growth: pool_contribution,
-        }
-    }
-}
-```
-
-#### **📊 Fee-Based Growth Projections**
-
-```rust
-pub struct FeeBasedProjections {
-    // Month 1: Early adopters
-    month_1_volume: 1_000_000.0,           // $1M transaction volume
-    month_1_users: 1_000,                  // 1K users
-    month_1_subscribers: 100,              // 10% conversion rate
-    month_1_pool_growth: 4_000.0,          // $4K added to liquidity pool
-    month_1_revenue: 6_400.0,              // $6.4K revenue ($4K fees + $2.4K subscriptions)
-    
-    // Month 6: Growth phase
-    month_6_volume: 10_000_000.0,          // $10M transaction volume
-    month_6_users: 10_000,                 // 10K users
-    month_6_subscribers: 1_500,            // 15% conversion rate
-    month_6_pool_growth: 40_000.0,         // $40K added to liquidity pool
-    month_6_revenue: 136_000.0,            // $136K revenue ($40K fees + $96K subscriptions)
-    
-    // Month 12: Scale phase
-    month_12_volume: 50_000_000.0,         // $50M transaction volume  
-    month_12_users: 50_000,                // 50K users
-    month_12_subscribers: 10_000,          // 20% conversion rate
-    month_12_pool_growth: 200_000.0,       // $200K added to liquidity pool
-    month_12_revenue: 840_000.0,           // $840K revenue ($200K fees + $640K subscriptions)
-    
-    // Liquidity pool accumulation
-    cumulative_pool_by_month_12: 1_500_000.0, // $1.5M total liquidity from fees
-    
-    // Key metrics
-    break_even_month: 3,                   // Break even by month 3 (no upfront costs!)
-    zero_risk_model: true,                 // No initial capital required
-    sustainable_growth: true,              // Self-reinforcing model
-}
-```
-
-#### **🎯 Why Fee-Based Model is Superior**
-
-**vs. Bootstrap Model:**
-
-| Metric | Bootstrap Model | Fee-Based Model |
-|--------|-----------------|-----------------|
-| **Upfront Capital** | $6M required | $0 required |
-| **Risk Level** | High (capital at risk) | Zero (no upfront investment) |
-| **Sustainability** | Depends on token economics | Self-sustaining from day 1 |
-| **User Incentives** | Complex reward schemes | Simple: pay less with subscription |
-| **Revenue Model** | Uncertain token appreciation | Clear MRR + transaction fees |
-| **Break Even** | Month 8 (after $6M investment) | Month 3 (with $0 investment) |
-| **Scalability** | Limited by initial funding | Unlimited scaling with usage |
-
-**Business Logic:**
-1. **High-volume users gladly pay $29-99/month to save hundreds in fees**
-2. **Liquidity grows organically with every transaction (0.4% accumulation)**  
-3. **More liquidity = better execution = attracts more users (network effect)**
-4. **Zero capital risk enables faster iteration and market testing**
-5. **Subscription revenue provides predictable cashflow for development**
-
-### **🚀 Implementation Strategy: Fee-Based Model**
-
-#### **Phase 1: MVP Launch** (Month 1-2)
-- Launch with simple fee structure: 0.5% standard, 0.1% subscriber
-- Basic subscription tier at $29/month
-- Pool accumulates 0.4% of all transaction volume
-- Target: 1K users, $1M monthly volume
-
-#### **Phase 2: Tier Expansion** (Month 3-4)  
-- Add Pro tier at $99/month with 0.05% fees
-- Implement advanced analytics for subscribers  
-- Pool reaches critical mass for better execution
-- Target: 10K users, $10M monthly volume
-
-#### **Phase 3: Scale & Optimize** (Month 5-12)
-- Dynamic pricing based on volume tiers
-- Enterprise plans for institutional users
-- Pool provides competitive execution vs external DEXs
-- Target: 50K users, $50M monthly volume
-
-**Result**: Self-sustaining liquidity model with zero upfront risk, strong user incentives, and predictable revenue growth.
+**Result**: Self-sustaining liquidity that grows with platform success, zero financial risk, and strong user value proposition.
 
 ## 🛠️ **Technical Implementation Strategy**
 
