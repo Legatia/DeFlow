@@ -1,6 +1,7 @@
 [workspace]
 members = [
-    "src/DeFlow_backend"
+    "src/DeFlow_backend",
+    "src/DeFlow_pool"
 ]
 resolver = "2"
 

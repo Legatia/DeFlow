@@ -1,5 +1,8 @@
+// Import BigInt polyfill before any other imports to prevent conversion errors
+import './utils/bigint-polyfill'
+
 import { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
 import LoadingScreen from './components/LoadingScreen'
 import Dashboard from './pages/Dashboard'
@@ -10,18 +13,19 @@ import Settings from './pages/Settings'
 import DeFiDashboard from './pages/DeFiDashboard'
 
 function App() {
-  const [isLoading, setIsLoading] = useState(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
 
   useEffect(() => {
-    // Small delay to ensure polyfills are loaded and UI can render
+    // Small delay to ensure polyfills are loaded
     const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 100)
+      setIsInitialLoading(false)
+    }, 500)
 
     return () => clearTimeout(timer)
   }, [])
 
-  if (isLoading) {
+  // Show loading screen during initial app load
+  if (isInitialLoading) {
     return <LoadingScreen />
   }
 

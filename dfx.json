@@ -5,9 +5,15 @@
       "package": "DeFlow_backend",
       "type": "rust"
     },
+    "DeFlow_pool": {
+      "candid": "src/DeFlow_pool/DeFlow_pool.did",
+      "package": "deflow_pool",
+      "type": "rust"
+    },
     "DeFlow_frontend": {
       "dependencies": [
-        "DeFlow_backend"
+        "DeFlow_backend",
+        "DeFlow_pool"
       ],
       "source": [
         "src/DeFlow_frontend/dist"

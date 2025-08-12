@@ -1,0 +1,133 @@
+type Result = variant { Ok : text; Err : text };
+type Result_1 = variant { Ok : float64; Err : text };
+type Result_2 = variant { Ok : PoolState; Err : text };
+type Result_3 = variant { Ok : FinancialOverview; Err : text };
+type Result_4 = variant { Ok : vec ArbitrageOpportunity; Err : text };
+
+type ChainId = variant {
+  Bitcoin;
+  Ethereum;
+  Arbitrum;
+  Optimism;
+  Polygon;
+  Solana;
+  BinanceSmartChain;
+  Avalanche;
+};
+
+type Asset = variant {
+  BTC;
+  ETH;
+  USDC;
+  USDT;
+  DAI;
+  SOL;
+  MATIC;
+  AVAX;
+  BNB;
+};
+
+type PoolPhase = variant {
+  Bootstrapping : record {
+    started_at : nat64;
+    target_liquidity : vec record { Asset; nat64 };
+    estimated_completion : nat64;
+  };
+  Active : record {
+    activated_at : nat64;
+    min_reserve_ratio : float64;
+    max_utilization : float64;
+  };
+  Emergency : record {
+    paused_at : nat64;
+    reason : text;
+  };
+};
+
+type LiquidityReserve = record {
+  total_amount : nat64;
+  fee_contributed_amount : nat64;
+  last_updated : nat64;
+  daily_growth_rate : float64;
+  utilization_rate : float64;
+};
+
+type DevTeamBusinessModel = record {
+  dev_1_principal : principal;
+  dev_2_principal : principal;
+  monthly_subscription_revenue : float64;
+  monthly_transaction_fees : float64;
+  monthly_enterprise_revenue : float64;
+  monthly_operating_costs : float64;
+  dev_1_pending_earnings : float64;
+  dev_2_pending_earnings : float64;
+  emergency_fund : float64;
+  reinvestment_fund : float64;
+  minimum_distribution_threshold : float64;
+  distribution_frequency : nat64;
+  last_distribution_time : nat64;
+  profit_split_ratio : record { float64; float64 };
+};
+
+type PoolState = record {
+  phase : PoolPhase;
+  reserves : vec record { ChainId; vec record { Asset; LiquidityReserve } };
+  dev_team_business : DevTeamBusinessModel;
+  total_liquidity_usd : float64;
+  monthly_volume : float64;
+  fee_collection_rate : float64;
+};
+
+type FinancialOverview = record {
+  total_liquidity : float64;
+  monthly_pool_growth : float64;
+  bootstrap_progress : float64;
+  monthly_revenue : float64;
+  dev_1_pending : float64;
+  dev_2_pending : float64;
+  emergency_fund : float64;
+  pool_health : text;
+  business_health : text;
+};
+
+type ArbitrageOpportunity = record {
+  asset_pair : record { text; text };
+  buy_chain : ChainId;
+  sell_chain : ChainId;
+  price_difference : float64;
+  expected_profit : float64;
+  required_capital : float64;
+  confidence_score : float64;
+};
+
+service : {
+  // Pool State Management
+  "get_pool_state" : () -> (Result_2) query;
+  "get_financial_overview" : () -> (Result_3) query;
+  "get_bootstrap_progress" : () -> (float64) query;
+  
+  // Fee Collection & Business Model
+  "deposit_fee" : (Asset, nat64, text, principal) -> (Result);
+  "process_subscription_payment" : (principal, float64) -> (Result);
+  "withdraw_dev_earnings" : () -> (Result_1);
+  "get_dev_earnings" : (principal) -> (float64) query;
+  
+  // Liquidity Management
+  "add_liquidity" : (ChainId, Asset, nat64) -> (Result);
+  "withdraw_for_execution" : (Asset, nat64) -> (Result);
+  "get_asset_balance" : (ChainId, Asset) -> (nat64) query;
+  "get_total_liquidity_usd" : () -> (float64) query;
+  
+  // Cross-Chain Operations
+  "detect_arbitrage_opportunities" : () -> (Result_4);
+  "execute_cross_chain_trade" : (ChainId, ChainId, Asset, nat64) -> (Result);
+  
+  // Pool Configuration
+  "set_bootstrap_targets" : (vec record { Asset; nat64 }) -> (Result);
+  "activate_pool" : () -> (Result);
+  "emergency_pause" : (text) -> (Result);
+  
+  // Analytics
+  "get_pool_analytics" : () -> (text) query;
+  "get_chain_distribution" : () -> (vec record { ChainId; float64 }) query;
+}
