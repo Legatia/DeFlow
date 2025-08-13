@@ -213,6 +213,7 @@ pub fn config_value_to_json(value: &ConfigValue) -> Value {
 }
 
 // Utility function to merge headers
+#[allow(dead_code)]
 pub fn merge_headers(
     base_headers: Option<HashMap<String, String>>,
     additional_headers: HashMap<String, String>
@@ -225,11 +226,13 @@ pub fn merge_headers(
 }
 
 // Common API patterns
+#[allow(dead_code)]
 pub struct ApiClient {
     pub base_url: String,
     pub default_headers: HashMap<String, String>,
 }
 
+#[allow(dead_code)]
 impl ApiClient {
     pub fn new(base_url: String) -> Self {
         Self {

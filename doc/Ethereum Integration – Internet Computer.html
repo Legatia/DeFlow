@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <!-- v26249 -->
+
+
+  <title>Ethereum Integration &ndash; Internet Computer</title>
+
+  
+
+  <meta name="description" content="Canister smart contracts on ICP can directly interact with the Ethereum network and other networks that are using the Ethereum Virtual..." /><meta property="og:image" content="https://learn.internetcomputer.org/hc/theming_assets/01JFCV01AGG13NBA9318PG8EYP" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Internet Computer" />
+<meta property="og:title" content="Ethereum Integration" />
+<meta property="og:description" content="Canister smart contracts on ICP can directly interact with the Ethereum network and other networks that are using the Ethereum Virtual Machine (EVM), such as Polygon and Avalanche. This integration..." />
+<meta property="og:url" content="https://learn.internetcomputer.org/hc/en-us/articles/34575019947668-Ethereum-Integration" />
+<link rel="canonical" href="https://learn.internetcomputer.org/hc/en-us/articles/34575019947668-Ethereum-Integration">
+<link rel="alternate" hreflang="en-us" href="https://learn.internetcomputer.org/hc/en-us/articles/34575019947668-Ethereum-Integration">
+<link rel="alternate" hreflang="x-default" href="https://learn.internetcomputer.org/hc/en-us/articles/34575019947668-Ethereum-Integration">
+
+  <link rel="stylesheet" href="//static.zdassets.com/hc/assets/application-bd52ad6f1b9c761cf3790d2f5d3dd0fa.css" media="all" id="stylesheet" />
+  <link rel="stylesheet" type="text/css" href="/hc/theming_assets/9484680/33129760447764/style.css?digest=38470040750868">
+
+  <link rel="icon" type="image/x-icon" href="/hc/theming_assets/01JNDYZZ4GHQEEKF6KNGGKCKTF">
+
+    
+    
+
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+<script type="text/javascript">window.Theme = Object.assign(window.Theme || {}, { assets: {}, locale: "en-us", signedIn: false });</script>
+<script type="text/javascript" src="/hc/theming_assets/01JFCMZ075QHHXXQYMHW0Y751Y"></script>
+
+
+<link rel="stylesheet" href="/hc/theming_assets/01JAR643SC8WS4X8ZK4BAGXZY5">
+<link rel="stylesheet" href="/hc/theming_assets/01JAR643B76YRRSD58C6PAZXYK">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css"><link rel="stylesheet" href="/hc/theming_assets/01JFCMZ03MSBMR3TMDSMWN2XTV"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css">
+
+
+
+<style id="settings-styles">
+  
+  
+</style>
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  
+</head>
+<body class="">
+  
+  
+  
+
+  <a class="sr-only sr-only-focusable" tabindex="1" href="#page-container">
+  Skip to main content
+</a>
+
+<div class="layout flex flex-1 flex-column" x-data="Widgets.mobileMenu">
+
+  
+  <header class="header relative  fixed-header sticky-header"
+    x-data="Widgets.header({ isFixed: true, isSticky: true })"
+    :class="{ 'text-header bg-header': isStuck, 'shadow': isStuck,  }">
+
+    <nav class="navbar container-fluid h-full"">
+
+      
+      <a href="/hc/en-us" class="navbar-brand mr-auto">
+        <img class="block img-fluid" id="logo" src="/hc/theming_assets/01JFCV01AGG13NBA9318PG8EYP" alt="Internet Computer Help Center home page">
+          <span class="navbar-tagline mx-3 white-space-no-wrap lg:font-size-lg">
+              Learn Hub
+            </span>
+        </a>
+
+      
+      <button class="navbar-toggle ml-2 xl:hidden"
+        x-ref="toggle"
+        :aria-expanded="isOpen && 'true'"
+        @click="toggle"
+        @keydown.escape="toggle">
+        <span></span>
+        <span class="sr-only">Toggle navigation menu</span>
+      </button>
+        
+        <div class="backdrop xl:hidden"
+          x-cloak
+          x-show="isOpen"
+          @click="close"
+          x-transition:enter="transition-fast"
+          x-transition:enter-start="opacity-0"
+          x-transition:enter-end="opacity-100"
+          x-transition:leave="transition-fast"
+          x-transition:leave-start="opacity-100"
+          x-transition:leave-end="opacity-0">
+        </div>
+      
+
+      
+      <div class="nav menu menu-slide-in menu-links-right xl:flex xl:align-items-center xl:font-size-md xl:menu-expanded xl:justify-content-end"
+        x-cloak
+        x-show="isOpen"
+        :class="{ 'text-header': isOpen }"
+        x-transition:enter="transition-fast"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition-fast"
+        x-transition:leave-start="translate-x-0 text-header"
+        x-transition:leave-end="translate-x-full text-header">
+
+        
+          <div 
+               class="search flex text-base mx-4 mb-4 flex-first xl:max-w-13 xl:flex-1 xl:mx-5 xl:mb-0" 
+               x-data="Widgets.search"
+          >
+              
+                <form role="search" class="form-field flex-1 mb-0" data-search="" action="/hc/en-us/search" accept-charset="UTF-8" method="get"><input name="utf8" type="hidden" value="&#x2713;" autocomplete="off" /><input type="search" name="query" id="query" placeholder="Search" aria-label="Search" /></form>
+              
+            <svg class="search-icon fill-current transition" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" aria-hidden="true">
+              <use xlink:href="#icon-search" />
+            </svg>
+          </div>
+        
+
+        
+        
+        
+          
+        
+
+        
+          <a class="nav-link" rel="nofollow" data-auth-action="signin" title="Opens a dialog" role="button" href="/hc/en-us/signin?return_to=https%3A%2F%2Flearn.internetcomputer.org%2Fhc%2Fen-us%2Farticles%2F34575019947668-Ethereum-Integration">
+            Sign in
+          </a>
+        </div>
+
+    </nav>
+  </header> 
+
+
+
+
+
+  <main role="main">
+    <div class="container" id="page-container">
+  <div class="row row-lg">
+
+    <article class="max-w-20 col flex flex-column mx-auto" itemscope itemtype="http://schema.org/Article">
+
+      
+      <header>
+        <h1 class="font-size-5xl lg:font-size-6xl mt-7 mb-7"  title="Ethereum Integration" itemprop="name">
+          Ethereum Integration
+          
+        </h1>
+
+        
+        <div class="flex hidden">
+          <div class="media">
+            
+            
+
+            
+            
+
+          </div>
+        </div>
+
+      </header>
+
+      
+      <section class="content article-content mb-6" itemprop="articleBody">
+
+        
+        <p>Canister smart contracts on ICP can directly interact with the Ethereum network and other networks that are using the Ethereum Virtual Machine (EVM), such as Polygon and Avalanche. This integration is possible thanks to ICP's HTTPS outcalls and chain-key signatures, which allow Ethereum state to be queried and Ethereum transactions to be signed and submitted by canisters.</p>
+<ul>
+<li>
+<a href="/hc/en-us/articles/34211194553492">HTTPS outcalls:</a> To query information from Ethereum and other EVM networks, HTTPS outcalls are used. HTTPS outcalls can obtain information from external sources. In this integration, they're used to obtain data from JSON-RPC services by querying Ethereum's transactions, addresses, and block information. To facilitate JSON-RPC calls, the <a href="https://dashboard.internetcomputer.org/canister/7hfb6-caaaa-aaaar-qadga-cai">EVM RPC canister</a> provides an API endpoint that canisters can use.<br><br>
+</li>
+<li>
+<a href="/hc/en-us/articles/34209497587732">Chain-key signatures for ECDSA:</a> A canister can have an Ethereum address and sign transactions for that address in a secure and decentralized way using chain-key cryptography. This allows canisters to hold Ethereum natively. Messages sent by the smart contract can be signed in this way, enabling calling any smart contract on Ethereum from the canister.</li>
+</ul>
+<p>This functionality also forms the basis for EVM-based <a href="/hc/en-us/articles/34211397080980">chain-key tokens</a>, like ckETH, ckUSDC, and many more.</p>
+<h2 id="h_01JKD0XJFX11B929FWSAP8SRB7">EVM RPC canister</h2>
+<p>Canisters deployed on ICP are able to communicate with the Ethereum blockchain and other EVM-compatible networks using the EVM RPC canister.&nbsp; By sending messages to this canister, Ethereum smart contract states can be queried and Ethereum transactions can be submitted.</p>
+<p>Beyond the Ethereum blockchain, this canister also has partial support for Polygon, Avalanche, and other popular EVM networks.</p>
+<h3 id="h_01JKD16R5G1XYJ3ZXGX5XPHSFN"><img src="/hc/article_attachments/34575033443348"></h3>
+<p>To interact with these external chains, the EVM RPC canister utilizes the ICP's HTTPS outcalls to make calls to JSON-RPC service providers. These services, such as Cloudflare and Alchemy, provide public APIs for interacting with blockchain networks. The EVM RPC canister acts as a gateway for a dapp's canisters to communicate with and query information from EVM-compatible chains. It provides endpoints that ICP developers can use to interact with Ethereum smart contracts and ensures that the responses received from the Ethereum network are secure and immediately useful within a canister.</p>
+<p>When a canister makes a request to the EVM RPC canister for a specified RPC method, the EVM RPC canister makes a HTTPS outcall to one or more RPC endpoints on behalf of that canister. The HTTPs outcalls mechanism guarantees that at least 2/3 of the subnet's nodes agree on the response obtained from the server. Once the response is validated, it is sent to the canister that originated the request.&nbsp;</p>
+<p>By default for Candid-RPC methods such as <code>eth_getTransactionReceipt</code>, the EVM RPC canister sends the same request to at least three different RPC providers and compares the results. If there are discrepancies, the caller receives a set of inconsistent results to handle in a way that makes sense for the use case. Instead of relying on the default, the caller can specify the total number of providers to be queried or even list the concrete providers of choice. Moreover, the caller can also set a minimum number of providers that must return the same (non-error) result.</p>
+<p>The EVM RPC is controlled by the <a href="/hc/en-us/articles/33692645961236">Network Nervous System DAO</a>, i.e., its functionality cannot be changed by a single entity. Together, these mechanisms ensure that no trust in additional parties (bridges or oracles) are necessary for the caller canister to send transactions and to condition executions on Ethereum state.</p>
+<p>&nbsp;</p>
+<h2 id="h_01JKD26GBWNAK59J7MAQETVNBB">Additional Resources</h2>
+<p><a href="https://medium.com/dfinity/icp-ethereum-how-icps-evm-rpc-canister-connects-the-networks-b57909efecf6">Blog article</a></p>
+<p><a href="https://internetcomputer.org/docs/current/developer-docs/multi-chain/ethereum/evm-rpc/overview">Developer docs on EVM RPC canister</a></p>
+<p><a href="https://github.com/dfinity/evm-rpc-canister">https://github.com/dfinity/evm-rpc-canister</a></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+
+        
+        
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+      
+        
+          <div class="mt-6">
+            
+  <ul class="share">
+    <li>
+      <a href="https://www.facebook.com/share.php?title=Ethereum+Integration&u=https%3A%2F%2Flearn.internetcomputer.org%2Fhc%2Fen-us%2Farticles%2F34575019947668-Ethereum-Integration" class="share-facebook" aria-label="Facebook">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" focusable="false" viewBox="0 0 12 12" aria-label="Share this page on Facebook">
+          <path fill="currentColor" d="M6 0a6 6 0 01.813 11.945V7.63h1.552l.244-1.585H6.812v-.867c0-.658.214-1.242.827-1.242h.985V2.55c-.173-.024-.538-.075-1.23-.075-1.444 0-2.29.767-2.29 2.513v1.055H3.618v1.585h1.484v4.304A6.001 6.001 0 016 0z"/>
+        </svg>
+      </a>
+    </li>
+    <li>
+      <a href="https://twitter.com/share?lang=en&text=Ethereum+Integration&url=https%3A%2F%2Flearn.internetcomputer.org%2Fhc%2Fen-us%2Farticles%2F34575019947668-Ethereum-Integration" class="share-twitter" aria-label="X Corp">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" focusable="false" viewBox="0 0 12 12" aria-label="Share this page on X Corp">
+          <path fill="currentColor" d="M.0763914 0 3.60864 0 6.75369 4.49755 10.5303 0 11.6586 0 7.18498 5.11431 12 12 8.46775 12 5.18346 7.30333 1.12825 12 0 12 4.7531 6.6879z"/>
+        </svg>
+      </a>
+    </li>
+    <li>
+      <a href="https://www.linkedin.com/shareArticle?mini=true&source=Internet+Computer&title=Ethereum+Integration&url=https%3A%2F%2Flearn.internetcomputer.org%2Fhc%2Fen-us%2Farticles%2F34575019947668-Ethereum-Integration" class="share-linkedin" aria-label="LinkedIn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" focusable="false" viewBox="0 0 12 12" aria-label="Share this page on LinkedIn">
+          <path fill="currentColor" d="M10.8 0A1.2 1.2 0 0112 1.2v9.6a1.2 1.2 0 01-1.2 1.2H1.2A1.2 1.2 0 010 10.8V1.2A1.2 1.2 0 011.2 0h9.6zM8.09 4.356a1.87 1.87 0 00-1.598.792l-.085.133h-.024v-.783H4.676v5.727h1.778V7.392c0-.747.142-1.47 1.068-1.47.913 0 .925.854.925 1.518v2.785h1.778V7.084l-.005-.325c-.05-1.38-.456-2.403-2.13-2.403zm-4.531.142h-1.78v5.727h1.78V4.498zm-.89-2.846a1.032 1.032 0 100 2.064 1.032 1.032 0 000-2.064z"/>
+        </svg>
+      </a>
+    </li>
+  </ul>
+
+
+          </div>
+        
+      
+
+      
+        <div
+          class="my-6"
+          data-element="article-navigation"
+          data-template="article-navigation"
+          data-next-title="Next article"
+          data-previous-title="Previous article">
+        </div>
+      
+
+      
+      <footer class="row mt-0">
+        
+          
+  <section class="related-articles">
+    
+      <h2 class="related-articles-title">Related articles</h2>
+    
+    <ul>
+      
+        <li>
+          <a href="/hc/en-us/related/click?data=BAh7CjobZGVzdGluYXRpb25fYXJ0aWNsZV9pZGwrCJSXK3YdHzoYcmVmZXJyZXJfYXJ0aWNsZV9pZGwrCJQ2yB9yHzoLbG9jYWxlSSIKZW4tdXMGOgZFVDoIdXJsSSI3L2hjL2VuLXVzL2FydGljbGVzLzM0MjExMzk3MDgwOTgwLUNoYWluLUtleS1Ub2tlbnMGOwhUOglyYW5raQY%3D--6d6ebe830c3bb5defaa5444fb881604a86600ca0" rel="nofollow">Chain-Key Tokens</a>
+        </li>
+      
+        <li>
+          <a href="/hc/en-us/related/click?data=BAh7CjobZGVzdGluYXRpb25fYXJ0aWNsZV9pZGwrCBRotmcdHzoYcmVmZXJyZXJfYXJ0aWNsZV9pZGwrCJQ2yB9yHzoLbG9jYWxlSSIKZW4tdXMGOgZFVDoIdXJsSSI6L2hjL2VuLXVzL2FydGljbGVzLzM0MjExMTU0NTIwMDg0LUJpdGNvaW4tSW50ZWdyYXRpb24GOwhUOglyYW5raQc%3D--4c386f56410230971264d2e9891b6ca15969ae67" rel="nofollow">Bitcoin Integration</a>
+        </li>
+      
+        <li>
+          <a href="/hc/en-us/related/click?data=BAh7CjobZGVzdGluYXRpb25fYXJ0aWNsZV9pZGwrCBSl0fpxHzoYcmVmZXJyZXJfYXJ0aWNsZV9pZGwrCJQ2yB9yHzoLbG9jYWxlSSIKZW4tdXMGOgZFVDoIdXJsSSI7L2hjL2VuLXVzL2FydGljbGVzLzM0NTc0Mzk5ODA4Nzg4LUlDUC1hbmQtdGhlLUludGVybmV0BjsIVDoJcmFua2kI--aaed306c8dbce180d60a9f9f65d1051c009ad055" rel="nofollow">ICP and the Internet</a>
+        </li>
+      
+        <li>
+          <a href="/hc/en-us/related/click?data=BAh7CjobZGVzdGluYXRpb25fYXJ0aWNsZV9pZGwrCJQgg08cHzoYcmVmZXJyZXJfYXJ0aWNsZV9pZGwrCJQ2yB9yHzoLbG9jYWxlSSIKZW4tdXMGOgZFVDoIdXJsSSI6L2hjL2VuLXVzL2FydGljbGVzLzM0MjA2NDUzNTM4OTY0LUJsb2NrY2hhaW4tUHJvdG9jb2wGOwhUOglyYW5raQk%3D--1680a0e8e35f6c55748b8afa51de1eff557dcc55" rel="nofollow">Blockchain Protocol</a>
+        </li>
+      
+        <li>
+          <a href="/hc/en-us/related/click?data=BAh7CjobZGVzdGluYXRpb25fYXJ0aWNsZV9pZGwrCJRrKreUHjoYcmVmZXJyZXJfYXJ0aWNsZV9pZGwrCJQ2yB9yHzoLbG9jYWxlSSIKZW4tdXMGOgZFVDoIdXJsSSJEL2hjL2VuLXVzL2FydGljbGVzLzMzNjI0MDc3MDAzNjY4LVdoYXQtaXMtdGhlLVZpc2lvbi1iZWhpbmQtSUNQBjsIVDoJcmFua2kK--846185344ecfd9f5055ea2805792a072582fc79c" rel="nofollow">What is the Vision behind ICP?</a>
+        </li>
+      
+    </ul>
+  </section>
+
+
+        
+        
+          <div data-recent-articles></div>
+        
+      </footer>
+
+      
+      
+
+    </article>
+
+    
+    <aside 
+           class="relative sidebar flex-first lg:col lg:max-w-13 xl:max-w-14 lg:mr-5">
+
+      
+
+        
+          
+          <div class="-mb-6"
+            data-element="navigation"
+            data-template="sidebar-navigation">
+          </div>
+        
+        <div
+          class="hidden table-of-contents lg:block sticky top-0"
+          data-element="table-of-contents"
+          data-template="sidebar-table-of-contents"
+          data-selector=".content h2">
+        </div>
+      </aside>
+
+    
+    <aside class="md:col md:max-w-13 hidden" x-data="{ tableOfContents: false }">
+      <div :class="{ 'sticky top-0': tableOfContents }" @table-of-contents:render.camel="tableOfContents = $event.target.children.length > 0">
+
+        </div>
+    </aside>
+
+  </div> 
+</div> 
+
+<script type="text/javascript">document.documentElement.classList.add('article-page', 'article-' + 34575019947668)</script>
+
+
+
+
+        
+        <script type="text/template" id="tmpl-sidebar-table-of-contents">
+          <% if (allItems.length > 1) { %>
+            <div class="sticky top-0" style="padding-top: 80px; margin-top: -80px; "
+              data-spy="scroll"
+              data-offset="80px">
+              <div class="pt-6">
+                <h3 class="pl-4">
+                  
+                    In this article
+                  
+                </h3>
+                <ol class="nav nav-pills flex-column font-size-md flex-no-wrap" x-data="scrollableElement">
+                  <% allItems.forEach(function(item) { %>
+                  <li class="nav-item">
+                    <a class="nav-link border-radius text-inherit" href="<%= item.html_url %>">
+                      <%= item.name %>
+                    </a>
+                  </li>
+                  <% }); %>
+                </ol>
+              </div>
+            </div>
+          <% } %>
+        </script>
+      
+    
+  
+                  
+
+
+
+
+  </main>
+
+    
+  <footer class="footer  border-top" id="footer">
+
+    
+
+    <div class="container py-7">
+
+      <nav class="nav font-size-md">
+
+        
+          <a class="nav-link" href="https://internetcomputer.org/" x-data="link">
+              © 2025 Internet Computer
+            </a>
+        </nav>
+
+      
+        <div
+          class="fixed bottom-0 left-0"
+          data-element="back-to-top"
+          data-template="back-to-top-link"
+          data-threshold="250px">
+        </div>
+      </div>
+  </footer> 
+
+</div> 
+
+
+<script type="text/javascript" src="/hc/theming_assets/01JAR643A7KYJ8323144ESS0YP" defer></script>
+<script type="text/javascript" src="/hc/theming_assets/01JAR641PME6V90VSMMK025M8A" defer></script>
+<script type="text/javascript" src="/hc/theming_assets/01JFCMYZBC2C7A2TXEXGHC63VC" defer></script>
+<script type="text/javascript" src="/hc/theming_assets/01JFCMYZ3ZR9SQVBBT6XAM9BQ3" defer></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/combine/npm/alpinejs@3.13.0/dist/cdn.min.js,npm/jquery@3.5.1/dist/jquery.min.js,gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js,npm/plyr@~3.6.4/dist/plyr.polyfilled.min.js" defer>
+</script>
+<script type="text/javascript" src="/hc/theming_assets/01JFCMYZHCB74YEHMTKGJQM2MF" defer></script><script type="text/javascript" src="/hc/theming_assets/01JFCMYZVPAKKVH2WRG4F73E5E" defer></script><script type="text/javascript" src="/hc/theming_assets/01JAR64415MRK8H9QV0Q3KC5TP" defer></script><script type="text/javascript" src="/hc/theming_assets/01JFCMYZQX1DQJ61RNZ0K9APX8" defer></script><script type="text/javascript" src="/hc/theming_assets/01JFCMYZ1APTDJMF1MD5TS5081" defer></script>
+
+
+
+    <script type="text/template" id="tmpl-back-to-top-link">
+      <button class="flex button button-outline button-sm bg-white p-3 m-4">
+        <span class="sr-only">Return to top</span>
+        <svg class="fill-current" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true">
+          <polygon points="12.4,40.1 25.8,53.6 40.5,38.8 40.5,97.5 59.5,97.5 59.5,38.8 74.2,53.6 87.6,40.1 50,2.5" />
+        </svg>
+      </button>
+    </script>
+  
+<svg xmlns="http://www.w3.org/2000/svg" class="hidden">
+  <symbol id="icon-search">
+    <circle cx="4.5" cy="4.5" r="4" fill="none" stroke="currentColor"/>
+    <path stroke="currentColor" stroke-linecap="round" d="M11 11L7.5 7.5"/>
+  </symbol>
+  <symbol id="icon-lock">
+    <rect width="12" height="9" x="2" y="7" fill="currentColor" rx="1" ry="1"/>
+    <path fill="none" stroke="currentColor" d="M4.5 7.5V4a3.5 3.5 0 017 0v3.5"/>
+  </symbol>
+  <symbol id="icon-star">
+    <polygon points="213 325 81 405 116 255 0 154 153 141 213 0 273 141 426 154 310 255 345 405"></polygon>
+  </symbol>
+  <symbol id="icon-chevron-down">
+    <path fill="none" stroke="currentColor" stroke-linecap="round" d="M3 4.5l2.6 2.6c.2.2.5.2.7 0L9 4.5"/>
+  </symbol>
+  <symbol id="icon-agent">
+    <path fill="currentColor" d="M6 0C2.7 0 0 2.7 0 6s2.7 6 6 6 6-2.7 6-6-2.7-6-6-6zm0 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm2.3 7H3.7c-.3 0-.4-.3-.3-.5C3.9 7.6 4.9 7 6 7s2.1.6 2.6 1.5c.1.2 0 .5-.3.5z"/>
+  </symbol>
+  </svg>
+
+<script type="text/javascript">
+  Theme.assets['notification'] = "/hc/theming_assets/01JKB9195RE6E7G4XHXVNGP8R8";
+  Theme.alternativeLocales = [];
+
+  </script>
+
+
+
+
+
+
+<template id="tmpl-sidebar-navigation">
+  <div class="lg:border-top border-bottom lg:mt-7 mb-2 lg:border-transparent" x-data="toggle({ isOpen: false })" @collapse:show.stop="open" @collapse:hide.stop="close">
+    
+    <h3 class="flex align-items-center justify-content-between my-0 py-4 font-size-lg cursor-pointer lg:hidden" data-toggle="collapse" data-target="#sidebar-navigation" aria-controls="sidebar-navigation" aria-expanded="false">
+      Categories
+      <svg class="fill-current pointer-events-none ml-3" :class="isOpen && 'rotate-180'" width="14px" viewBox="0 0 40 20" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20,19.5 C19.4,19.5 18.9,19.3 18.4,18.9 L1.4,4.9 C0.3,4 0.2,2.4 1.1,1.4 C2,0.3 3.6,0.2 4.6,1.1 L20,13.8 L35.5,1.1 C36.6,0.2 38.1,0.4 39,1.4 C39.9,2.5 39.7,4 38.7,4.9 L21.7,18.9 C21.1,19.3 20.5,19.5 20,19.5 Z"></path>
+      </svg>
+    </h3>
+    <div class="collapse lg:expand lg:flex-column" id="sidebar-navigation">
+      <ul class="h5 line-height-snug list-unstyled w-full my-0">
+        <% categories.filter(function(category) {
+          return category.name !== 'How Can I Use ICP?' && !categories.find((c, index) => 
+            index > categories.indexOf(category) && c.name === category.name
+          );
+        }).forEach(function(category, index) { %>
+          
+          <li class="pb-2 mb-1 lg:mb-5" x-data="toggle({ isOpen: true })" @collapse:show.stop="open" @collapse:hide.stop="close">
+            <%
+              const hasSingleSection = category.sections && category.sections.length === 1;
+              const singleSection = hasSingleSection ? category.sections[0] : null;
+            %>
+            
+            <div class="hidden lg:block px-5 lg:px-0 py-2 my-0 text-white">
+              <%= category.name %>
+            </div>
+            
+            <button class="flex lg:hidden justify-content-between align-items-center px-4 py-3 my-0 not-a-button border-radius transition cursor-pointer text-left text-white w-full hover:bg-gray-200" :class="{ 'is-active': isOpen }" :aria-expanded="isOpen" data-toggle="collapse" data-target="#category-<%= category.id %>">
+              <%= category.name %>
+            </button>
+            <div class="lg:block">
+              <% if (hasSingleSection) { %>
+                
+                <ul class="list-none font-normal font-size-base text-base mb-0 ml-0 mr-3 pl-4 lg:pl-0 lg:block collapse" :class="{ 'is-visible': isOpen }" id="category-<%= category.id %>" data-parent="#sidebar-navigation">
+                  <% singleSection.articles.forEach(function(article) { %>
+                    <li>
+                      <a class="block px-0 py-2 text-inherit transition<% if (article.isActive) { %> text-primary<% } %>" href="<%= article.html_url %>">
+                        <% if (article.title === singleSection.name || article.title === category.name) { %>
+                          Overview
+                        <% } else { %>
+                          <%= article.title %>
+                        <% } %>
+                      </a>
+                    </li>
+                  <% }); %>
+                </ul>
+              <% } else { %>
+                
+                <%= partial('partial-article-list-sections', {
+                  id: 'category-' + category.id,
+                  parentId: '#sidebar-navigation',
+                  sections: category.sections,
+                  activeCategoryId: activeCategoryId,
+                  activeSectionId: activeSectionId,
+                  activeArticleId: activeArticleId,
+                  partial: partial,
+                  categoryName: category.name,
+                  isFirstLevel: true
+                }) %>
+              <% } %>
+            </div>
+          </li>
+        <% }); %>
+      </ul>
+    </div>
+  </div>
+</template>
+
+
+<template id="tmpl-partial-article-list-sections">
+  <% if (sections.length) { %>
+    <ul class="h5 list-none pl-4 lg:pl-0 my-0 collapse" id="<%= id %>" :class="{ 'is-visible': isOpen }" data-parent="<%= parentId %>">
+      <% sections.forEach(function(section, sectionIndex) { %>
+        <% 
+          // Special case: First section of the category (top level) with same name as category
+          const isFirstSectionWithCategoryName = isFirstLevel && 
+                                               sectionIndex === 0 && 
+                                               typeof categoryName !== 'undefined' && 
+                                               section.name === categoryName;
+        %>
+        <% if (section.articles.length === 1) { %>
+          <li class="border-radius pr-2">
+            <a class="block px-0 py-2 transition font-normal text-base <% if (section.articles[0].isActive) { %> text-primary<% } %>" 
+               href="<%= section.articles[0].html_url %>">
+              <% if (section.articles[0].title === section.name || 
+                     (typeof categoryName !== 'undefined' && section.articles[0].title === categoryName) ||
+                     isFirstSectionWithCategoryName) { %>
+                Overview
+              <% } else { %>
+                <%= section.articles[0].title %>
+              <% } %>
+            </a>
+          </li>
+        <% } else { %>
+          <li 
+              class="border-radius pr-2"
+              :class="parentId !== '#sidebar-navigation' ? 'pl-6' : ''"
+              x-data="toggle({ isOpen: <%= !!section.isActive %>, parentId: '<%= parentId %>' })" 
+              @collapse:show.stop="open" 
+              @collapse:hide.stop="close">
+
+                <div class="flex justify-content-between align-items-center">
+                  <button 
+                    class="flex justify-content-start align-items-center px-2 py-3 mr-2 not-a-button border-radius transition cursor-pointer text-left text-white hover:bg-gray-200" 
+                    :class="{ 'is-active': isOpen }" 
+                    :aria-expanded="isOpen" 
+                    data-toggle="collapse" 
+                    data-target="#section-<%= section.id %>"
+                  >
+                    <svg class="text-inherit text-base fill-current pointer-events-none opacity-50" :class="{ 'rotate-180': isOpen }" width="12px" height="12px" viewBox="0 0 324 190" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path d="M162,190 C156,190 150,187 146,183 L7,38 C-2,29 -2,15 7,7 C16,-2 30,-2 39,7 L162,135 L285,7 C293,-2 308,-2 317,7 C326,15 326,29 317,38 L178,183 C174,187 168,190 162,190 Z"></path>
+                    </svg>
+                  </button>
+                  
+                  <a class="flex-1 py-2 font-normal text-base" 
+                     :class="{ 'text-inherit': !isOpen }" 
+                     @click.prevent="
+                       if (window.innerWidth >= 1024) {
+                         window.location.href = '<%= section.articles && section.articles.length ? section.articles[0].html_url : section.html_url %>'
+                       } else {
+                         isOpen = !isOpen
+                       }
+                     "
+                     href="<%= section.articles && section.articles.length ? section.articles[0].html_url : section.html_url %>">
+                    <%= section.name %>
+                  </a>
+                </div>
+
+            <% if (section.articles.length) { %>
+              <ul class="list-none font-normal font-size-base text-base mb-0 ml-3 mr-3 collapse <%= sections.length === 1 ? 'pl-5' : 'pl-5' %>" 
+                  :class="{ 'is-visible': isOpen }" 
+                  id="section-<%= section.id %>" 
+                  data-parent="#<%= id %>">
+                <% section.articles.forEach(function(article, articleIndex) { %>
+                  <li>
+                    <a class="block px-0 py-2 text-inherit transition<% if (article.isActive) { %> text-primary<% } %>" 
+                       href="<%= article.html_url %>">
+                      <% if (article.title === section.name || 
+                             (typeof categoryName !== 'undefined' && article.title === categoryName) ||
+                             (isFirstSectionWithCategoryName && articleIndex === 0)) { %>
+                        Overview
+                      <% } else { %>
+                        <%= article.title %>
+                      <% } %>
+                    </a>
+                  </li>
+                <% }); %>
+              </ul>
+            <% } %>
+
+            <%= partial('partial-article-list-sections', {
+              id: 'section-' + section.id,
+              parentId: '#' + id,
+              sections: section.sections,
+              activeCategoryId: activeCategoryId,
+              activeSectionId: activeSectionId,
+              activeArticleId: activeArticleId,
+              partial: partial,
+              customClass: 'bg-primary',
+              categoryName: typeof categoryName !== 'undefined' ? categoryName : undefined,
+              isFirstLevel: false
+            }) %>
+          </li>
+        <% } %>
+      <% }); %>
+    </ul>
+  <% } %>
+</template>
+
+            
+           
+            
+            
+<template id="tmpl-content-blocks">
+  <% var getColumnClasses = function(columnNumber) {
+    var classNames = 'col-12';
+    if (columnNumber >= 2) classNames += ' md:col-6';
+    if (columnNumber >= 3) classNames += ' lg:col-4';
+    if (columnNumber >= 4) classNames += ' xl:col-3';
+    return classNames;
+  } %>
+  <div class="container px-0 text-<%= alignment %>"><ul class="list-unstyled row row-sm">
+			<% (categories.length > 1 ? categories : sections).slice(0, 4).forEach(function(block, index) { 
+  			var firstArticleUrl = null;
+        if (block.sections && block.sections.length) {
+          var firstSection = block.sections[0]; // Get first section in category
+          if (firstSection.articles && firstSection.articles.length) {
+            firstArticleUrl = firstSection.articles[0].html_url; // Get first article
+          }
+        }
+			%>
+  <li class="mb-5 text-<%= alignment %> <%= getColumnClasses(numberColumns) %>">
+    <div class="card p-5 h-full transition bg-conic-gradient hover:border-<%= color %>">
+      
+      <div class="media flex-column flex-wrap flex-start align-content-between">
+        <% if (imageHeight) { %>
+          <a class="flex align-items-center justify-content-center link-stretched circle transition 
+              <% if (alignment === 'left' ) { %>md:mr-5<% } else { %>align-self-center<% } %> 
+              bg-gray-100 hover:bg-gray-200" 
+              href="<%= firstArticleUrl || block.html_url %>">
+            <img class="svg-icon fill-current font-size-3xl bottom-0" alt="" 
+                 src="<%= images[index] || images[0] %>" 
+                 style="height: <%= imageHeight %>; width: auto;" />
+          </a>
+        <% } %>
+        <div class="media-body">
+          <% if (block.name) { %>
+            <h3 class="mt-7 mb-1">
+              <% if (!imageHeight) { %>
+                <a class="text-inherit hover:text-inherit hover:underline" 
+                   href="<%= firstArticleUrl || block.html_url %>">
+                  <%= block.name %>
+                </a>
+              <% } else { %>
+                <%= block.name %>
+              <% } %>
+            </h3>
+          <% } %>
+          <% if (block.description) { %>
+            <p class="font-size-lg text-gray-600">
+              <%= block.description %>
+            </p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </li>
+<% }) %>
+    </ul>
+  </div>
+</template>
+       
+                
+           
+                
+<template id="tmpl-article-navigation">
+  <% if (previousArticle || nextArticle) { %>
+    <div class="border-top border-bottom">
+      <div class="row">
+        <% if (previousArticle) { %>
+          <div class="sm:col py-5<% if (nextArticle) { %> sm:border-right<% } %>">
+            <% if (previousTitle) { %>
+              <h4 class="mb-2 font-medium">
+                <%= previousTitle %>
+              </h4>
+            <% } %>
+            <a class="text-inherit link-stretched" href="<%= previousArticle.html_url %>">
+              <%= previousArticle.title %>
+           </a>
+          </div>
+        <% } %>
+        <% if (nextArticle) { %>
+          <div class="sm:col py-5 text-right<% if (!previousArticle) { %> sm:col-offset-6<% } %>">
+            <% if (nextTitle) { %>
+              <h4 class="mb-2 font-medium">
+                <%= nextTitle %>
+              </h4>
+            <% } %>
+            <a class="text-inherit link-stretched" href="<%= nextArticle.html_url %>">
+              <%= nextArticle.title %>
+            </a>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  <% } %>
+</template>
+
+                
+           
+            
+<template id="tmpl-back-to-top-link">
+  <button class="flex button button-outline button-sm p-3 m-4">
+    <svg class="fill-current" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true">
+      <polygon points="12.4,40.1 25.8,53.6 40.5,38.8 40.5,97.5 59.5,97.5 59.5,38.8 74.2,53.6 87.6,40.1 50,2.5" />
+    </svg>
+  </button>
+</template>
+                
+
+<style>
+[data-template="sidebar-navigation"] {
+  margin-bottom: 60px;
+}
+</style>
+
+
+  <!-- / -->
+
+  
+  <script src="//static.zdassets.com/hc/assets/en-us.d53a3fb69c2c41317b76.js"></script>
+  <script src="https://dfinity.zendesk.com/auth/v2/host/without_iframe.js" data-brand-id="33129760447764" data-return-to="https://learn.internetcomputer.org/hc/en-us/articles/34575019947668-Ethereum-Integration" data-theme="hc" data-locale="en-us" data-auth-origin="33129760447764,true,true"></script>
+
+  <script type="text/javascript">
+  /*
+
+    Greetings sourcecode lurker!
+
+    This is for internal Zendesk and legacy usage,
+    we don't support or guarantee any of these values
+    so please don't build stuff on top of them.
+
+  */
+
+  HelpCenter = {};
+  HelpCenter.account = {"subdomain":"dfinity","environment":"production","name":"DFINITY"};
+  HelpCenter.user = {"identifier":"da39a3ee5e6b4b0d3255bfef95601890afd80709","email":null,"name":"","role":"anonymous","avatar_url":"https://assets.zendesk.com/hc/assets/default_avatar.png","is_admin":false,"organizations":[],"groups":[]};
+  HelpCenter.internal = {"asset_url":"//static.zdassets.com/hc/assets/","web_widget_asset_composer_url":"https://static.zdassets.com/ekr/snippet.js","current_session":{"locale":"en-us","csrf_token":null,"shared_csrf_token":null},"usage_tracking":{"event":"article_viewed","data":"BAh7CDoLbG9jYWxlSSIKZW4tdXMGOgZFVDoPYXJ0aWNsZV9pZGwrCJQ2yB9yHzoKX21ldGF7DDoPYWNjb3VudF9pZGkDiLmQOhNoZWxwX2NlbnRlcl9pZGwrCBQRgKshHjoNYnJhbmRfaWRsKwgUXZqfIR46DHVzZXJfaWQwOhN1c2VyX3JvbGVfbmFtZUkiDkFOT05ZTU9VUwY7BlQ7AEkiCmVuLXVzBjsGVDoaYW5vbnltb3VzX3RyYWNraW5nX2lkMA==--f3509208786f72abe24d3516e98c1df4db406321","url":"https://learn.internetcomputer.org/hc/activity"},"current_record_id":"34575019947668","current_record_url":"/hc/en-us/articles/34575019947668-Ethereum-Integration","current_record_title":"Ethereum Integration","current_text_direction":"ltr","current_brand_id":33129760447764,"current_brand_name":"Internet Computer","current_brand_url":"https://internetcomputer.zendesk.com","current_brand_active":true,"current_path":"/hc/en-us/articles/34575019947668-Ethereum-Integration","show_autocomplete_breadcrumbs":true,"user_info_changing_enabled":false,"has_user_profiles_enabled":true,"has_end_user_attachments":true,"user_aliases_enabled":false,"has_anonymous_kb_voting":false,"has_multi_language_help_center":true,"show_at_mentions":false,"embeddables_config":{"embeddables_web_widget":false,"embeddables_help_center_auth_enabled":false,"embeddables_connect_ipms":false,"web_widget_seamless_auth_enabled":false},"answer_bot_subdomain":"static","general_settings_url":"https://learn.internetcomputer.org/hc/admin/general_settings?locale=en-us","user_segments_url":"https://dfinity.zendesk.com/knowledge/user_segments?brand_id=33129760447764","has_gather":true,"has_ckeditor":true,"has_community_enabled":false,"has_community_badges":true,"has_community_post_content_tagging":false,"has_gather_content_tags":true,"has_guide_content_tags":true,"has_user_segments":true,"has_answer_bot_web_form_enabled":true,"has_garden_modals":false,"theming_cookie_key":"hc-da39a3ee5e6b4b0d3255bfef95601890afd80709-2-preview","is_preview":false,"has_alternate_templates":true,"arrange_articles_url":"https://dfinity.zendesk.com/knowledge/arrange?brand_id=33129760447764","article_verification_url":"https://dfinity.zendesk.com/knowledge/verification?brand_id=33129760447764","has_article_verification":true,"guide_language_settings_url":"https://learn.internetcomputer.org/hc/admin/language_settings?locale=en-us","docs_importer_url":"https://dfinity.zendesk.com/knowledge/import_articles?brand_id=33129760447764","content_tags_url":"https://dfinity.zendesk.com/knowledge/content_tags?brand_id=33129760447764","community_badges_url":"https://dfinity.zendesk.com/knowledge/community_badges?brand_id=33129760447764","community_settings_url":"https://dfinity.zendesk.com/knowledge/community_settings?brand_id=33129760447764","gather_plan_state":"subscribed","search_settings_url":"https://dfinity.zendesk.com/knowledge/search_settings?brand_id=33129760447764","has_search_settings_in_plan":true,"theming_api_version":3,"theming_settings":{"color_primary":"rgba(174, 158, 255, 1)","color_primary_inverse":"rgba(174, 158, 255, 1)","color_secondary":"rgba(174, 158, 255, 1)","color_secondary_inverse":"rgba(174, 158, 255, 1)","color_tertiary":"rgba(174, 158, 255, 1)","color_tertiary_inverse":"rgba(174, 158, 255, 1)","color_heading":"rgba(255, 255, 255, 0.95)","color_text":"rgba(255, 255, 255, 0.75)","color_link":"rgba(174, 158, 255, 1)","color_border":"rgba(52, 61, 77, 1)","color_outline":"rgba(52, 61, 77, 1)","color_gray_100":"rgba(255, 255, 255, 0.12)","color_gray_200":"rgba(255, 255, 255, 0.08)","color_gray_600":"rgba(255, 255, 255, 0.04)","bg_color":"rgba(10, 0, 35, 1)","heading_font":"'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif","text_font":"'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif","base_font_size":"18","favicon":"/hc/theming_assets/01JNDYZZ4GHQEEKF6KNGGKCKTF","logo":"/hc/theming_assets/01JFCV01AGG13NBA9318PG8EYP","logo_height":"32px","tagline":"Learn Hub","homepage_background_image":"/hc/theming_assets/01JFCV15DNXKKTRW9Z10W2688A","community_background_image":"/hc/theming_assets/01JFCV15DNXKKTRW9Z10W2688A","content_block_1_image":"/hc/theming_assets/01JK6CVQ3R0XCZZ61KQN8VX884","content_block_2_image":"/hc/theming_assets/01JK6CW0C8VYZHGC8N9YCR9S05","content_block_3_image":"/hc/theming_assets/01JK6CVQ3R0XCZZ61KQN8VX884","content_block_4_image":"/hc/theming_assets/01JK6CVQ3R0XCZZ61KQN8VX884","content_block_5_image":"/hc/theming_assets/01JK6CVQ3R0XCZZ61KQN8VX884","content_block_6_image":"/hc/theming_assets/01JK6CVQ3R0XCZZ61KQN8VX884","content_block_7_image":"/hc/theming_assets/01JK6CVQ3R0XCZZ61KQN8VX884","content_block_8_image":"/hc/theming_assets/01JFCV1K16VW5MCAW9WFNT169R","custom_block_1_image":"/hc/theming_assets/01JKB91GBV067KCCXZB9RA8VKG","custom_block_2_image":"/hc/theming_assets/01JKB91GBV067KCCXZB9RA8VKG","custom_block_3_image":"/hc/theming_assets/01JKB91GBV067KCCXZB9RA8VKG","custom_block_4_image":"/hc/theming_assets/01JKB91GBV067KCCXZB9RA8VKG","contact_block_1_image":"/hc/theming_assets/01JKB91HC33VKX244RYVMTGAJW","contact_block_2_image":"/hc/theming_assets/01JKB91HPRY5G9JW8E23NTV1J4","contact_block_3_image":"/hc/theming_assets/01JKB91HPRY5G9JW8E23NTV1J4","contact_block_4_image":"/hc/theming_assets/01JKB91HPRY5G9JW8E23NTV1J4","cta_block_image":"/hc/theming_assets/01JFCMZ6BNRVACSKVQT597QGV6","header_search_style":"inline","instant_search":true,"scoped_kb_search":false,"scoped_community_search":false,"search_placeholder":"Search","search_translucent":false,"show_search_button":true,"header_layout":"links-right","fixed_header":true,"sticky_header":true,"nav_style":"slide-in","nav_breakpoint":"xl","full_width_header":true,"header_height":"80px","color_header_link":"rgba(255, 255, 255, 0.95)","color_header_link_fixed":"rgba(255, 255, 255, 0.95)","bg_color_header":"rgba(10, 0, 35, 1)","header_link_1_text":"","header_link_1_url":"","header_link_2_text":"","header_link_2_url":"","header_link_3_text":"","header_link_3_url":"","show_submit_a_request_link":true,"category_dropdown_style":"none","notification_location":"none","notification_content":"notification_content","color_notification":"#fff","bg_color_notification":"#ef526e","back_to_top_link_style":"standard","boxed_layout":false,"bg_color_boxed":"#F7F7F7","hero_heading":"Internet Computer Learn Hub","color_hero_heading":"rgba(255, 255, 255, 0.95)","hero_text":"Get to know the Internet Computer and understand the groundbreaking technology behind it","color_hero_text":"rgba(255, 255, 255, 0.75)","hero_image_style":"standard","bg_color_hero":"rgba(1, 12, 33, 1)","bg_color_secondary_hero":"rgba(1, 12, 33, 1)","bg_gradient_hero":"radial","hero_content_alignment":"left","hero_element_shape":"none","popular_keywords_style":"badges","popular_keywords_heading":"Popular searches:","popular_keywords":"","promoted_videos_heading":"Popular videos","promoted_video_ids":"","recent_activity":"none","custom_block_style":"none","color_custom_blocks":"white","bg_color_custom_blocks":"rgba(1, 12, 33, 1)","custom_blocks_heading":"","number_custom_blocks":"3","number_custom_block_columns":"3","custom_block_alignment":"center","custom_block_image_height":"48px","custom_block_1_title":"Getting started","custom_block_1_description":"Discover everything you need to know to start your journey","custom_block_1_url":"#","custom_block_2_title":"Community","custom_block_2_description":"Share knowledge with other users in our community forum","custom_block_2_url":"/hc/en-us/community/topics","custom_block_3_title":"Submit a request","custom_block_3_description":"Get in touch with our helpful customer service team","custom_block_3_url":"/hc/en-us/requests/new","custom_block_4_title":"Announcements","custom_block_4_description":"Keep up to date with the latest information","custom_block_4_url":"#","content_block_style":"custom","color_content_blocks":"secondary","bg_color_content_blocks":"rgba(255, 255, 255, 0)","content_blocks_heading":"","number_content_block_columns":"2","content_block_alignment":"left","content_block_image_height":"96px","article_list_style":"2-unstyled","article_list_columns":"2","article_list_excerpt":0,"promoted_article_style":"icon","promoted_article_list_style":"none","promoted_article_list_position":"after","promoted_articles_heading":"Promoted articles","promoted_article_list_columns":"3","promoted_articles_alignment":"left","promoted_article_list_excerpt":0,"contact_block_style":"none","color_contact_blocks":"white","contact_blocks_heading":"","number_contact_blocks":"2","number_contact_block_columns":"2","contact_block_image_height":"36px","contact_block_1_title":"Need an update?","contact_block_1_description":"Click to view requests in your account","contact_block_1_url":"/hc/en-us/requests","contact_block_2_title":"Still need help?","contact_block_2_description":"Contact our helpful customer service team","contact_block_2_url":"/hc/en-us/requests/new","contact_block_3_title":"Follow us","contact_block_3_description":"Stay up to date with the latest news and information","contact_block_3_url":"https://www.twitter.com","contact_block_4_title":"Subscribe","contact_block_4_description":"Discover video tutorials covering a variety of topics","contact_block_4_url":"https://www.youtube.com","cta_style":"none","cta_location":"home","cta_element_heading":"Can't find what you're looking for?","color_heading_cta":"#212121","cta_element_body":"","color_text_cta":"#383838","cta_element_link_text":"","bg_color_cta":"#ecf5ff","subsection_style":"list","category_sidebar":"custom","section_sidebar":"custom","show_follow_section":false,"article_metadata":"none","show_follow_article":false,"table_of_contents_style":"sidebar-left","table_of_contents_heading":"In this article","article_navigation_style":"custom","next_article_title":"Next article","previous_article_title":"Previous article","show_article_voting":false,"show_article_sharing":true,"share_title":"","show_recently_viewed_articles":true,"show_related_articles":true,"show_article_comments":false,"article_sidebar":"custom","note_title":"Note","color_note":"#61a5ff","warning_title":"Warning","color_warning":"#ef526e","enable_lightboxes":true,"enable_video_player":true,"form_list_style":"standard","form_tip":"Providing as much information as possible in your request will allow us to help you faster","community_image_style":"standard","show_recent_activity_community":true,"show_follow_topic":true,"show_follow_post":true,"show_post_sharing":true,"footer_layout":"links-left","footer_shape":"none","color_footer_link":"rgba(255, 255, 255, 0.95)","bg_color_footer":"rgba(10, 0, 35, 1)","footer_link_1_text":"© 2025 Internet Computer","footer_link_1_url":"https://internetcomputer.org/","footer_link_2_text":"","footer_link_2_url":"","footer_link_3_text":"","footer_link_3_url":"","facebook_link":"","twitter_link":"","linkedin_link":"","instagram_link":"","youtube_link":"","show_credit_link":false,"use_translations":false},"has_pci_credit_card_custom_field":true,"help_center_restricted":false,"is_assuming_someone_else":false,"flash_messages":[],"user_photo_editing_enabled":true,"user_preferred_locale":"en-us","base_locale":"en-us","has_user_session_cookie_enabled":true,"has_custom_statuses_enabled":false,"has_hc_generative_answers_setting_enabled":true,"has_generative_search_with_zgpt_enabled":false,"has_guide_service_catalog":false,"has_remove_breadcrumbs":true,"version":"v26249"};
+</script>
+
+  
+  <script src="//static.zdassets.com/hc/assets/hc_enduser-6c9c842b3376c78ecfab8500e5a2bf42.js"></script>
+  <script type="text/javascript" src="/hc/theming_assets/9484680/33129760447764/script.js?digest=38470040750868"></script>
+  
+</body>
+</html>

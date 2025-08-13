@@ -209,6 +209,25 @@ pub struct ScheduledWorkflow {
     pub timer_id: Option<String>,
 }
 
+// Enhanced persistent timer system
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct ScheduledExecution {
+    pub workflow_id: String,
+    pub next_execution: u64,
+    pub interval: Option<u64>, // for recurring workflows
+    pub timer_id: Option<String>,
+    pub schedule_type: ScheduleType,
+    pub metadata: HashMap<String, ConfigValue>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum ScheduleType {
+    Once,
+    Interval { seconds: u64 },
+    Cron { expression: String },
+    Heartbeat, // Executed on every heartbeat
+}
+
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct WebhookEvent {
     pub event_type: String,
@@ -300,4 +319,139 @@ impl CircuitBreaker {
 pub struct ExecutionGraph {
     pub nodes: Vec<String>,
     pub edges: Vec<(String, String)>, // (from, to)
+}
+
+// Zero-downtime architecture types
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct WorkflowState {
+    pub active_workflows: Vec<(String, WorkflowExecution)>, // (workflow_id, execution)
+    pub scheduled_executions: Vec<(u64, String)>, // (timestamp, workflow_id)
+    pub user_balances: Vec<(String, PortfolioState)>, // (principal, portfolio)
+    pub execution_history: Vec<ExecutionRecord>,
+    pub system_health: SystemHealth,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct PortfolioState {
+    pub user_id: String,
+    pub total_value_usd: f64,
+    pub positions: Vec<Position>,
+    pub last_updated: u64,
+    pub risk_profile: RiskProfile,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct Position {
+    pub asset: String,
+    pub amount: f64,
+    pub value_usd: f64,
+    pub platform: String,
+    pub last_updated: u64,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct RiskProfile {
+    pub max_drawdown_percent: f64,
+    pub stop_loss_enabled: bool,
+    pub liquidation_threshold: f64,
+    pub diversification_min: u32,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct ExecutionRecord {
+    pub id: String,
+    pub workflow_id: String,
+    pub execution_id: String,
+    pub status: ExecutionStatus,
+    pub started_at: u64,
+    pub completed_at: Option<u64>,
+    pub duration_ms: Option<u64>,
+    pub gas_used: Option<u64>,
+    pub error_message: Option<String>,
+    pub node_count: u32,
+    pub retry_count: u32,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct SystemHealth {
+    pub last_heartbeat: u64,
+    pub active_workflows: u32,
+    pub failed_executions_last_24h: u32,
+    pub average_execution_time_ms: f64,
+    pub chain_fusion_connectivity: Vec<(String, bool)>, // (chain, connected)
+    pub memory_usage_percent: f64,
+    pub cpu_usage_percent: f64,
+}
+
+impl Default for WorkflowState {
+    fn default() -> Self {
+        Self {
+            active_workflows: Vec::new(),
+            scheduled_executions: Vec::new(),
+            user_balances: Vec::new(),
+            execution_history: Vec::new(),
+            system_health: SystemHealth::default(),
+        }
+    }
+}
+
+impl Default for SystemHealth {
+    fn default() -> Self {
+        Self {
+            last_heartbeat: 0,
+            active_workflows: 0,
+            failed_executions_last_24h: 0,
+            average_execution_time_ms: 0.0,
+            chain_fusion_connectivity: vec![
+                ("BTC".to_string(), false),
+                ("ETH".to_string(), false),
+                ("ICP".to_string(), true),
+            ],
+            memory_usage_percent: 0.0,
+            cpu_usage_percent: 0.0,
+        }
+    }
+}
+
+// Recovery and fallback types
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct WorkflowRecovery {
+    pub max_retries: u32,
+    pub retry_delay_ms: u64,
+    pub fallback_strategy: Option<FallbackStrategy>,
+    pub emergency_actions: Vec<EmergencyAction>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum FallbackStrategy {
+    UseAlternativeNode { node_id: String },
+    SkipNode,
+    StopExecution,
+    UseDefaultValue { value: ConfigValue },
+    NotifyAndContinue,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum EmergencyAction {
+    SendNotification { recipient: String, message: String },
+    ExecuteWorkflow { workflow_id: String },
+    LiquidatePosition { asset: String, percentage: f64 },
+    PauseAllWorkflows,
+    EnableSafeMode,
+}
+
+impl Default for WorkflowRecovery {
+    fn default() -> Self {
+        Self {
+            max_retries: 3,
+            retry_delay_ms: 5000,
+            fallback_strategy: Some(FallbackStrategy::NotifyAndContinue),
+            emergency_actions: vec![
+                EmergencyAction::SendNotification {
+                    recipient: "admin".to_string(),
+                    message: "Workflow execution failed after maximum retries".to_string(),
+                }
+            ],
+        }
+    }
 }

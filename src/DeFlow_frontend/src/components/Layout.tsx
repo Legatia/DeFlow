@@ -1,5 +1,10 @@
-import { ReactNode } from 'react'
+// Import BigInt polyfill FIRST to prevent conversion errors
+import '../utils/bigint-polyfill'
+
+import { ReactNode, useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import MultiChainWalletComponent from './MultiChainWallet'
+import multiChainWalletService, { MultiChainWallet, SUPPORTED_CHAINS } from '../services/multiChainWalletService'
 
 interface LayoutProps {
   children: ReactNode
@@ -7,14 +12,29 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation()
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
+  const [wallet, setWallet] = useState<MultiChainWallet>(multiChainWalletService.getWallet())
+
+  useEffect(() => {
+    const handleWalletUpdate = (updatedWallet: MultiChainWallet) => {
+      setWallet(updatedWallet)
+    }
+
+    multiChainWalletService.addListener(handleWalletUpdate)
+
+    return () => {
+      multiChainWalletService.removeListener(handleWalletUpdate)
+    }
+  }, [])
 
   const isActive = (path: string) => {
     return location.pathname === path || (path !== '/' && location.pathname.startsWith(path))
   }
 
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: '📊' },
-    { path: '/workflows', label: 'Workflows', icon: '⚡' },
+    { path: '/', label: 'DeFi Strategies', icon: '💰' },
+    { path: '/dashboard', label: 'General Dashboard', icon: '📊' },
+    { path: '/workflows', label: 'Custom Workflows', icon: '⚡' },
     { path: '/executions', label: 'Executions', icon: '📋' },
     { path: '/settings', label: 'Settings', icon: '⚙️' }
   ]
@@ -25,7 +45,7 @@ const Layout = ({ children }: LayoutProps) => {
       <div className="w-64 bg-white shadow-lg">
         <div className="p-4 border-b">
           <h1 className="text-xl font-bold text-gray-800">DeFlow</h1>
-          <p className="text-sm text-gray-600">Workflow Automation</p>
+          <p className="text-sm text-gray-600">DeFi Automation Platform</p>
         </div>
         
         <nav className="mt-4">
@@ -56,8 +76,41 @@ const Layout = ({ children }: LayoutProps) => {
             </h2>
             
             <div className="flex items-center space-x-4">
-              <button className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                Connect Wallet
+              {/* Wallet Status */}
+              {wallet.addresses.length > 0 && (
+                <div className="flex items-center space-x-2">
+                  <div className="flex -space-x-1">
+                    {wallet.addresses.slice(0, 3).map((addr, index) => {
+                      const chainConfig = SUPPORTED_CHAINS[addr.chain]
+                      return (
+                        <div
+                          key={addr.chain}
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-xs text-white border-2 border-white"
+                          style={{ backgroundColor: chainConfig.color }}
+                          title={`${chainConfig.name}: ${addr.address.slice(0, 8)}...`}
+                        >
+                          {chainConfig.icon}
+                        </div>
+                      )
+                    })}
+                    {wallet.addresses.length > 3 && (
+                      <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-xs text-white border-2 border-white">
+                        +{wallet.addresses.length - 3}
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-sm text-gray-600">
+                    {wallet.addresses.length} chain{wallet.addresses.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
+
+              <button 
+                onClick={() => setIsWalletModalOpen(true)}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              >
+                <span>🔗</span>
+                <span>{wallet.addresses.length > 0 ? 'Manage Wallets' : 'Connect Wallet'}</span>
               </button>
             </div>
           </div>
@@ -68,6 +121,12 @@ const Layout = ({ children }: LayoutProps) => {
           {children}
         </main>
       </div>
+
+      {/* Multi-Chain Wallet Modal */}
+      <MultiChainWalletComponent 
+        isOpen={isWalletModalOpen}
+        onClose={() => setIsWalletModalOpen(false)}
+      />
     </div>
   )
 }

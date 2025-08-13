@@ -2,27 +2,303 @@
 .vscode/
 .idea/
 **/*~
+*.swp
+*.swo
+*~
 
 # Mac OSX temporary files
 .DS_Store
 **/.DS_Store
+
+# Windows temporary files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # dfx temporary files
 .dfx/
 
 # generated files
 **/declarations/
+**/.vessel/
+.vessel/
+canister_ids.json
 
-# rust
+# ICP Canister builds
+.build/
+.build-local/
+.ic-assets.json
+.ic-assets.json5
+
+# Candid files (generated)
+**/*.did
+!candid/
+!src/**/*.did
+
+# WASM files
+**/*.wasm
+**/*.wasm.gz
+
+# Rust
 target/
+**/*-lock.json
+Cargo.lock
+**/*.rs.bk
+*.pdb
+*.rlib
+*.rmeta
 
-# frontend code
+# Frontend (Node.js/TypeScript/React)
 node_modules/
 dist/
+build/
 .svelte-kit/
+.next/
+.nuxt/
+.vite/
+*.tsbuildinfo
 
-# environment variables
+# Test coverage
+coverage/
+.nyc_output/
+
+# Environment variables and secrets
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+*.crt
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# TypeScript
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Nuxt.js build / generate output
+.nuxt
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
 
 # Claude Code session files
 .claude
+.cursor/
+.ai-generated/
+
+# Development documentation (auto-generated)
+DEVELOPMENT_LOG.md
+API_DOCS.md
+CHANGELOG_AUTO.md
+
+# Performance and profiling
+*.prof
+perf.data*
+flamegraph.svg
+profiling/
+
+# Database files (if any)
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup and temp files from development
+*.tmp
+*.temp
+.backup/
+snapshots/
+
+# Test files and artifacts
+test-results/
+playwright-report/
+test-results.xml
+
+# DeFi and Blockchain integration files
+*.wallet
+*.keystore
+*.mnemonic
+*.seed
+*.privatekey
+
+# Arbitrage and trading data
+arbitrage-opportunities.json
+price-cache.json
+trading-history.json
+yield-data.json
+
+# Chain-specific files
+bitcoin-cache/
+ethereum-cache/
+solana-cache/
+price-oracles/
+
+# API keys and secrets (extra security)
+.api-keys
+.secrets
+config/secrets/
+*.secret
+
+# Local development certificates
+localhost.pem
+localhost-key.pem
+
+# IDE-specific files
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-*
+
+# Vim
+*.swp
+*.swo
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+
+# Python (if used for tooling)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Documentation build
+docs/_build/
+docs/.doctrees/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Solana RPC canister (external dependency)
+sol-rpc-canister/
+
+# OS generated files
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Project-specific ignores
+*.lock
+audit.json
+security-report.json
+
+# Local configuration overrides
+local.config.json
+dev.config.json
+.env.development
+.env.production
+
+# Build artifacts and optimization files
+*.opt
+*.min.js
+*.min.css
+source-map/
+
+# Container and deployment files
+.docker/
+docker-compose.override.yml
+.kubernetes/
+k8s-local/
+
+# Monitoring and analytics
+analytics/
+metrics/
+telemetry/
+
+# Third-party integrations cache  
+.chainlink/
+.uniswap/
+.compound/
+.aave/
+
+# Mobile development (if added later)
+*.xcuserstate
+*.xcworkspace
+.gradle/
+local.properties
+
+# Additional Rust-specific
+rust-project.json
+.rustfmt_cache/

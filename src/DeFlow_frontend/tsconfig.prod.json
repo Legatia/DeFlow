@@ -14,6 +14,7 @@
     "e2e/**",
     "src/test-validation.ts",
     "src/test/**",
-    "src/tests/**"
+    "src/tests/**",
+    "src/test-functionality.ts"
   ]
 }

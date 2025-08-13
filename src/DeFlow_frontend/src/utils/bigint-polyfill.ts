@@ -1,5 +1,35 @@
-// BigInt polyfill and safe conversion utilities
-// This fixes the "Cannot convert a BigInt value to a number" error
+// Complete BigInt elimination - Use only BigNumber.js
+// This completely prevents any BigInt usage that causes conversion errors
+import BigNumber from 'bignumber.js';
+
+// Configure BigNumber for optimal precision
+BigNumber.config({
+  EXPONENTIAL_AT: [-18, 18],
+  DECIMAL_PLACES: 18,
+  ROUNDING_MODE: BigNumber.ROUND_DOWN
+});
+
+// Completely disable native BigInt to prevent conversion issues
+const originalBigInt = (globalThis as any).BigInt;
+
+// Replace BigInt with BigNumber.js wrapper
+(globalThis as any).BigInt = function(value: any): any {
+  console.warn('BigInt usage detected, converting to BigNumber.js:', value);
+  const bn = new BigNumber(value.toString());
+  
+  // Return an object that behaves like BigInt but uses BigNumber internally
+  return {
+    _isBigNumber: true,
+    _value: bn,
+    toString: () => bn.toFixed(0),
+    valueOf: () => bn.toNumber(),
+    [Symbol.toPrimitive]: (hint: string) => {
+      if (hint === 'number') return bn.toNumber();
+      return bn.toFixed(0);
+    },
+    toNumber: () => bn.toNumber()
+  };
+};
 
 // Store the original Math.pow function
 const originalMathPow = Math.pow;
@@ -7,14 +37,18 @@ const originalMathPow = Math.pow;
 // Override Math.pow to handle BigInt values safely
 Math.pow = function(base: any, exponent: any): number {
   try {
-    // Convert BigInt to number safely
-    const safeBase = typeof base === 'bigint' 
-      ? Number(base > Number.MAX_SAFE_INTEGER ? Number.MAX_SAFE_INTEGER : base)
-      : Number(base);
+    // Convert any BigInt-like objects to numbers
+    const safeBase = base?._isBigNumber ? base.toNumber() : 
+                    typeof base === 'bigint' ? Number(base) : Number(base);
     
-    const safeExponent = typeof exponent === 'bigint'
-      ? Number(exponent > Number.MAX_SAFE_INTEGER ? Number.MAX_SAFE_INTEGER : exponent)
-      : Number(exponent);
+    const safeExponent = exponent?._isBigNumber ? exponent.toNumber() :
+                        typeof exponent === 'bigint' ? Number(exponent) : Number(exponent);
+    
+    // Check for safe conversion
+    if (!isFinite(safeBase) || !isFinite(safeExponent)) {
+      console.warn('Math.pow: Invalid arguments, using 0');
+      return 0;
+    }
     
     return originalMathPow(safeBase, safeExponent);
   } catch (error) {
@@ -23,57 +57,63 @@ Math.pow = function(base: any, exponent: any): number {
   }
 };
 
-// Safe BigInt conversion utilities
+// BigNumber.js utilities - No BigInt usage
 export const BigIntUtils = {
-  // Convert BigInt to number safely
-  toNumber(value: bigint | number | string): number {
-    if (typeof value === 'number') return value;
-    if (typeof value === 'string') return parseInt(value) || 0;
-    
+  // Convert any value to number safely using BigNumber.js
+  toNumber(value: any): number {
     try {
-      if (value <= BigInt(Number.MAX_SAFE_INTEGER)) {
-        return Number(value);
+      if (typeof value === 'number') return isFinite(value) ? value : 0;
+      if (value?._isBigNumber) return value.toNumber();
+      
+      const bn = new BigNumber(value.toString());
+      
+      // Check if it's safe to convert
+      if (bn.isGreaterThan(Number.MAX_SAFE_INTEGER)) {
+        console.warn('Value too large for safe conversion, using MAX_SAFE_INTEGER');
+        return Number.MAX_SAFE_INTEGER;
       }
-      console.warn('BigInt too large for safe conversion, using MAX_SAFE_INTEGER');
-      return Number.MAX_SAFE_INTEGER;
+      
+      if (bn.isLessThan(Number.MIN_SAFE_INTEGER)) {
+        console.warn('Value too small for safe conversion, using MIN_SAFE_INTEGER');
+        return Number.MIN_SAFE_INTEGER;
+      }
+      
+      return bn.toNumber();
     } catch (error) {
-      console.warn('BigInt conversion error:', error);
+      console.warn('Number conversion error:', error);
       return 0;
     }
   },
 
   // Convert to string safely
-  toString(value: bigint | number | string): string {
+  toString(value: any): string {
     try {
-      return String(value);
+      if (value?._isBigNumber) return value.toString();
+      return new BigNumber(value.toString()).toFixed();
     } catch (error) {
-      console.warn('BigInt toString error:', error);
+      console.warn('String conversion error:', error);
       return '0';
     }
   },
 
-  // Create BigInt safely from various inputs
-  fromValue(value: number | string | bigint): bigint {
+  // Create BigNumber from various inputs (no BigInt)
+  fromValue(value: any): BigNumber {
     try {
-      if (typeof value === 'bigint') return value;
-      if (typeof value === 'number') return BigInt(Math.floor(value));
-      if (typeof value === 'string') return BigInt(value);
-      return BigInt(0);
+      if (value?._isBigNumber) return value._value;
+      return new BigNumber(value.toString());
     } catch (error) {
-      console.warn('BigInt creation error:', error);
-      return BigInt(0);
+      console.warn('BigNumber creation error:', error);
+      return new BigNumber(0);
     }
   },
 
-  // ICP timestamp utilities
-  timestampToDate(timestamp: bigint | string | number): Date {
+  // ICP timestamp utilities using BigNumber.js
+  timestampToDate(timestamp: any): Date {
     try {
-      const nanos = typeof timestamp === 'bigint' 
-        ? this.toNumber(timestamp)
-        : Number(timestamp);
+      const bn = this.fromValue(timestamp);
       
       // Convert nanoseconds to milliseconds
-      const millis = Math.floor(nanos / 1000000);
+      const millis = bn.dividedBy(1_000_000).toNumber();
       return new Date(millis);
     } catch (error) {
       console.warn('Timestamp conversion error:', error);
@@ -82,10 +122,38 @@ export const BigIntUtils = {
   },
 
   dateToTimestamp(date: Date = new Date()): string {
-    // Return as string to avoid BigInt issues in serialization
-    const millis = date.getTime();
-    const nanos = millis * 1000000;
-    return nanos.toString();
+    try {
+      const millis = date.getTime();
+      const nanos = new BigNumber(millis).multipliedBy(1_000_000);
+      return nanos.toFixed(0);
+    } catch (error) {
+      console.warn('Date to timestamp error:', error);
+      return new BigNumber(Date.now() * 1_000_000).toFixed(0);
+    }
+  },
+
+  // Format for display with commas
+  formatForDisplay(value: any, decimals: number = 8): string {
+    try {
+      const bn = this.fromValue(value);
+      const formatted = bn.dividedBy(new BigNumber(10).pow(decimals));
+      return formatted.toFormat();
+    } catch (error) {
+      console.warn('Format display error:', error);
+      return '0';
+    }
+  },
+
+  // Compare two values
+  compare(a: any, b: any): number {
+    try {
+      const aBN = this.fromValue(a);
+      const bBN = this.fromValue(b);
+      return aBN.comparedTo(bBN) || 0;
+    } catch (error) {
+      console.warn('Compare error:', error);
+      return 0;
+    }
   }
 };
 
@@ -110,4 +178,4 @@ window.addEventListener('unhandledrejection', (event) => {
 // Simplified BigInt protection without Promise override
 // (The Promise override was causing TypeScript issues)
 
-console.log('✅ BigInt polyfill loaded successfully');
+console.log('✅ BigInt completely replaced with BigNumber.js - No native BigInt usage');

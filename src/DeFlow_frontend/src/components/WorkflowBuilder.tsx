@@ -15,7 +15,7 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 
-import { NODE_TYPES, NodeType } from '../types/nodes'
+import { getAllNodeTypes, NodeType } from '../types/all-nodes'
 import WorkflowNode from './WorkflowNode'
 import NodePalette from './NodePalette'
 import NodeConfigPanel from './NodeConfigPanel'
@@ -68,7 +68,8 @@ const WorkflowBuilder = ({
       event.preventDefault()
 
       const nodeTypeId = event.dataTransfer.getData('application/reactflow')
-      const nodeType = NODE_TYPES.find(nt => nt.id === nodeTypeId)
+      const allNodeTypes = getAllNodeTypes()
+      const nodeType = allNodeTypes.find(nt => nt.id === nodeTypeId)
       
       if (!nodeType) return
 
