@@ -31,18 +31,18 @@ function App() {
 
   return (
     <Router>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<DeFiDashboard />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/defi" element={<DeFiDashboard />} />
-          <Route path="/workflows" element={<WorkflowList />} />
-          <Route path="/workflows/new" element={<WorkflowEditor />} />
-          <Route path="/workflows/:id" element={<WorkflowEditor />} />
-          <Route path="/executions" element={<ExecutionHistory />} />
-          <Route path="/settings" element={<Settings />} />
-        </Routes>
-      </Layout>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<DeFiDashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/defi" element={<DeFiDashboard />} />
+            <Route path="/workflows" element={<WorkflowList />} />
+            <Route path="/workflows/new" element={<WorkflowEditor />} />
+            <Route path="/workflows/:id" element={<WorkflowEditor />} />
+            <Route path="/executions" element={<ExecutionHistory />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </Layout>
     </Router>
   )
 }

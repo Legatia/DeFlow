@@ -163,7 +163,8 @@ export const DEFI_NODE_TYPES: NodeType[] = [
           { label: 'Ethereum', value: 'Ethereum' },
           { label: 'Arbitrum', value: 'Arbitrum' },
           { label: 'Polygon', value: 'Polygon' },
-          { label: 'Solana', value: 'Solana' }
+          { label: 'Solana', value: 'Solana' },
+          { label: 'ICP', value: 'ICP' }
         ],
         defaultValue: 'Ethereum'
       },
@@ -176,7 +177,8 @@ export const DEFI_NODE_TYPES: NodeType[] = [
           { label: 'Ethereum', value: 'Ethereum' },
           { label: 'Arbitrum', value: 'Arbitrum' },
           { label: 'Polygon', value: 'Polygon' },
-          { label: 'Solana', value: 'Solana' }
+          { label: 'Solana', value: 'Solana' },
+          { label: 'ICP', value: 'ICP' }
         ],
         defaultValue: 'Arbitrum'
       },
@@ -200,7 +202,7 @@ export const DEFI_NODE_TYPES: NodeType[] = [
     defaultConfig: { 
       asset: 'BTC', 
       buy_chain: 'Ethereum', 
-      sell_chain: 'Arbitrum', 
+      sell_chain: 'ICP', 
       min_profit_percent: 1.0, 
       max_amount: 5000 
     }
@@ -394,12 +396,13 @@ export const DEFI_NODE_TYPES: NodeType[] = [
           { label: 'Ethereum', value: 'Ethereum' },
           { label: 'Bitcoin', value: 'Bitcoin' },
           { label: 'Solana', value: 'Solana' },
-          { label: 'Arbitrum', value: 'Arbitrum' }
+          { label: 'Arbitrum', value: 'Arbitrum' },
+          { label: 'ICP', value: 'ICP' }
         ],
         defaultValue: 'Ethereum'
       }
     ],
-    defaultConfig: { asset: 'BTC', chain: 'Bitcoin' }
+    defaultConfig: { asset: 'ICP', chain: 'ICP' }
   },
 
   {
@@ -425,7 +428,8 @@ export const DEFI_NODE_TYPES: NodeType[] = [
           { label: 'Ethereum', value: 'Ethereum' },
           { label: 'Arbitrum', value: 'Arbitrum' },
           { label: 'Polygon', value: 'Polygon' },
-          { label: 'Base', value: 'Base' }
+          { label: 'Base', value: 'Base' },
+          { label: 'ICP', value: 'ICP' }
         ],
         defaultValue: 'Ethereum'
       },

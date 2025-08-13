@@ -1,3 +1,6 @@
+// Import BigInt polyfill FIRST to prevent conversion errors
+import '../utils/bigint-polyfill'
+
 import { ReactNode, useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import MultiChainWalletComponent from './MultiChainWallet'

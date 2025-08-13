@@ -294,6 +294,16 @@ class DeFiTemplateService {
         min_capital_usd: 1000.0
       },
       {
+        id: 'icp_arbitrage',
+        name: 'ICP-ETH Arbitrage via KongSwap',
+        description: 'Arbitrage between ICP DEXs and Ethereum using KongSwap',
+        category: 'Arbitrage',
+        difficulty: 'Intermediate',
+        estimated_apy: 8.5,
+        risk_score: 6,
+        min_capital_usd: 500.0
+      },
+      {
         id: 'portfolio_rebalancing',
         name: 'Portfolio Rebalancing',
         description: 'Maintain optimal asset allocation',

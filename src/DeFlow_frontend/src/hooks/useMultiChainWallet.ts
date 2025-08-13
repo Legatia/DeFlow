@@ -127,6 +127,7 @@ export const useMultiChainWallet = (): UseMultiChainWalletReturn => {
     return wallet.addresses.some(addr => addr.chain === chain)
   }
 
+
   const connectedChains = multiChainWalletService.getConnectedChains()
   const isConnected = wallet.addresses.length > 0
   const totalConnectedChains = wallet.addresses.length
@@ -145,6 +146,6 @@ export const useMultiChainWallet = (): UseMultiChainWalletReturn => {
     hasChain,
     totalConnectedChains,
     isLoading,
-    error
+    error,
   }
 }

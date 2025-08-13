@@ -1,6 +1,9 @@
 // Multi-Chain Wallet Management Service
 // Handles wallet connections and addresses for multiple blockchains
 
+// Import BigInt polyfill FIRST to prevent conversion errors
+import '../utils/bigint-polyfill'
+
 export interface WalletAddress {
   chain: ChainType
   address: string
@@ -27,6 +30,7 @@ export type ChainType =
   | 'Avalanche' 
   | 'Solana' 
   | 'BSC'
+  | 'ICP'
 
 export type WalletType = 
   | 'MetaMask' 
@@ -35,7 +39,9 @@ export type WalletType =
   | 'Coinbase' 
   | 'Trust' 
   | 'Manual' 
-  | 'ICP'
+  | 'InternetIdentity'
+  | 'Plug'
+  | 'Stoic'
 
 export interface ChainConfig {
   name: string
@@ -57,7 +63,7 @@ export const SUPPORTED_CHAINS: Record<ChainType, ChainConfig> = {
     explorerUrl: 'https://blockstream.info',
     icon: '₿',
     color: '#f7931a',
-    supportedWallets: ['Manual', 'ICP']
+    supportedWallets: ['Manual']
   },
   Ethereum: {
     name: 'Ethereum',
@@ -138,6 +144,16 @@ export const SUPPORTED_CHAINS: Record<ChainType, ChainConfig> = {
     icon: '🟡',
     color: '#f3ba2f',
     supportedWallets: ['MetaMask', 'WalletConnect', 'Trust']
+  },
+  ICP: {
+    name: 'Internet Computer',
+    chainId: 'icp-mainnet',
+    symbol: 'ICP',
+    rpcUrl: 'https://ic0.app',
+    explorerUrl: 'https://dashboard.internetcomputer.org',
+    icon: '∞',
+    color: '#3b00b9',
+    supportedWallets: ['InternetIdentity', 'Plug', 'Stoic', 'Manual']
   }
 }
 
@@ -226,6 +242,15 @@ class MultiChainWalletService {
           break
         case 'Coinbase':
           address = await this.connectCoinbase(chain)
+          break
+        case 'InternetIdentity':
+          address = await this.connectInternetIdentity()
+          break
+        case 'Plug':
+          address = await this.connectPlug()
+          break
+        case 'Stoic':
+          address = await this.connectStoic()
           break
         default:
           throw new Error(`${walletType} connection not implemented yet`)
@@ -326,6 +351,7 @@ class MultiChainWalletService {
     this.wallet.lastSyncAt = Date.now()
   }
 
+
   // Wallet connection implementations
   private async connectMetaMask(chain: ChainType): Promise<string> {
     if (typeof window === 'undefined' || !window.ethereum) {
@@ -378,6 +404,36 @@ class MultiChainWalletService {
     throw new Error('Coinbase Wallet integration coming soon')
   }
 
+  private async connectInternetIdentity(): Promise<string> {
+    // Internet Identity integration would go here
+    // For now, return a placeholder principal ID
+    throw new Error('Internet Identity integration coming soon')
+  }
+
+  private async connectPlug(): Promise<string> {
+    if (typeof window === 'undefined' || !window.ic?.plug) {
+      throw new Error('Plug wallet not installed')
+    }
+
+    try {
+      const result = await window.ic.plug.requestConnect()
+      if (result) {
+        const principal = await window.ic.plug.agent.getPrincipal()
+        return principal.toString()
+      } else {
+        throw new Error('Plug connection rejected')
+      }
+    } catch (error: any) {
+      throw new Error(`Plug connection failed: ${error.message}`)
+    }
+  }
+
+  private async connectStoic(): Promise<string> {
+    // Stoic wallet integration would go here
+    throw new Error('Stoic wallet integration coming soon')
+  }
+
+
   // Helper methods
   private async switchEthereumChain(chainId: number): Promise<void> {
     const hexChainId = `0x${chainId.toString(16)}`
@@ -409,6 +465,8 @@ class MultiChainWalletService {
         return /^0x[a-fA-F0-9]{40}$/.test(address)
       case 'Solana':
         return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)
+      case 'ICP':
+        return /^[a-z0-9]{5}-[a-z0-9]{5}-[a-z0-9]{5}-[a-z0-9]{5}-[a-z0-9]{3}$/.test(address)
       default:
         return false
     }
@@ -426,7 +484,8 @@ class MultiChainWalletService {
       Base: '0.34',
       Avalanche: '12.5',
       Solana: '45.2',
-      BSC: '0.78'
+      BSC: '0.78',
+      ICP: '12.5'
     }
     
     return mockBalances[chain] || '0.00'
@@ -458,6 +517,14 @@ declare global {
   interface Window {
     ethereum?: any
     solana?: any
+    ic?: {
+      plug?: {
+        requestConnect: () => Promise<boolean>
+        agent: {
+          getPrincipal: () => Promise<{ toString: () => string }>
+        }
+      }
+    }
   }
 }
 
