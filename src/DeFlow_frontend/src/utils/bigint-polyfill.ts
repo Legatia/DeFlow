@@ -1,5 +1,5 @@
-// Complete BigInt elimination - Use only BigNumber.js
-// This completely prevents any BigInt usage that causes conversion errors
+// Safe BigInt handling - Don't interfere with DFINITY crypto libraries
+// Only provide utilities for application-level BigInt conversions
 import BigNumber from 'bignumber.js';
 
 // Configure BigNumber for optimal precision
@@ -9,75 +9,35 @@ BigNumber.config({
   ROUNDING_MODE: BigNumber.ROUND_DOWN
 });
 
-// Completely disable native BigInt to prevent conversion issues
-const originalBigInt = (globalThis as any).BigInt;
+// DON'T replace native BigInt - let DFINITY libraries use it
+// Instead, provide safe conversion utilities
 
-// Replace BigInt with BigNumber.js wrapper
-(globalThis as any).BigInt = function(value: any): any {
-  console.warn('BigInt usage detected, converting to BigNumber.js:', value);
-  const bn = new BigNumber(value.toString());
-  
-  // Return an object that behaves like BigInt but uses BigNumber internally
-  return {
-    _isBigNumber: true,
-    _value: bn,
-    toString: () => bn.toFixed(0),
-    valueOf: () => bn.toNumber(),
-    [Symbol.toPrimitive]: (hint: string) => {
-      if (hint === 'number') return bn.toNumber();
-      return bn.toFixed(0);
-    },
-    toNumber: () => bn.toNumber()
-  };
-};
-
-// Store the original Math.pow function
-const originalMathPow = Math.pow;
-
-// Override Math.pow to handle BigInt values safely
-Math.pow = function(base: any, exponent: any): number {
-  try {
-    // Convert any BigInt-like objects to numbers
-    const safeBase = base?._isBigNumber ? base.toNumber() : 
-                    typeof base === 'bigint' ? Number(base) : Number(base);
-    
-    const safeExponent = exponent?._isBigNumber ? exponent.toNumber() :
-                        typeof exponent === 'bigint' ? Number(exponent) : Number(exponent);
-    
-    // Check for safe conversion
-    if (!isFinite(safeBase) || !isFinite(safeExponent)) {
-      console.warn('Math.pow: Invalid arguments, using 0');
-      return 0;
-    }
-    
-    return originalMathPow(safeBase, safeExponent);
-  } catch (error) {
-    console.warn('Math.pow BigInt conversion error, using fallback:', error);
-    return 0;
-  }
-};
-
-// BigNumber.js utilities - No BigInt usage
+// BigNumber.js utilities for application use
 export const BigIntUtils = {
   // Convert any value to number safely using BigNumber.js
   toNumber(value: any): number {
     try {
       if (typeof value === 'number') return isFinite(value) ? value : 0;
-      if (value?._isBigNumber) return value.toNumber();
+      if (typeof value === 'bigint') {
+        // For BigInt values, convert via string to avoid precision loss
+        const str = value.toString();
+        const bn = new BigNumber(str);
+        
+        // Check if it's safe to convert to number
+        if (bn.isGreaterThan(Number.MAX_SAFE_INTEGER)) {
+          console.warn('BigInt value too large for safe number conversion:', str);
+          return Number.MAX_SAFE_INTEGER;
+        }
+        
+        if (bn.isLessThan(Number.MIN_SAFE_INTEGER)) {
+          console.warn('BigInt value too small for safe number conversion:', str);
+          return Number.MIN_SAFE_INTEGER;
+        }
+        
+        return bn.toNumber();
+      }
       
       const bn = new BigNumber(value.toString());
-      
-      // Check if it's safe to convert
-      if (bn.isGreaterThan(Number.MAX_SAFE_INTEGER)) {
-        console.warn('Value too large for safe conversion, using MAX_SAFE_INTEGER');
-        return Number.MAX_SAFE_INTEGER;
-      }
-      
-      if (bn.isLessThan(Number.MIN_SAFE_INTEGER)) {
-        console.warn('Value too small for safe conversion, using MIN_SAFE_INTEGER');
-        return Number.MIN_SAFE_INTEGER;
-      }
-      
       return bn.toNumber();
     } catch (error) {
       console.warn('Number conversion error:', error);
@@ -88,7 +48,9 @@ export const BigIntUtils = {
   // Convert to string safely
   toString(value: any): string {
     try {
-      if (value?._isBigNumber) return value.toString();
+      if (typeof value === 'bigint') {
+        return value.toString();
+      }
       return new BigNumber(value.toString()).toFixed();
     } catch (error) {
       console.warn('String conversion error:', error);
@@ -96,14 +58,31 @@ export const BigIntUtils = {
     }
   },
 
-  // Create BigNumber from various inputs (no BigInt)
+  // Create BigNumber from various inputs
   fromValue(value: any): BigNumber {
     try {
-      if (value?._isBigNumber) return value._value;
+      if (typeof value === 'bigint') {
+        return new BigNumber(value.toString());
+      }
       return new BigNumber(value.toString());
     } catch (error) {
       console.warn('BigNumber creation error:', error);
       return new BigNumber(0);
+    }
+  },
+
+  // Safe BigInt creation from number (for our application)
+  toBigInt(value: any): bigint {
+    try {
+      if (typeof value === 'bigint') return value;
+      if (typeof value === 'number' && !Number.isInteger(value)) {
+        console.warn('Converting non-integer to BigInt, using Math.floor');
+        value = Math.floor(value);
+      }
+      return BigInt(value);
+    } catch (error) {
+      console.warn('BigInt creation error:', error, 'returning BigInt(0)');
+      return BigInt(0);
     }
   },
 
@@ -154,13 +133,83 @@ export const BigIntUtils = {
       console.warn('Compare error:', error);
       return 0;
     }
+  },
+
+  // Safe arithmetic operations
+  add(a: any, b: any): string {
+    try {
+      const aBN = this.fromValue(a);
+      const bBN = this.fromValue(b);
+      return aBN.plus(bBN).toFixed();
+    } catch (error) {
+      console.warn('Addition error:', error);
+      return '0';
+    }
+  },
+
+  subtract(a: any, b: any): string {
+    try {
+      const aBN = this.fromValue(a);
+      const bBN = this.fromValue(b);
+      return aBN.minus(bBN).toFixed();
+    } catch (error) {
+      console.warn('Subtraction error:', error);
+      return '0';
+    }
+  },
+
+  multiply(a: any, b: any): string {
+    try {
+      const aBN = this.fromValue(a);
+      const bBN = this.fromValue(b);
+      return aBN.multipliedBy(bBN).toFixed();
+    } catch (error) {
+      console.warn('Multiplication error:', error);
+      return '0';
+    }
+  },
+
+  divide(a: any, b: any): string {
+    try {
+      const aBN = this.fromValue(a);
+      const bBN = this.fromValue(b);
+      if (bBN.isZero()) {
+        console.warn('Division by zero');
+        return '0';
+      }
+      return aBN.dividedBy(bBN).toFixed();
+    } catch (error) {
+      console.warn('Division error:', error);
+      return '0';
+    }
   }
 };
 
-// Global error handler for BigInt issues
+// Safe Math.pow override for our application
+const originalMathPow = Math.pow;
+Math.pow = function(base: any, exponent: any): number {
+  try {
+    // Handle BigInt inputs safely
+    const safeBase = typeof base === 'bigint' ? BigIntUtils.toNumber(base) : Number(base);
+    const safeExponent = typeof exponent === 'bigint' ? BigIntUtils.toNumber(exponent) : Number(exponent);
+    
+    if (!isFinite(safeBase) || !isFinite(safeExponent)) {
+      console.warn('Math.pow: Invalid arguments, using 0');
+      return 0;
+    }
+    
+    return originalMathPow(safeBase, safeExponent);
+  } catch (error) {
+    console.warn('Math.pow error:', error);
+    return 0;
+  }
+};
+
+// Global error handler for BigInt conversion issues
 window.addEventListener('error', (event) => {
-  if (event.message.includes('Cannot convert a BigInt value to a number')) {
-    console.warn('BigInt conversion error caught globally, preventing crash:', event.message);
+  if (event.message && event.message.includes('Cannot convert a BigInt value to a number')) {
+    console.warn('BigInt conversion error caught globally:', event.message);
+    console.warn('Use BigIntUtils.toNumber() for safe conversion');
     event.preventDefault();
     return false;
   }
@@ -168,14 +217,31 @@ window.addEventListener('error', (event) => {
 
 // Unhandled promise rejection handler
 window.addEventListener('unhandledrejection', (event) => {
-  if (event.reason?.message?.includes('Cannot convert a BigInt value to a number')) {
-    console.warn('BigInt promise rejection caught globally, preventing crash:', event.reason.message);
+  const message = event.reason?.message || '';
+  
+  if (message.includes('Cannot convert a BigInt value to a number')) {
+    console.warn('BigInt promise rejection caught globally:', message);
+    console.warn('Use BigIntUtils.toNumber() for safe conversion');
     event.preventDefault();
     return false;
   }
 });
 
-// Simplified BigInt protection without Promise override
-// (The Promise override was causing TypeScript issues)
+console.log('✅ BigInt utilities loaded (BigNumber.js for app, native BigInt for crypto)');
+console.log('✅ Timestamp utilities loaded (BigNumber.js based, no BigInt)');
 
-console.log('✅ BigInt completely replaced with BigNumber.js - No native BigInt usage');
+// Export a safe BigInt helper
+export const safeBigInt = {
+  // Create BigInt safely
+  create: BigIntUtils.toBigInt,
+  // Convert to number safely  
+  toNumber: BigIntUtils.toNumber,
+  // Convert to string safely
+  toString: BigIntUtils.toString,
+  // Arithmetic operations
+  add: BigIntUtils.add,
+  subtract: BigIntUtils.subtract,
+  multiply: BigIntUtils.multiply,
+  divide: BigIntUtils.divide,
+  compare: BigIntUtils.compare
+};
