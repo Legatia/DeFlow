@@ -11,6 +11,7 @@ import WorkflowEditor from './pages/WorkflowEditor'
 import ExecutionHistory from './pages/ExecutionHistory'
 import Settings from './pages/Settings'
 import DeFiDashboard from './pages/DeFiDashboard'
+import PaymentPage from './pages/PaymentPage'
 
 function App() {
   const [isInitialLoading, setIsInitialLoading] = useState(true)
@@ -41,6 +42,8 @@ function App() {
             <Route path="/workflows/:id" element={<WorkflowEditor />} />
             <Route path="/executions" element={<ExecutionHistory />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/payment" element={<PaymentPage />} />
+            <Route path="/premium" element={<PaymentPage />} />
           </Routes>
         </Layout>
     </Router>

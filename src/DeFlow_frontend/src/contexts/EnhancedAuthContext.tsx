@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Principal } from '@dfinity/principal'
 import { Identity } from '@dfinity/agent'
 import { useNFIDAuth } from '../hooks/useNFIDAuth'
+import internetIdentityService from '../services/internetIdentityService'
 import multiChainWalletService from '../services/multiChainWalletService'
 import localCacheService from '../services/localCacheService'
 
@@ -14,15 +15,17 @@ export interface AuthContextValue {
   // User mode
   userMode: UserMode
   
-  // NFID Authentication state
+  // Authentication state (unified for both NFID and II)
   isAuthenticated: boolean
   principal: Principal | null
   identity: Identity | null
   isLoading: boolean
   error: string | null
+  authMethod: 'nfid' | 'internet-identity' | null
 
   // Actions
-  login: () => Promise<boolean>
+  loginWithNFID: () => Promise<boolean>
+  loginWithInternetIdentity: () => Promise<boolean>
   logout: () => Promise<void>
   
   // Guest mode functions
@@ -59,31 +62,63 @@ interface EnhancedAuthProviderProps {
 
 export const EnhancedAuthProvider = ({ children }: EnhancedAuthProviderProps) => {
   const [userMode, setUserMode] = useState<UserMode>('guest')
+  const [authMethod, setAuthMethod] = useState<'nfid' | 'internet-identity' | null>(null)
+  const [iiAuth, setIIAuth] = useState({
+    isAuthenticated: false,
+    principal: null as Principal | null,
+    identity: null as Identity | null,
+    isLoading: false,
+    error: null as string | null
+  })
   const nfidAuth = useNFIDAuth()
+
+  // Initialize Internet Identity listener
+  useEffect(() => {
+    const unsubscribe = internetIdentityService.subscribe((state) => {
+      setIIAuth({
+        isAuthenticated: state.isAuthenticated,
+        principal: state.principal,
+        identity: state.identity,
+        isLoading: state.isLoading,
+        error: state.error
+      })
+    })
+    return unsubscribe
+  }, [])
 
   // Initialize user mode based on authentication state
   useEffect(() => {
-    if (nfidAuth.isAuthenticated) {
+    const isAuthenticated = nfidAuth.isAuthenticated || iiAuth.isAuthenticated
+    
+    if (isAuthenticated) {
       setUserMode('authenticated')
+      // Set auth method based on which one is authenticated
+      if (nfidAuth.isAuthenticated) {
+        setAuthMethod('nfid')
+      } else if (iiAuth.isAuthenticated) {
+        setAuthMethod('internet-identity')
+      }
     } else {
       // Check if user previously chose guest mode
       const guestModePreference = localStorage.getItem('deflow_guest_mode')
       setUserMode(guestModePreference === 'true' ? 'guest' : 'guest')
+      setAuthMethod(null)
     }
-  }, [nfidAuth.isAuthenticated])
+  }, [nfidAuth.isAuthenticated, iiAuth.isAuthenticated])
 
-  // Enhanced login with data migration
-  const login = async (): Promise<boolean> => {
+  // NFID login
+  const loginWithNFID = async (): Promise<boolean> => {
     const success = await nfidAuth.login()
     
     if (success) {
       setUserMode('authenticated')
+      setAuthMethod('nfid')
       
       // Welcome notification
       localCacheService.addNotification({
-        id: `login_welcome_${Date.now()}`,
-        title: 'Welcome to DeFlow!',
-        message: 'You now have access to premium features including cross-device sync and reduced fees.',
+        id: `nfid_login_welcome_${Date.now()}`,
+        title: 'Welcome to DeFlow Premium!',
+        message: 'Logged in with Google via NFID. You now have access to premium features.',
         type: 'success',
         createdAt: Date.now(),
         read: false
@@ -91,9 +126,31 @@ export const EnhancedAuthProvider = ({ children }: EnhancedAuthProviderProps) =>
       
       // Clear guest mode preference
       localStorage.removeItem('deflow_guest_mode')
+    }
+    
+    return success
+  }
+
+  // Internet Identity login
+  const loginWithInternetIdentity = async (): Promise<boolean> => {
+    const success = await internetIdentityService.authenticate()
+    
+    if (success) {
+      setUserMode('authenticated')
+      setAuthMethod('internet-identity')
       
-      // Here you could sync local data to cloud storage
-      // syncLocalDataToCloud()
+      // Welcome notification
+      localCacheService.addNotification({
+        id: `ii_login_welcome_${Date.now()}`,
+        title: 'Welcome to DeFlow Premium!',
+        message: 'Logged in with Internet Identity. You now have access to premium features.',
+        type: 'success',
+        createdAt: Date.now(),
+        read: false
+      })
+      
+      // Clear guest mode preference
+      localStorage.removeItem('deflow_guest_mode')
     }
     
     return success
@@ -101,8 +158,12 @@ export const EnhancedAuthProvider = ({ children }: EnhancedAuthProviderProps) =>
 
   // Enhanced logout with data preservation
   const logout = async (): Promise<void> => {
+    // Logout from both services
     await nfidAuth.logout()
+    await internetIdentityService.logout()
+    
     setUserMode('guest')
+    setAuthMethod(null)
     
     // Set guest mode preference
     localStorage.setItem('deflow_guest_mode', 'true')
@@ -175,19 +236,28 @@ export const EnhancedAuthProvider = ({ children }: EnhancedAuthProviderProps) =>
     }
   }, [])
 
+  // Get unified authentication state
+  const isAuthenticated = nfidAuth.isAuthenticated || iiAuth.isAuthenticated
+  const principal = nfidAuth.isAuthenticated ? nfidAuth.principal : iiAuth.principal
+  const identity = nfidAuth.isAuthenticated ? nfidAuth.identity : iiAuth.identity
+  const isLoading = nfidAuth.isLoading || iiAuth.isLoading
+  const error = nfidAuth.error || iiAuth.error
+
   const contextValue: AuthContextValue = {
     // User mode
     userMode,
     
-    // NFID Authentication state
-    isAuthenticated: nfidAuth.isAuthenticated,
-    principal: nfidAuth.principal,
-    identity: nfidAuth.identity,
-    isLoading: nfidAuth.isLoading,
-    error: nfidAuth.error,
+    // Unified Authentication state
+    isAuthenticated,
+    principal,
+    identity,
+    isLoading,
+    error,
+    authMethod,
     
     // Actions
-    login,
+    loginWithNFID,
+    loginWithInternetIdentity,
     logout,
     switchToGuestMode,
     
