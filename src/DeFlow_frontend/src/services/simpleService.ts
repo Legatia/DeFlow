@@ -8,54 +8,7 @@ import { TimestampUtils } from '../utils/timestamp-utils'
 const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
 // In-memory storage (will be replaced with ICP calls later)
-let mockWorkflows: Workflow[] = [
-  {
-    id: generateId(),
-    name: 'Welcome Workflow',
-    description: 'A sample workflow to get you started',
-    nodes: [
-      {
-        id: 'node_1',
-        node_type: 'trigger',
-        position: { x: 100, y: 100 },
-        configuration: { event_type: 'manual' },
-        metadata: {
-          label: 'Manual Trigger',
-          description: 'Start workflow manually',
-          tags: ['trigger'],
-          icon: 'play',
-          color: '#3b82f6'
-        }
-      },
-      {
-        id: 'node_2',
-        node_type: 'action',
-        position: { x: 300, y: 100 },
-        configuration: { message: 'Hello from DeFlow!' },
-        metadata: {
-          label: 'Display Message',
-          description: 'Show a message',
-          tags: ['action'],
-          icon: 'message',
-          color: '#10b981'
-        }
-      }
-    ],
-    connections: [
-      {
-        id: 'conn_1',
-        source_node_id: 'node_1',
-        target_node_id: 'node_2',
-        source_output: 'trigger',
-        target_input: 'input'
-      }
-    ],
-    triggers: [{ type: 'manual' }],
-    created_at: TimestampUtils.dateToICPTimestamp(),
-    updated_at: TimestampUtils.dateToICPTimestamp(),
-    active: true
-  }
-]
+let mockWorkflows: Workflow[] = []
 
 let mockExecutions: WorkflowExecution[] = []
 

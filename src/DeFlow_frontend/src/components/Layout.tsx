@@ -50,15 +50,9 @@ const Layout = ({ children }: LayoutProps) => {
     return () => clearInterval(interval)
   }, [])
 
-  // Handle upgrade to premium logic
-  const handleUpgradeToPremium = () => {
-    if (auth.isAuthenticated) {
-      // User is logged in, go to payment page
-      navigate('/premium')
-    } else {
-      // User not logged in, trigger login first
-      // This will be handled by AuthDropdown component
-    }
+  // Handle subscribe now logic
+  const handleSubscribeNow = () => {
+    navigate('/premium')
   }
 
   const isActive = (path: string) => {
@@ -66,8 +60,7 @@ const Layout = ({ children }: LayoutProps) => {
   }
 
   const navItems = [
-    { path: '/', label: 'DeFi Strategies', icon: '💰' },
-    { path: '/dashboard', label: 'General Dashboard', icon: '📊' },
+    { path: '/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/workflows', label: 'Custom Workflows', icon: '⚡' },
     { path: '/executions', label: 'Executions', icon: '📋' },
     { path: '/settings', label: 'Settings', icon: '⚙️' }
@@ -110,19 +103,14 @@ const Layout = ({ children }: LayoutProps) => {
             </h2>
             
             <div className="flex items-center space-x-4">
-              {/* User Mode Indicator */}
+              {/* User Plan Indicator */}
               <div className="flex items-center space-x-2">
                 <div className={`w-3 h-3 rounded-full ${
                   auth.userMode === 'authenticated' ? 'bg-green-500' : 'bg-orange-500'
                 }`}></div>
                 <span className="text-sm font-medium text-gray-700">
-                  {auth.userMode === 'authenticated' ? 'Premium' : 'Guest Mode'}
+                  {auth.userMode === 'authenticated' ? 'Premium Plan' : 'Standard Plan'}
                 </span>
-                {!auth.subscriptionBenefits.reducedFees && (
-                  <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
-                    Standard Fees
-                  </span>
-                )}
               </div>
 
               {/* Notifications */}
@@ -181,11 +169,10 @@ const Layout = ({ children }: LayoutProps) => {
               {!auth.isAuthenticated ? (
                 <div className="flex items-center space-x-2">
                   <button 
-                    onClick={handleUpgradeToPremium}
+                    onClick={handleSubscribeNow}
                     className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors flex items-center space-x-2"
                   >
-                    <span>🚀</span>
-                    <span>Upgrade to Premium</span>
+                    <span>Subscribe Now</span>
                   </button>
                   <AuthDropdown />
                 </div>
@@ -202,7 +189,6 @@ const Layout = ({ children }: LayoutProps) => {
                     onClick={() => auth.logout()}
                     className="px-3 py-2 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
                   >
-                    <span>👋</span>
                     <span>Switch to Guest</span>
                   </button>
                 </div>
@@ -213,7 +199,6 @@ const Layout = ({ children }: LayoutProps) => {
                 onClick={() => setIsWalletModalOpen(true)}
                 className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
               >
-                <span>🔗</span>
                 <span>{wallet.addresses.length > 0 ? 'Manage Wallets' : 'Connect Wallets'}</span>
               </button>
             </div>

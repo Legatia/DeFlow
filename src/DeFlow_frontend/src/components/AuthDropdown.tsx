@@ -52,7 +52,6 @@ export const AuthDropdown = ({ onClose }: AuthDropdownProps) => {
         disabled={auth.isLoading}
         className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
       >
-        <span>👤</span>
         <span>{auth.isLoading ? 'Connecting...' : 'Register / Login'}</span>
         <span className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}>
           ▼
