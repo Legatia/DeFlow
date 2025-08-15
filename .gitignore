@@ -302,3 +302,5 @@ local.properties
 # Additional Rust-specific
 rust-project.json
 .rustfmt_cache/
+
+src/DeFlow_frontend/DISCORD_INTEGRATION_GUIDE.md:146
