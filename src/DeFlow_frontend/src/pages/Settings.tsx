@@ -8,6 +8,7 @@ import localCacheService, { UserPreferences } from '../services/localCacheServic
 import EmailProviderSetup from '../components/EmailProviderSetup'
 import CustomAPIProviderSetup from '../components/CustomAPIProviderSetup'
 import TelegramBotSetup from '../components/TelegramBotSetup'
+import DiscordWebhookSetup from '../components/DiscordWebhookSetup'
 
 const Settings = () => {
   const navigate = useNavigate()
@@ -158,8 +159,11 @@ const Settings = () => {
         <div className="border-t pt-6 mb-8">
           <CustomAPIProviderSetup />
         </div>
-        <div className="border-t pt-6">
+        <div className="border-t pt-6 mb-8">
           <TelegramBotSetup />
+        </div>
+        <div className="border-t pt-6">
+          <DiscordWebhookSetup />
         </div>
       </div>
 

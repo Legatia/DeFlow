@@ -643,6 +643,347 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         type: 'smoothstep'
       }
     ]
+  },
+
+  {
+    id: 'discord-portfolio-embed',
+    name: 'Discord Portfolio Embed',
+    description: 'Send beautiful rich embed portfolio updates to Discord channels',
+    category: 'notification',
+    difficulty: 'beginner',
+    estimatedTime: '10 minutes',
+    useCase: 'Professional Discord portfolio notifications with rich formatting and charts',
+    tags: ['discord', 'portfolio', 'embed', 'defi', 'notification'],
+    nodes: [
+      {
+        id: 'schedule-discord',
+        type: 'workflowNode',
+        position: { x: 100, y: 100 },
+        data: {
+          nodeType: getNodeType('schedule-trigger'),
+          config: {
+            cron: '0 8,20 * * *',
+            timezone: 'UTC'
+          },
+          isValid: true,
+          errors: []
+        }
+      },
+      {
+        id: 'embed-builder',
+        type: 'workflowNode',
+        position: { x: 400, y: 100 },
+        data: {
+          nodeType: getNodeType('discord-embed-builder'),
+          config: {
+            title: 'Portfolio Performance Update',
+            description: 'Daily summary of your DeFi investments and strategies',
+            color: 'green',
+            fields_json: '[{"name": "💰 Total Value", "value": "${{portfolio_value}}", "inline": true}, {"name": "📈 24h Change", "value": "{{daily_change}}%", "inline": true}, {"name": "🏆 Best Strategy", "value": "{{top_strategy}}", "inline": true}]',
+            thumbnail_url: 'https://charts.deflow.app/portfolio-thumb.png',
+            footer_text: 'DeFlow • Automated DeFi Management'
+          },
+          isValid: true,
+          errors: []
+        }
+      },
+      {
+        id: 'discord-webhook',
+        type: 'workflowNode',
+        position: { x: 700, y: 100 },
+        data: {
+          nodeType: getNodeType('discord-webhook'),
+          config: {
+            webhook_url: '',
+            username: 'DeFlow Portfolio Bot',
+            avatar_url: ''
+          },
+          isValid: false,
+          errors: ['Webhook URL required']
+        }
+      }
+    ],
+    edges: [
+      {
+        id: 'edge-discord-1',
+        source: 'schedule-discord',
+        target: 'embed-builder',
+        sourceHandle: 'time',
+        targetHandle: 'data',
+        type: 'smoothstep'
+      },
+      {
+        id: 'edge-discord-2',
+        source: 'embed-builder',
+        target: 'discord-webhook',
+        sourceHandle: 'embed',
+        targetHandle: 'message',
+        type: 'smoothstep'
+      }
+    ]
+  },
+
+  {
+    id: 'discord-trading-signals',
+    name: 'Discord Trading Community Signals',
+    description: 'Share trading signals and market analysis with Discord trading communities',
+    category: 'integration',
+    difficulty: 'intermediate',
+    estimatedTime: '15 minutes',
+    useCase: 'Broadcast DeFi trading opportunities and market insights to Discord servers',
+    tags: ['discord', 'trading', 'signals', 'community', 'defi'],
+    nodes: [
+      {
+        id: 'market-trigger',
+        type: 'workflowNode',
+        position: { x: 100, y: 100 },
+        data: {
+          nodeType: getNodeType('technical-indicators'),
+          config: {
+            asset_symbol: 'BTC',
+            indicator_type: 'rsi',
+            timeframe: '4h',
+            trigger_condition: 'crosses_below',
+            threshold_value: 30,
+            period: 14,
+            data_source: 'binance',
+            check_interval: 30
+          },
+          isValid: true,
+          errors: []
+        }
+      },
+      {
+        id: 'text-message',
+        type: 'workflowNode',
+        position: { x: 300, y: 50 },
+        data: {
+          nodeType: getNodeType('discord-text-message'),
+          config: {
+            content: '@here 📡 **TRADING SIGNAL DETECTED**',
+            mentions: 'here'
+          },
+          isValid: true,
+          errors: []
+        }
+      },
+      {
+        id: 'signal-embed',
+        type: 'workflowNode',
+        position: { x: 300, y: 150 },
+        data: {
+          nodeType: getNodeType('discord-embed-builder'),
+          config: {
+            title: '⚡ BUY Signal: {{asset_symbol}}',
+            description: 'Technical analysis indicates strong oversold bounce opportunity',
+            color: 'blue',
+            fields_json: '[{"name": "🎯 Asset", "value": "{{asset_symbol}}", "inline": true}, {"name": "📊 RSI", "value": "{{rsi_value}} (Oversold)", "inline": true}, {"name": "💡 Signal", "value": "Bullish Reversal", "inline": true}, {"name": "📈 Entry Zone", "value": "${{entry_price}}", "inline": true}, {"name": "🎯 Target", "value": "${{target_price}} (+{{target_percent}}%)", "inline": true}, {"name": "🛡️ Stop Loss", "value": "${{stop_price}} (-{{stop_percent}}%)", "inline": true}]',
+            image_url: 'https://charts.tradingview.com/{{asset_symbol}}.png',
+            footer_text: '⚠️ Not Financial Advice • Always DYOR'
+          },
+          isValid: true,
+          errors: []
+        }
+      },
+      {
+        id: 'json-combiner',
+        type: 'workflowNode',
+        position: { x: 500, y: 100 },
+        data: {
+          nodeType: getNodeType('json-builder'),
+          config: {
+            template: '{\n  "content": "{{content}}",\n  "embeds": [{{embed}}]\n}'
+          },
+          isValid: true,
+          errors: []
+        }
+      },
+      {
+        id: 'discord-webhook',
+        type: 'workflowNode',
+        position: { x: 700, y: 100 },
+        data: {
+          nodeType: getNodeType('discord-webhook'),
+          config: {
+            webhook_url: '',
+            username: 'DeFlow Trading Bot',
+            avatar_url: ''
+          },
+          isValid: false,
+          errors: ['Webhook URL required']
+        }
+      }
+    ],
+    edges: [
+      {
+        id: 'edge-signal-1',
+        source: 'market-trigger',
+        target: 'text-message',
+        sourceHandle: 'signal',
+        targetHandle: 'data',
+        type: 'smoothstep'
+      },
+      {
+        id: 'edge-signal-2',
+        source: 'market-trigger',
+        target: 'signal-embed',
+        sourceHandle: 'signal',
+        targetHandle: 'data',
+        type: 'smoothstep'
+      },
+      {
+        id: 'edge-signal-3',
+        source: 'text-message',
+        target: 'json-combiner',
+        sourceHandle: 'message',
+        targetHandle: 'data',
+        type: 'smoothstep'
+      },
+      {
+        id: 'edge-signal-4',
+        source: 'signal-embed',
+        target: 'json-combiner',
+        sourceHandle: 'embed',
+        targetHandle: 'data',
+        type: 'smoothstep'
+      },
+      {
+        id: 'edge-signal-5',
+        source: 'json-combiner',
+        target: 'discord-webhook',
+        sourceHandle: 'json',
+        targetHandle: 'message',
+        type: 'smoothstep'
+      }
+    ]
+  },
+
+  {
+    id: 'discord-risk-alerts',
+    name: 'Discord Risk Management Alerts',
+    description: 'Send critical risk alerts and portfolio warnings to Discord with priority notifications',
+    category: 'notification',
+    difficulty: 'beginner',
+    estimatedTime: '8 minutes',
+    useCase: 'Critical risk management alerts for DeFi portfolios',
+    tags: ['discord', 'risk', 'alerts', 'management', 'defi'],
+    nodes: [
+      {
+        id: 'risk-monitor',
+        type: 'workflowNode',
+        position: { x: 100, y: 100 },
+        data: {
+          nodeType: getNodeType('webhook-trigger'),
+          config: {
+            path: '/webhook/risk-alert',
+            method: 'POST'
+          },
+          isValid: true,
+          errors: []
+        }
+      },
+      {
+        id: 'risk-text',
+        type: 'workflowNode',
+        position: { x: 300, y: 100 },
+        data: {
+          nodeType: getNodeType('discord-text-message'),
+          config: {
+            content: '@everyone 🚨 **CRITICAL PORTFOLIO RISK ALERT**',
+            mentions: 'everyone'
+          },
+          isValid: true,
+          errors: []
+        }
+      },
+      {
+        id: 'risk-embed',
+        type: 'workflowNode',
+        position: { x: 500, y: 100 },
+        data: {
+          nodeType: getNodeType('discord-embed-builder'),
+          config: {
+            title: '🚨 Critical Risk Event Detected',
+            description: '{{risk_description}}',
+            color: 'red',
+            fields_json: '[{"name": "⚠️ Risk Type", "value": "{{risk_type}}", "inline": true}, {"name": "📊 Impact Level", "value": "{{impact_level}}", "inline": true}, {"name": "💰 Affected Value", "value": "${{affected_value}}", "inline": true}, {"name": "⏰ Time to Act", "value": "{{time_to_act}}", "inline": true}, {"name": "💡 Recommendation", "value": "{{recommendation}}", "inline": true}, {"name": "🎯 Action Required", "value": "{{required_action}}", "inline": true}]',
+            footer_text: 'Immediate action required • DeFlow Risk Management'
+          },
+          isValid: true,
+          errors: []
+        }
+      },
+      {
+        id: 'json-combiner',
+        type: 'workflowNode',
+        position: { x: 700, y: 100 },
+        data: {
+          nodeType: getNodeType('json-builder'),
+          config: {
+            template: '{\n  "content": "{{content}}",\n  "embeds": [{{embed}}]\n}'
+          },
+          isValid: true,
+          errors: []
+        }
+      },
+      {
+        id: 'discord-webhook',
+        type: 'workflowNode',
+        position: { x: 900, y: 100 },
+        data: {
+          nodeType: getNodeType('discord-webhook'),
+          config: {
+            webhook_url: '',
+            username: 'DeFlow Risk Manager',
+            avatar_url: ''
+          },
+          isValid: false,
+          errors: ['Webhook URL required']
+        }
+      }
+    ],
+    edges: [
+      {
+        id: 'edge-risk-1',
+        source: 'risk-monitor',
+        target: 'risk-text',
+        sourceHandle: 'data',
+        targetHandle: 'data',
+        type: 'smoothstep'
+      },
+      {
+        id: 'edge-risk-2',
+        source: 'risk-monitor',
+        target: 'risk-embed',
+        sourceHandle: 'data',
+        targetHandle: 'data',
+        type: 'smoothstep'
+      },
+      {
+        id: 'edge-risk-3',
+        source: 'risk-text',
+        target: 'json-combiner',
+        sourceHandle: 'message',
+        targetHandle: 'data',
+        type: 'smoothstep'
+      },
+      {
+        id: 'edge-risk-4',
+        source: 'risk-embed',
+        target: 'json-combiner',
+        sourceHandle: 'embed',
+        targetHandle: 'data',
+        type: 'smoothstep'
+      },
+      {
+        id: 'edge-risk-5',
+        source: 'json-combiner',
+        target: 'discord-webhook',
+        sourceHandle: 'json',
+        targetHandle: 'message',
+        type: 'smoothstep'
+      }
+    ]
   }
 ]
 
