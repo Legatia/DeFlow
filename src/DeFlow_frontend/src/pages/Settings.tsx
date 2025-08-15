@@ -5,6 +5,9 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useEnhancedAuth } from '../contexts/EnhancedAuthContext'
 import localCacheService, { UserPreferences } from '../services/localCacheService'
+import EmailProviderSetup from '../components/EmailProviderSetup'
+import CustomAPIProviderSetup from '../components/CustomAPIProviderSetup'
+import TelegramBotSetup from '../components/TelegramBotSetup'
 
 const Settings = () => {
   const navigate = useNavigate()
@@ -144,6 +147,19 @@ const Settings = () => {
               <p className="text-sm text-gray-600">Your workflows run first in queue</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* External Integrations */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="mb-8">
+          <EmailProviderSetup />
+        </div>
+        <div className="border-t pt-6 mb-8">
+          <CustomAPIProviderSetup />
+        </div>
+        <div className="border-t pt-6">
+          <TelegramBotSetup />
         </div>
       </div>
 

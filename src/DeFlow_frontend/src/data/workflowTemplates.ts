@@ -418,6 +418,231 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         type: 'smoothstep'
       }
     ]
+  },
+
+  {
+    id: 'telegram-portfolio-alert',
+    name: 'Telegram Portfolio Alert',
+    description: 'Send portfolio performance alerts to Telegram with interactive buttons',
+    category: 'notification',
+    difficulty: 'beginner',
+    estimatedTime: '8 minutes',
+    useCase: 'Get instant Telegram notifications about DeFi portfolio changes',
+    tags: ['telegram', 'portfolio', 'defi', 'notification'],
+    nodes: [
+      {
+        id: 'schedule-portfolio',
+        type: 'workflowNode',
+        position: { x: 100, y: 100 },
+        data: {
+          nodeType: getNodeType('schedule-trigger'),
+          config: {
+            cron: '0 9,17 * * *',
+            timezone: 'UTC'
+          },
+          isValid: true,
+          errors: []
+        }
+      },
+      {
+        id: 'telegram-alert',
+        type: 'workflowNode',
+        position: { x: 400, y: 100 },
+        data: {
+          nodeType: getNodeType('telegram-bot'),
+          config: {
+            bot_token: '',
+            chat_id: '',
+            message_type: 'text',
+            message: '📊 *Daily Portfolio Update*\n\n💰 Total Value: ${{portfolio_value}}\n📈 24h Change: {{daily_change}}%\n🏆 Best Performer: {{top_strategy}}\n\n⚡ Powered by DeFlow',
+            parse_mode: 'Markdown',
+            inline_keyboard: '[{"text": "📊 View Dashboard", "url": "https://deflow.app/dashboard"}, {"text": "⚙️ Manage", "url": "https://deflow.app/strategies"}]',
+            disable_preview: false,
+            silent: false
+          },
+          isValid: false,
+          errors: ['Bot token and Chat ID required']
+        }
+      }
+    ],
+    edges: [
+      {
+        id: 'edge-telegram-1',
+        source: 'schedule-portfolio',
+        target: 'telegram-alert',
+        sourceHandle: 'time',
+        targetHandle: 'data',
+        type: 'smoothstep'
+      }
+    ]
+  },
+
+  {
+    id: 'telegram-defi-signals',
+    name: 'DeFi Trading Signals via Telegram',
+    description: 'Monitor market conditions and send trading signals to Telegram groups',
+    category: 'integration',
+    difficulty: 'intermediate',
+    estimatedTime: '15 minutes',
+    useCase: 'Share DeFi trading opportunities with your community via Telegram',
+    tags: ['telegram', 'defi', 'trading', 'signals', 'community'],
+    nodes: [
+      {
+        id: 'technical-trigger',
+        type: 'workflowNode',
+        position: { x: 100, y: 100 },
+        data: {
+          nodeType: getNodeType('technical-indicators'),
+          config: {
+            asset_symbol: 'ETH',
+            indicator_type: 'rsi',
+            timeframe: '1h',
+            trigger_condition: 'below',
+            threshold_value: 30,
+            period: 14,
+            data_source: 'binance',
+            check_interval: 15
+          },
+          isValid: true,
+          errors: []
+        }
+      },
+      {
+        id: 'signal-message',
+        type: 'workflowNode',
+        position: { x: 400, y: 100 },
+        data: {
+          nodeType: getNodeType('telegram-bot'),
+          config: {
+            bot_token: '',
+            chat_id: '',
+            message_type: 'text',
+            message: '⚡ *TRADING SIGNAL ALERT*\n\n🎯 Asset: {{asset_symbol}}\n📊 RSI: {{rsi_value}} (Oversold)\n💡 Signal: BUY OPPORTUNITY\n⏰ Time: {{signal_time}}\n\n📈 Strategy Recommendation:\n• Consider DCA entry\n• Set stop-loss at -5%\n• Target: +10-15%\n\n⚠️ *Always DYOR - Not Financial Advice*',
+            parse_mode: 'Markdown',
+            inline_keyboard: '[{"text": "📊 View Chart", "url": "https://tradingview.com"}, {"text": "💰 Execute Trade", "callback_data": "execute_trade"}]',
+            disable_preview: false,
+            silent: false
+          },
+          isValid: false,
+          errors: ['Bot token and Chat ID required']
+        }
+      }
+    ],
+    edges: [
+      {
+        id: 'edge-signal-1',
+        source: 'technical-trigger',
+        target: 'signal-message',
+        sourceHandle: 'signal',
+        targetHandle: 'data',
+        type: 'smoothstep'
+      }
+    ]
+  },
+
+  {
+    id: 'telegram-multi-alert',
+    name: 'Multi-Channel Telegram Alerts',
+    description: 'Send different types of alerts to multiple Telegram channels/users',
+    category: 'notification',
+    difficulty: 'advanced',
+    estimatedTime: '20 minutes',
+    useCase: 'Manage multiple Telegram channels with different alert types',
+    tags: ['telegram', 'multi-channel', 'alerts', 'automation'],
+    nodes: [
+      {
+        id: 'webhook-multi',
+        type: 'workflowNode',
+        position: { x: 100, y: 200 },
+        data: {
+          nodeType: getNodeType('webhook-trigger'),
+          config: {
+            path: '/webhook/defi-event',
+            method: 'POST'
+          },
+          isValid: true,
+          errors: []
+        }
+      },
+      {
+        id: 'condition-alert-type',
+        type: 'workflowNode',
+        position: { x: 300, y: 200 },
+        data: {
+          nodeType: getNodeType('condition'),
+          config: {
+            field: 'alert_type',
+            operator: 'equals',
+            value: 'critical'
+          },
+          isValid: true,
+          errors: []
+        }
+      },
+      {
+        id: 'telegram-critical',
+        type: 'workflowNode',
+        position: { x: 500, y: 100 },
+        data: {
+          nodeType: getNodeType('telegram-bot'),
+          config: {
+            bot_token: '',
+            chat_id: '',
+            message_type: 'text',
+            message: '🚨 *CRITICAL ALERT*\n\n{{alert_title}}\n\n{{alert_description}}\n\n⚠️ Immediate action required!',
+            parse_mode: 'Markdown',
+            silent: false,
+            protect_content: true
+          },
+          isValid: false,
+          errors: ['Configuration required']
+        }
+      },
+      {
+        id: 'telegram-general',
+        type: 'workflowNode',
+        position: { x: 500, y: 300 },
+        data: {
+          nodeType: getNodeType('telegram-bot'),
+          config: {
+            bot_token: '',
+            chat_id: '',
+            message_type: 'text',
+            message: '📢 *General Update*\n\n{{alert_title}}\n\n{{alert_description}}\n\nℹ️ For your information.',
+            parse_mode: 'Markdown',
+            silent: true
+          },
+          isValid: false,
+          errors: ['Configuration required']
+        }
+      }
+    ],
+    edges: [
+      {
+        id: 'edge-multi-1',
+        source: 'webhook-multi',
+        target: 'condition-alert-type',
+        sourceHandle: 'data',
+        targetHandle: 'data',
+        type: 'smoothstep'
+      },
+      {
+        id: 'edge-multi-2',
+        source: 'condition-alert-type',
+        target: 'telegram-critical',
+        sourceHandle: 'true',
+        targetHandle: 'data',
+        type: 'smoothstep'
+      },
+      {
+        id: 'edge-multi-3',
+        source: 'condition-alert-type',
+        target: 'telegram-general',
+        sourceHandle: 'false',
+        targetHandle: 'data',
+        type: 'smoothstep'
+      }
+    ]
   }
 ]
 

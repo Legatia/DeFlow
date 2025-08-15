@@ -12,6 +12,7 @@ import ExecutionHistory from './pages/ExecutionHistory'
 import Settings from './pages/Settings'
 import DeFiDashboard from './pages/DeFiDashboard'
 import PaymentPage from './pages/PaymentPage'
+import OAuthCallback from './components/OAuthCallback'
 
 function App() {
   const [isInitialLoading, setIsInitialLoading] = useState(true)
@@ -43,6 +44,7 @@ function App() {
             <Route path="/settings" element={<Settings />} />
             <Route path="/payment" element={<PaymentPage />} />
             <Route path="/premium" element={<PaymentPage />} />
+            <Route path="/oauth/callback/:provider" element={<OAuthCallback />} />
           </Routes>
         </Layout>
     </Router>
