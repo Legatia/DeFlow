@@ -303,4 +303,6 @@ local.properties
 rust-project.json
 .rustfmt_cache/
 
+# Discord integration guide (contains policy-violating content)
 src/DeFlow_frontend/DISCORD_INTEGRATION_GUIDE.md
+DISCORD_INTEGRATION_GUIDE.md
