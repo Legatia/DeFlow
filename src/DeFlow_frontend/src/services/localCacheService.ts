@@ -46,13 +46,33 @@ export interface UserPreferences {
   autoSave: boolean
 }
 
+export interface LinkedInConfig {
+  id: string
+  name: string
+  access_token: string
+  post_type: 'person' | 'organization'
+  organization_id: string
+  createdAt: string
+}
+
+export interface FacebookConfig {
+  id: string
+  name: string
+  access_token: string
+  page_id: string
+  post_type: 'page' | 'group' | 'event'
+  createdAt: string
+}
+
 class LocalCacheService {
   private readonly STORAGE_KEYS = {
     WORKFLOWS: 'deflow_cached_workflows',
     EXECUTIONS: 'deflow_cached_executions', 
     NOTIFICATIONS: 'deflow_cached_notifications',
     USER_PREFERENCES: 'deflow_user_preferences',
-    WALLET_ADDRESSES: 'deflow_cached_wallets'
+    WALLET_ADDRESSES: 'deflow_cached_wallets',
+    LINKEDIN_CONFIGS: 'deflow_linkedin_configs',
+    FACEBOOK_CONFIGS: 'deflow_facebook_configs'
   }
 
   // Workflows
@@ -384,6 +404,48 @@ class LocalCacheService {
       return true
     } catch (error) {
       console.error('Failed to import data:', error)
+      return false
+    }
+  }
+
+  // LinkedIn Configurations
+  getLinkedInConfigs(): LinkedInConfig[] {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEYS.LINKEDIN_CONFIGS)
+      return stored ? JSON.parse(stored) : []
+    } catch (error) {
+      console.error('Failed to load LinkedIn configs:', error)
+      return []
+    }
+  }
+
+  saveLinkedInConfigs(configs: LinkedInConfig[]): boolean {
+    try {
+      localStorage.setItem(this.STORAGE_KEYS.LINKEDIN_CONFIGS, JSON.stringify(configs))
+      return true
+    } catch (error) {
+      console.error('Failed to save LinkedIn configs:', error)
+      return false
+    }
+  }
+
+  // Facebook Configurations  
+  getFacebookConfigs(): FacebookConfig[] {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEYS.FACEBOOK_CONFIGS)
+      return stored ? JSON.parse(stored) : []
+    } catch (error) {
+      console.error('Failed to load Facebook configs:', error)
+      return []
+    }
+  }
+
+  saveFacebookConfigs(configs: FacebookConfig[]): boolean {
+    try {
+      localStorage.setItem(this.STORAGE_KEYS.FACEBOOK_CONFIGS, JSON.stringify(configs))
+      return true
+    } catch (error) {
+      console.error('Failed to save Facebook configs:', error)
       return false
     }
   }

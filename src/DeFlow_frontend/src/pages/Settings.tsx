@@ -9,6 +9,9 @@ import EmailProviderSetup from '../components/EmailProviderSetup'
 import CustomAPIProviderSetup from '../components/CustomAPIProviderSetup'
 import TelegramBotSetup from '../components/TelegramBotSetup'
 import DiscordWebhookSetup from '../components/DiscordWebhookSetup'
+import TwitterAPISetup from '../components/TwitterAPISetup'
+import LinkedInAPISetup from '../components/LinkedInAPISetup'
+import FacebookAPISetup from '../components/FacebookAPISetup'
 
 const Settings = () => {
   const navigate = useNavigate()
@@ -162,8 +165,17 @@ const Settings = () => {
         <div className="border-t pt-6 mb-8">
           <TelegramBotSetup />
         </div>
-        <div className="border-t pt-6">
+        <div className="border-t pt-6 mb-8">
           <DiscordWebhookSetup />
+        </div>
+        <div className="border-t pt-6 mb-8">
+          <TwitterAPISetup />
+        </div>
+        <div className="border-t pt-6 mb-8">
+          <LinkedInAPISetup />
+        </div>
+        <div className="border-t pt-6">
+          <FacebookAPISetup />
         </div>
       </div>
 

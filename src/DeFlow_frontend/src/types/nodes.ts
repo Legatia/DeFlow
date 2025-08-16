@@ -1000,17 +1000,17 @@ export const NODE_TYPES: NodeType[] = [
 
   // Tier 2 Components - Social Media & Community
   {
-    id: 'x-integration',
-    name: 'X Post',
-    description: 'Post on X (formerly Twitter), send DMs, schedule posts - Premium/Pro tier only',
+    id: 'twitter-post',
+    name: 'Twitter/X Post',
+    description: 'Post tweets to X/Twitter - accepts text or JSON message data',
     category: 'integrations',
     icon: '✖️',
     color: '#000000',
     inputs: [
-      { id: 'data', name: 'Post Data', type: 'data', required: false }
+      { id: 'message', name: 'Message Data', type: 'data', required: true }
     ],
     outputs: [
-      { id: 'result', name: 'X Result', type: 'data', required: true }
+      { id: 'result', name: 'Twitter Result', type: 'data', required: true }
     ],
     configSchema: [
       {
@@ -1044,81 +1044,244 @@ export const NODE_TYPES: NodeType[] = [
         required: true,
         placeholder: 'X Access Token Secret',
         description: 'X Access Token Secret'
+      }
+    ],
+    defaultConfig: {
+      api_key: '',
+      api_secret: '',
+      access_token: '',
+      access_token_secret: ''
+    }
+  },
+
+  {
+    id: 'linkedin-post',
+    name: 'LinkedIn Post',
+    description: 'Post content to LinkedIn - accepts text or JSON message data',
+    category: 'integrations',
+    icon: '💼',
+    color: '#0077B5',
+    inputs: [
+      { id: 'message', name: 'Message Data', type: 'data', required: true }
+    ],
+    outputs: [
+      { id: 'result', name: 'LinkedIn Result', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'access_token',
+        name: 'Access Token',
+        type: 'password',
+        required: true,
+        placeholder: 'LinkedIn OAuth 2.0 access token',
+        description: 'LinkedIn OAuth 2.0 access token'
       },
       {
-        key: 'action_type',
-        name: 'Action Type',
+        key: 'post_type',
+        name: 'Post Type',
         type: 'select',
         required: true,
         options: [
-          { label: 'Post on X', value: 'post' },
-          { label: 'Reply to Post', value: 'reply' },
-          { label: 'Send Direct Message', value: 'dm' },
-          { label: 'Schedule Post', value: 'schedule' }
+          { label: 'Personal Post', value: 'person' },
+          { label: 'Company Page Post', value: 'organization' }
         ],
-        defaultValue: 'post'
+        defaultValue: 'person',
+        description: 'Type of LinkedIn post'
       },
+      {
+        key: 'organization_id',
+        name: 'Organization ID',
+        type: 'text',
+        required: false,
+        placeholder: '12345678',
+        description: 'LinkedIn organization ID (required for company posts)'
+      }
+    ],
+    defaultConfig: {
+      access_token: '',
+      post_type: 'person',
+      organization_id: ''
+    }
+  },
+
+  {
+    id: 'facebook-post',
+    name: 'Facebook Post',
+    description: 'Post content to Facebook pages or groups - accepts text or JSON data',
+    category: 'integrations',
+    icon: '📘',
+    color: '#1877F2',
+    inputs: [
+      { id: 'message', name: 'Message Data', type: 'data', required: true }
+    ],
+    outputs: [
+      { id: 'result', name: 'Facebook Result', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'access_token',
+        name: 'Page Access Token',
+        type: 'password',
+        required: true,
+        placeholder: 'Facebook Page access token (long-lived)',
+        description: 'Facebook Page access token (long-lived)'
+      },
+      {
+        key: 'page_id',
+        name: 'Page ID',
+        type: 'text',
+        required: true,
+        placeholder: '1234567890',
+        description: 'Facebook Page ID to post to'
+      },
+      {
+        key: 'post_type',
+        name: 'Post Type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Page Post', value: 'page' },
+          { label: 'Group Post', value: 'group' },
+          { label: 'Event Update', value: 'event' }
+        ],
+        defaultValue: 'page',
+        description: 'Type of Facebook post'
+      }
+    ],
+    defaultConfig: {
+      access_token: '',
+      page_id: '',
+      post_type: 'page'
+    }
+  },
+
+  {
+    id: 'social-media-text',
+    name: 'Social Media Text',
+    description: 'Create social media posts with hashtags, mentions, and platform-specific formatting',
+    category: 'utilities',
+    icon: '📱',
+    color: '#1DA1F2',
+    inputs: [
+      { id: 'data', name: 'Input Data', type: 'data', required: false }
+    ],
+    outputs: [
+      { id: 'message', name: 'Message Data', type: 'data', required: true }
+    ],
+    configSchema: [
       {
         key: 'content',
         name: 'Post Content',
         type: 'textarea',
         required: true,
-        placeholder: 'What\'s happening?\nSupports {{variable}} templates\nConnect AI Content Generator for smart content!',
-        validation: { maxLength: 280 },
-        description: 'Post content (max 280 characters) - can be generated by AI Content Generator'
-      },
-      {
-        key: 'use_ai_enhancement',
-        name: 'AI Enhancement',
-        type: 'boolean',
-        required: false,
-        defaultValue: false,
-        description: 'Enhance content with AI before posting (if connected to AI Content Generator)'
-      },
-      {
-        key: 'reply_to_id',
-        name: 'Reply to Post ID',
-        type: 'text',
-        required: false,
-        placeholder: '1234567890123456789',
-        description: 'Post ID to reply to (only for replies)'
-      },
-      {
-        key: 'recipient_id',
-        name: 'DM Recipient ID',
-        type: 'text',
-        required: false,
-        placeholder: '1234567890',
-        description: 'User ID to send DM to (only for DMs)'
-      },
-      {
-        key: 'schedule_time',
-        name: 'Schedule Time (ISO)',
-        type: 'text',
-        required: false,
-        placeholder: '2024-01-01T12:00:00Z',
-        description: 'ISO timestamp for scheduled posts'
+        placeholder: '🚀 Just made +{{profit}}% with DeFlow!\n\n💰 Portfolio: ${{value}}\n📈 Strategy: {{strategy}}\n\nSupports {{variables}} and emojis!',
+        description: 'Main post content with template variables'
       },
       {
         key: 'hashtags',
         name: 'Hashtags',
         type: 'text',
         required: false,
-        placeholder: '#defi #crypto #automation',
-        description: 'Space-separated hashtags to append'
+        placeholder: '#DeFi #crypto #automation #trading',
+        description: 'Space-separated hashtags (# optional)'
+      },
+      {
+        key: 'mentions',
+        name: 'Mentions',
+        type: 'text',
+        required: false,
+        placeholder: '@defi_protocol @trading_bot',
+        description: 'Space-separated mentions (@ optional)'
+      },
+      {
+        key: 'platform',
+        name: 'Platform',
+        type: 'select',
+        required: false,
+        options: [
+          { label: 'Twitter/X (280 chars)', value: 'twitter' },
+          { label: 'Discord (2000 chars)', value: 'discord' },
+          { label: 'LinkedIn (3000 chars)', value: 'linkedin' },
+          { label: 'Facebook (63,206 chars)', value: 'facebook' },
+          { label: 'General (no limit)', value: 'general' }
+        ],
+        defaultValue: 'twitter',
+        description: 'Target platform for character limits'
       }
     ],
-    defaultConfig: { 
-      api_key: '',
-      api_secret: '',
-      access_token: '',
-      access_token_secret: '',
-      action_type: 'post',
+    defaultConfig: {
       content: '',
-      use_ai_enhancement: false,
-      reply_to_id: '',
-      recipient_id: '',
-      schedule_time: '',
+      hashtags: '',
+      mentions: '',
+      platform: 'twitter'
+    }
+  },
+
+  {
+    id: 'social-media-with-image',
+    name: 'Social Media with Image',
+    description: 'Create social media posts with images, GIFs, or videos',
+    category: 'utilities',
+    icon: '🖼️',
+    color: '#1DA1F2',
+    inputs: [
+      { id: 'data', name: 'Input Data', type: 'data', required: false }
+    ],
+    outputs: [
+      { id: 'message', name: 'Message Data', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'content',
+        name: 'Post Content',
+        type: 'textarea',
+        required: true,
+        placeholder: '📊 Portfolio performance update!\n\nCheck out my latest DeFi gains 🚀\n\n{{portfolio_summary}}',
+        description: 'Post text content'
+      },
+      {
+        key: 'media_type',
+        name: 'Media Type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Image/Photo', value: 'image' },
+          { label: 'GIF', value: 'gif' },
+          { label: 'Video', value: 'video' }
+        ],
+        defaultValue: 'image',
+        description: 'Type of media to attach'
+      },
+      {
+        key: 'media_url',
+        name: 'Media URL',
+        type: 'url',
+        required: true,
+        placeholder: 'https://charts.deflow.app/portfolio-chart.png',
+        description: 'URL of image, GIF, or video to attach'
+      },
+      {
+        key: 'alt_text',
+        name: 'Alt Text',
+        type: 'text',
+        required: false,
+        placeholder: 'Portfolio performance chart showing gains',
+        description: 'Accessibility description for the media'
+      },
+      {
+        key: 'hashtags',
+        name: 'Hashtags',
+        type: 'text',
+        required: false,
+        placeholder: '#DeFi #portfolio #gains',
+        description: 'Space-separated hashtags'
+      }
+    ],
+    defaultConfig: {
+      content: '',
+      media_type: 'image',
+      media_url: '',
+      alt_text: '',
       hashtags: ''
     }
   },
