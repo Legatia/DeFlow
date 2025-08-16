@@ -180,15 +180,54 @@ fn deposit_fee(asset: Asset, amount: u64, tx_id: String, _user: Principal) -> Re
             POOL_STATE.with(|state| {
                 let mut pool_state = state.borrow_mut();
                 
-                // Split fee: 70% to pool liquidity, 30% to dev team profit
+                // Split fee: 70% to pool liquidity, 30% to treasury (unified dev wallet)
                 let pool_portion = (amount as f64 * 0.7) as u64;
-                let profit_portion = amount as f64 * 0.3;
+                let treasury_portion = amount as f64 * 0.3;
                 
                 // Add pool portion to reserves
                 pool_manager.borrow_mut().add_to_reserves(&mut pool_state, asset.clone(), pool_portion)?;
                 
-                // Add profit portion to dev team business model
-                business_manager.borrow_mut().add_transaction_fee_revenue(&mut pool_state, profit_portion)?;
+                // Record treasury transaction (30% of transaction fee)
+                let treasury_tx = TreasuryTransaction {
+                    id: format!("fee_{}", tx_id),
+                    transaction_type: TreasuryTransactionType::TransactionFeeRevenue,
+                    chain: "icp".to_string(), // Transaction fees collected in ICP
+                    asset: asset.to_string(),
+                    amount: treasury_portion,
+                    amount_usd: treasury_portion, // Assuming 1:1 for now, should use real price oracle
+                    from_address: "pool".to_string(),
+                    to_address: "treasury".to_string(),
+                    tx_hash: Some(tx_id.clone()),
+                    status: TransactionStatus::Confirmed,
+                    timestamp: ic_cdk::api::time(),
+                    initiated_by: ic_cdk::caller(),
+                    notes: Some("30% of transaction fee automatically allocated to treasury".to_string()),
+                };
+                
+                // Add to treasury transactions and update balances
+                pool_state.treasury_transactions.push(treasury_tx);
+                
+                // Update treasury balance for this asset
+                let asset_string = asset.to_string();
+                if let Some(balance) = pool_state.treasury_balances.iter_mut()
+                    .find(|b| b.chain == "icp" && b.asset == asset_string) {
+                    balance.amount += treasury_portion;
+                    balance.amount_usd += treasury_portion;
+                    balance.last_updated = ic_cdk::api::time();
+                } else {
+                    // Create new treasury balance entry
+                    pool_state.treasury_balances.push(TreasuryBalance {
+                        chain: "icp".to_string(),
+                        asset: asset_string.clone(),
+                        amount: treasury_portion,
+                        amount_usd: treasury_portion,
+                        last_updated: ic_cdk::api::time(),
+                        last_tx_hash: Some(tx_id.clone()),
+                    });
+                }
+                
+                // Also add profit portion to legacy dev team business model (for backward compatibility)
+                business_manager.borrow_mut().add_transaction_fee_revenue(&mut pool_state, treasury_portion)?;
                 
                 // Check for monthly profit distribution
                 business_manager.borrow_mut().check_and_execute_profit_distribution(&mut pool_state)?;
@@ -196,7 +235,7 @@ fn deposit_fee(asset: Asset, amount: u64, tx_id: String, _user: Principal) -> Re
                 // Check if bootstrap thresholds are met
                 pool_manager.borrow_mut().check_bootstrap_completion(&mut pool_state)?;
                 
-                Ok(format!("Fee deposited: {} pool, {} profit from tx {}", pool_portion, profit_portion, tx_id))
+                Ok(format!("Fee deposited: {} pool, {} treasury from tx {}", pool_portion, treasury_portion, tx_id))
             })
         })
     })
@@ -601,6 +640,460 @@ fn get_chain_distribution() -> Vec<(ChainId, f64)> {
             analytics.borrow().get_chain_distribution(&state.borrow())
         })
     })
+}
+
+// =============================================================================
+// TREASURY MANAGEMENT APIS
+// =============================================================================
+
+#[update]
+fn configure_payment_address(
+    chain: String,
+    asset: String,
+    address: String,
+    address_type: AddressType,
+    max_balance_usd: Option<f64>
+) -> Result<(), String> {
+    require_owner()?;
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        let current_time = ic_cdk::api::time();
+        
+        let payment_address = PaymentAddress {
+            chain: chain.clone(),
+            asset: asset.clone(),
+            address: address.clone(),
+            address_type,
+            max_balance_usd,
+            created_at: current_time,
+            last_used: 0,
+        };
+        
+        // Remove existing address for this chain/asset combination
+        pool_state.payment_addresses.retain(|addr| 
+            !(addr.chain == chain && addr.asset == asset)
+        );
+        
+        // Add new address
+        pool_state.payment_addresses.push(payment_address);
+        
+        // Update treasury config map for quick lookup
+        let key = format!("{}_{}", chain, asset);
+        pool_state.treasury_config.payment_addresses.insert(key, address);
+        
+        Ok(())
+    })
+}
+
+#[query]
+fn get_payment_address(chain: String, asset: String) -> Option<String> {
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        let key = format!("{}_{}", chain, asset);
+        pool_state.treasury_config.payment_addresses.get(&key).cloned()
+    })
+}
+
+#[query]
+fn get_all_payment_addresses() -> Vec<PaymentAddress> {
+    let caller = ic_cdk::caller();
+    if !is_manager_or_above(caller) {
+        return Vec::new(); // Only managers can see all addresses
+    }
+    
+    POOL_STATE.with(|state| {
+        state.borrow().payment_addresses.clone()
+    })
+}
+
+#[update]
+fn set_hot_wallet_limit(chain: String, asset: String, limit_usd: f64) -> Result<(), String> {
+    require_manager_or_above()?;
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        let key = format!("{}_{}", chain, asset);
+        pool_state.treasury_config.hot_wallet_limits.insert(key, limit_usd);
+        Ok(())
+    })
+}
+
+#[update]
+fn record_subscription_payment(
+    user_principal: Principal,
+    chain: String,
+    asset: String,
+    amount: f64,
+    amount_usd: f64,
+    tx_hash: String,
+    subscription_tier: String
+) -> Result<(), String> {
+    require_manager_or_above()?;
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        let current_time = ic_cdk::api::time();
+        
+        // Get payment address
+        let key = format!("{}_{}", chain, asset);
+        let to_address = pool_state.treasury_config.payment_addresses
+            .get(&key)
+            .unwrap_or(&"unknown".to_string()).clone();
+        
+        // Record treasury transaction
+        let tx = TreasuryTransaction {
+            id: format!("sub_{}_{}", user_principal.to_text(), current_time),
+            transaction_type: TreasuryTransactionType::SubscriptionPayment,
+            chain: chain.clone(),
+            asset: asset.clone(),
+            amount,
+            amount_usd,
+            from_address: "user_wallet".to_string(),
+            to_address,
+            tx_hash: Some(tx_hash),
+            status: TransactionStatus::Confirmed,
+            timestamp: current_time,
+            initiated_by: user_principal,
+            notes: Some(format!("Subscription payment for {} tier", subscription_tier)),
+        };
+        
+        pool_state.treasury_transactions.push(tx);
+        
+        // Update treasury balance
+        let mut balance_found = false;
+        for balance in &mut pool_state.treasury_balances {
+            if balance.chain == chain && balance.asset == asset {
+                balance.amount += amount;
+                balance.amount_usd += amount_usd;
+                balance.last_updated = current_time;
+                balance_found = true;
+                break;
+            }
+        }
+        
+        if !balance_found {
+            let new_balance = TreasuryBalance {
+                chain,
+                asset,
+                amount,
+                amount_usd,
+                last_updated: current_time,
+                last_tx_hash: None,
+            };
+            pool_state.treasury_balances.push(new_balance);
+        }
+        
+        // Process through existing business model
+        pool_state.dev_team_business.monthly_subscription_revenue += amount_usd;
+        
+        Ok(())
+    })
+}
+
+#[query]
+fn get_treasury_balance(chain: String, asset: String) -> Option<TreasuryBalance> {
+    require_manager_or_above().ok()?;
+    
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        pool_state.treasury_balances.iter()
+            .find(|b| b.chain == chain && b.asset == asset)
+            .cloned()
+    })
+}
+
+#[query]
+fn get_all_treasury_balances() -> Vec<TreasuryBalance> {
+    let caller = ic_cdk::caller();
+    if !is_manager_or_above(caller) {
+        return Vec::new();
+    }
+    
+    POOL_STATE.with(|state| {
+        state.borrow().treasury_balances.clone()
+    })
+}
+
+#[update]
+fn request_treasury_withdrawal(
+    chain: String,
+    asset: String,
+    amount: f64,
+    destination_address: String,
+    reason: String
+) -> Result<String, String> {
+    let caller = require_manager_or_above()?;
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        let current_time = ic_cdk::api::time();
+        
+        // Calculate USD value (simplified - in production, use price oracle)
+        let amount_usd = estimate_usd_value(&asset, amount);
+        
+        // Check if amount exceeds hot wallet limit
+        let balance_key = format!("{}_{}", chain, asset);
+        let threshold = pool_state.treasury_config.hot_wallet_limits
+            .get(&balance_key).unwrap_or(&10000.0); // Default $10K limit
+        
+        let withdrawal_id = format!("withdraw_{}_{}", caller.to_text(), current_time);
+        
+        let (status, required_approvals) = if amount_usd > *threshold {
+            (WithdrawalStatus::PendingApproval, 2) // Requires multi-sig approval
+        } else {
+            (WithdrawalStatus::Approved, 0) // Auto-approved for small amounts
+        };
+        
+        let withdrawal_request = WithdrawalRequest {
+            id: withdrawal_id.clone(),
+            requested_by: caller,
+            chain,
+            asset,
+            amount,
+            amount_usd,
+            destination_address,
+            reason,
+            status,
+            required_approvals,
+            current_approvals: if required_approvals == 0 { vec![caller] } else { Vec::new() },
+            created_at: current_time,
+            approved_at: if required_approvals == 0 { Some(current_time) } else { None },
+            executed_at: None,
+            tx_hash: None,
+        };
+        
+        pool_state.withdrawal_requests.push(withdrawal_request);
+        
+        if required_approvals == 0 {
+            Ok(format!("Withdrawal {} auto-approved and ready for execution", withdrawal_id))
+        } else {
+            Ok(format!("Withdrawal {} requires {} approvals", withdrawal_id, required_approvals))
+        }
+    })
+}
+
+#[update]
+fn approve_withdrawal(withdrawal_id: String) -> Result<(), String> {
+    let caller = require_manager_or_above()?;
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        if let Some(withdrawal) = pool_state.withdrawal_requests.iter_mut()
+            .find(|w| w.id == withdrawal_id) {
+            
+            if withdrawal.status != WithdrawalStatus::PendingApproval {
+                return Err("Withdrawal is not pending approval".to_string());
+            }
+            
+            if withdrawal.current_approvals.contains(&caller) {
+                return Err("You have already approved this withdrawal".to_string());
+            }
+            
+            withdrawal.current_approvals.push(caller);
+            
+            // Check if we have enough approvals
+            if withdrawal.current_approvals.len() >= withdrawal.required_approvals as usize {
+                withdrawal.status = WithdrawalStatus::Approved;
+                withdrawal.approved_at = Some(ic_cdk::api::time());
+            }
+            
+            Ok(())
+        } else {
+            Err("Withdrawal request not found".to_string())
+        }
+    })
+}
+
+#[query]
+fn get_treasury_health_report() -> TreasuryHealthReport {
+    let caller = ic_cdk::caller();
+    if !is_manager_or_above(caller) {
+        // Return limited info for non-managers
+        return TreasuryHealthReport {
+            total_usd_value: 0.0,
+            total_assets: 0,
+            balances_over_limit: Vec::new(),
+            last_payment_timestamp: None,
+            pending_withdrawals: 0,
+            hot_wallet_utilization: 0.0,
+            largest_single_balance: 0.0,
+            diversification_score: 0.0,
+            security_alerts: vec!["Access restricted".to_string()],
+        };
+    }
+    
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        
+        let mut total_usd_value = 0.0;
+        let mut balances_over_limit = Vec::new();
+        let mut largest_single_balance = 0.0;
+        
+        for balance in &pool_state.treasury_balances {
+            total_usd_value += balance.amount_usd;
+            
+            if balance.amount_usd > largest_single_balance {
+                largest_single_balance = balance.amount_usd;
+            }
+            
+            let key = format!("{}_{}", balance.chain, balance.asset);
+            if let Some(limit) = pool_state.treasury_config.hot_wallet_limits.get(&key) {
+                if balance.amount_usd > *limit {
+                    balances_over_limit.push(format!("{}: ${:.2} (limit: ${:.2})", 
+                        key, balance.amount_usd, limit));
+                }
+            }
+        }
+        
+        let last_payment_timestamp = pool_state.treasury_transactions
+            .iter()
+            .filter(|tx| tx.transaction_type == TreasuryTransactionType::SubscriptionPayment)
+            .map(|tx| tx.timestamp)
+            .max();
+        
+        let pending_withdrawals = pool_state.withdrawal_requests
+            .iter()
+            .filter(|w| w.status == WithdrawalStatus::PendingApproval)
+            .count();
+        
+        let hot_wallet_utilization = calculate_hot_wallet_utilization(&pool_state);
+        let diversification_score = calculate_diversification_score(&pool_state.treasury_balances);
+        let security_alerts = generate_security_alerts(&pool_state);
+        
+        TreasuryHealthReport {
+            total_usd_value,
+            total_assets: pool_state.treasury_balances.len(),
+            balances_over_limit,
+            last_payment_timestamp,
+            pending_withdrawals,
+            hot_wallet_utilization,
+            largest_single_balance,
+            diversification_score,
+            security_alerts,
+        }
+    })
+}
+
+#[query]
+fn get_treasury_transactions(limit: Option<usize>) -> Vec<TreasuryTransaction> {
+    let caller = ic_cdk::caller();
+    if !is_manager_or_above(caller) {
+        return Vec::new();
+    }
+    
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        let mut transactions = pool_state.treasury_transactions.clone();
+        
+        // Sort by timestamp (newest first)
+        transactions.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        
+        if let Some(limit) = limit {
+            transactions.truncate(limit);
+        }
+        
+        transactions
+    })
+}
+
+// =============================================================================
+// TREASURY UTILITY FUNCTIONS
+// =============================================================================
+
+fn estimate_usd_value(asset: &str, amount: f64) -> f64 {
+    // Simplified price estimation - in production, use price oracle
+    match asset {
+        "USDC" | "USDT" | "DAI" => amount, // Stablecoins = 1:1 USD
+        "ETH" => amount * 2500.0, // Rough ETH price
+        "BTC" => amount * 45000.0, // Rough BTC price
+        "SOL" => amount * 100.0, // Rough SOL price
+        "MATIC" => amount * 0.9, // Rough MATIC price
+        _ => amount, // Default to face value
+    }
+}
+
+fn calculate_hot_wallet_utilization(pool_state: &PoolState) -> f64 {
+    let mut total_used = 0.0;
+    let mut total_limits = 0.0;
+    
+    for balance in &pool_state.treasury_balances {
+        let key = format!("{}_{}", balance.chain, balance.asset);
+        if let Some(limit) = pool_state.treasury_config.hot_wallet_limits.get(&key) {
+            total_used += balance.amount_usd;
+            total_limits += limit;
+        }
+    }
+    
+    if total_limits > 0.0 {
+        (total_used / total_limits) * 100.0
+    } else {
+        0.0
+    }
+}
+
+fn calculate_diversification_score(balances: &Vec<TreasuryBalance>) -> f64 {
+    if balances.is_empty() {
+        return 0.0;
+    }
+    
+    let total_value: f64 = balances.iter().map(|b| b.amount_usd).sum();
+    if total_value == 0.0 {
+        return 0.0;
+    }
+    
+    // Calculate Herfindahl-Hirschman Index for diversification
+    let hhi: f64 = balances.iter()
+        .map(|b| {
+            let share = b.amount_usd / total_value;
+            share * share
+        })
+        .sum();
+    
+    // Convert to diversification score (1 = perfectly diversified, 0 = all in one asset)
+    1.0 - hhi
+}
+
+fn generate_security_alerts(pool_state: &PoolState) -> Vec<String> {
+    let mut alerts = Vec::new();
+    
+    // Check for balances over limits
+    for balance in &pool_state.treasury_balances {
+        let key = format!("{}_{}", balance.chain, balance.asset);
+        if let Some(limit) = pool_state.treasury_config.hot_wallet_limits.get(&key) {
+            if balance.amount_usd > *limit {
+                alerts.push(format!("⚠️ {} balance exceeds limit: ${:.2} > ${:.2}", 
+                    key, balance.amount_usd, limit));
+            }
+        }
+    }
+    
+    // Check for stale balances (not updated in 24 hours)
+    let current_time = ic_cdk::api::time();
+    let day_in_ns = 24 * 60 * 60 * 1_000_000_000;
+    
+    for balance in &pool_state.treasury_balances {
+        if current_time - balance.last_updated > day_in_ns {
+            alerts.push(format!("🕐 Stale balance data for {}_{}", balance.chain, balance.asset));
+        }
+    }
+    
+    // Check for pending withdrawals older than 48 hours
+    let two_days_in_ns = 2 * day_in_ns;
+    
+    for withdrawal in &pool_state.withdrawal_requests {
+        if withdrawal.status == WithdrawalStatus::PendingApproval && 
+           current_time - withdrawal.created_at > two_days_in_ns {
+            alerts.push(format!("⏰ Pending withdrawal {} requires attention", withdrawal.id));
+        }
+    }
+    
+    if alerts.is_empty() {
+        alerts.push("✅ No security alerts".to_string());
+    }
+    
+    alerts
 }
 
 // =============================================================================

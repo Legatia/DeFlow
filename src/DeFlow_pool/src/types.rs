@@ -218,6 +218,14 @@ pub struct PoolState {
     
     // Bootstrap targets
     pub bootstrap_targets: HashMap<Asset, u64>,
+    
+    // ===== TREASURY MANAGEMENT FIELDS =====
+    pub treasury_config: TreasuryConfig,
+    pub payment_addresses: Vec<PaymentAddress>,
+    pub treasury_transactions: Vec<TreasuryTransaction>,
+    pub treasury_balances: Vec<TreasuryBalance>,
+    pub withdrawal_requests: Vec<WithdrawalRequest>,
+    pub last_balance_update: u64,
 }
 
 impl Default for PoolState {
@@ -237,6 +245,14 @@ impl Default for PoolState {
             monthly_volume: 0.0,
             fee_collection_rate: 0.004, // 0.4% pool accumulation rate
             bootstrap_targets,
+            
+            // Treasury management defaults
+            treasury_config: TreasuryConfig::default(),
+            payment_addresses: Vec::new(),
+            treasury_transactions: Vec::new(),
+            treasury_balances: Vec::new(),
+            withdrawal_requests: Vec::new(),
+            last_balance_update: ic_cdk::api::time(),
         }
     }
 }
@@ -282,6 +298,139 @@ pub struct PremiumAccess {
     pub granted_by: Principal, // Who granted this access
     pub granted_at: u64,
     pub expires_at: Option<u64>, // None = permanent for dev team
+}
+
+// =============================================================================
+// TREASURY MANAGEMENT TYPES
+// =============================================================================
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct TreasuryConfig {
+    pub payment_addresses: HashMap<String, String>, // chain_asset -> address
+    pub hot_wallet_limits: HashMap<String, f64>,    // chain_asset -> max_amount_usd
+    pub multi_sig_thresholds: HashMap<String, f64>, // chain_asset -> threshold_usd
+    pub withdrawal_approvers: Vec<Principal>,        // who can approve withdrawals
+    pub auto_transfer_enabled: bool,                 // auto transfer to cold storage
+    pub cold_storage_threshold: f64,                 // amount to trigger cold transfer
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct PaymentAddress {
+    pub chain: String,           // "ethereum", "polygon", "bitcoin"
+    pub asset: String,           // "usdc", "usdt", "eth", "btc"
+    pub address: String,         // wallet address
+    pub address_type: AddressType, // Hot, Warm, Cold
+    pub max_balance_usd: Option<f64>, // max USD amount before transfer
+    pub created_at: u64,
+    pub last_used: u64,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
+pub enum AddressType {
+    Hot,      // For automated operations (daily use)
+    Warm,     // For business operations (multi-sig)
+    Cold,     // For long-term storage (offline)
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct TreasuryTransaction {
+    pub id: String,
+    pub transaction_type: TreasuryTransactionType,
+    pub chain: String,
+    pub asset: String,
+    pub amount: f64,
+    pub amount_usd: f64,                    // USD value at time of transaction
+    pub from_address: String,
+    pub to_address: String,
+    pub tx_hash: Option<String>,
+    pub status: TransactionStatus,
+    pub timestamp: u64,
+    pub initiated_by: Principal,
+    pub notes: Option<String>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
+pub enum TreasuryTransactionType {
+    SubscriptionPayment,
+    TransactionFeeRevenue,    // 30% of platform transaction fees
+    WithdrawalToTeam,
+    TransferToCold,
+    TransferToWarm,
+    Rebalancing,
+    EmergencyWithdrawal,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
+pub enum TransactionStatus {
+    Pending,
+    Confirmed,
+    Failed,
+    RequiresApproval,
+    Cancelled,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct TreasuryBalance {
+    pub chain: String,
+    pub asset: String,
+    pub amount: f64,
+    pub amount_usd: f64,
+    pub last_updated: u64,
+    pub last_tx_hash: Option<String>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct WithdrawalRequest {
+    pub id: String,
+    pub requested_by: Principal,
+    pub chain: String,
+    pub asset: String,
+    pub amount: f64,
+    pub amount_usd: f64,
+    pub destination_address: String,
+    pub reason: String,
+    pub status: WithdrawalStatus,
+    pub required_approvals: u32,
+    pub current_approvals: Vec<Principal>,
+    pub created_at: u64,
+    pub approved_at: Option<u64>,
+    pub executed_at: Option<u64>,
+    pub tx_hash: Option<String>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
+pub enum WithdrawalStatus {
+    PendingApproval,
+    Approved,
+    Executed,
+    Rejected,
+    Expired,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct TreasuryHealthReport {
+    pub total_usd_value: f64,
+    pub total_assets: usize,
+    pub balances_over_limit: Vec<String>,
+    pub last_payment_timestamp: Option<u64>,
+    pub pending_withdrawals: usize,
+    pub hot_wallet_utilization: f64,        // percentage of limits used
+    pub largest_single_balance: f64,         // largest balance in USD
+    pub diversification_score: f64,          // how spread across assets/chains
+    pub security_alerts: Vec<String>,
+}
+
+impl Default for TreasuryConfig {
+    fn default() -> Self {
+        TreasuryConfig {
+            payment_addresses: HashMap::new(),
+            hot_wallet_limits: HashMap::new(),
+            multi_sig_thresholds: HashMap::new(),
+            withdrawal_approvers: Vec::new(),
+            auto_transfer_enabled: false,
+            cold_storage_threshold: 50000.0, // $50K default
+        }
+    }
 }
 
 // =============================================================================
