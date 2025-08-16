@@ -1,6 +1,6 @@
 use crate::types::{
     Workflow, WorkflowExecution, NodeDefinition, EventListener, 
-    ScheduledWorkflow, RetryPolicy, WorkflowState, ScheduledExecution
+    ScheduledWorkflow, RetryPolicy, InternalWorkflowState, ScheduledExecution
 };
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap};
@@ -31,7 +31,7 @@ pub struct StorableScheduledWorkflow(pub ScheduledWorkflow);
 pub struct StorableRetryPolicy(pub RetryPolicy);
 
 #[derive(CandidType, Deserialize, Serialize, Clone)]
-pub struct StorableWorkflowState(pub WorkflowState);
+pub struct StorableWorkflowState(pub InternalWorkflowState);
 
 #[derive(CandidType, Deserialize, Serialize, Clone)]
 pub struct StorableScheduledExecution(pub ScheduledExecution);
@@ -158,7 +158,7 @@ impl ic_stable_structures::Storable for StorableScheduledExecution {
 }
 
 thread_local! {
-    static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
+    pub static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
 
     pub static WORKFLOWS: RefCell<StableBTreeMap<String, StorableWorkflow, Memory>> = RefCell::new(
@@ -309,7 +309,7 @@ pub fn insert_retry_policy(node_type: String, policy: RetryPolicy) {
 }
 
 // WorkflowState management functions
-pub fn get_workflow_state() -> WorkflowState {
+pub fn get_workflow_state() -> InternalWorkflowState {
     WORKFLOW_STATE.with(|state| {
         state.borrow().get(&"global".to_string())
             .map(|storable| storable.0)
@@ -317,17 +317,17 @@ pub fn get_workflow_state() -> WorkflowState {
     })
 }
 
-pub fn update_workflow_state(new_state: WorkflowState) {
+pub fn update_workflow_state(new_state: InternalWorkflowState) {
     WORKFLOW_STATE.with(|state| {
         state.borrow_mut().insert("global".to_string(), StorableWorkflowState(new_state));
     });
 }
 
-pub fn save_workflow_state_for_upgrade() -> WorkflowState {
+pub fn save_workflow_state_for_upgrade() -> InternalWorkflowState {
     get_workflow_state()
 }
 
-pub fn restore_workflow_state_after_upgrade(state: WorkflowState) {
+pub fn restore_workflow_state_after_upgrade(state: InternalWorkflowState) {
     update_workflow_state(state);
 }
 

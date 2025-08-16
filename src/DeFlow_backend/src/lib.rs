@@ -1,5 +1,6 @@
 mod types;
 mod storage;
+mod stable_user_storage;
 mod workflow;
 mod execution;
 mod nodes;
@@ -17,7 +18,7 @@ use serde::Serialize;
 use nodes::initialize_built_in_nodes;
 use events::restore_scheduled_workflows;
 use storage::{save_workflow_state_for_upgrade, restore_workflow_state_after_upgrade};
-use types::{WorkflowState as InternalWorkflowState, SystemHealth as InternalSystemHealth, ExecutionStatus as InternalExecutionStatus};
+use types::{InternalWorkflowState, SystemHealth as InternalSystemHealth, ExecutionStatus as InternalExecutionStatus};
 use defi::api::get_defi_system_health;
 
 // Re-export all the API functions from modules
@@ -304,14 +305,14 @@ fn estimate_cpu_usage() -> f64 {
 
 // System Health Monitoring and Alerting
 #[query]
-fn get_system_health() -> SystemHealth {
+fn get_system_health() -> InternalSystemHealth {
     use storage::get_workflow_state;
     let state = get_workflow_state();
     state.system_health
 }
 
 #[update]
-async fn trigger_health_check() -> SystemHealth {
+async fn trigger_health_check() -> InternalSystemHealth {
     use storage::{get_workflow_state, update_workflow_state};
     let mut state = get_workflow_state();
     
