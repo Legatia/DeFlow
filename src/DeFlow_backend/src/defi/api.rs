@@ -516,8 +516,6 @@ pub fn get_evm_chain_info(chain: EvmChain) -> Result<EVMChainInfo, String> {
             EvmChain::Polygon => 2,
             EvmChain::Base => 2,
             EvmChain::Avalanche => 2,
-            EvmChain::Sonic => 1, // Fast block times
-            EvmChain::BnbSmartChain => 3, // BSC block times
         },
         typical_gas_price_gwei: match chain {
             EvmChain::Ethereum => 20,
@@ -526,8 +524,6 @@ pub fn get_evm_chain_info(chain: EvmChain) -> Result<EVMChainInfo, String> {
             EvmChain::Polygon => 30,
             EvmChain::Base => 1,
             EvmChain::Avalanche => 25,
-            EvmChain::Sonic => 1, // Low gas prices
-            EvmChain::BnbSmartChain => 5, // BSC gas prices in gwei
         },
         block_explorer: match chain {
             EvmChain::Ethereum => "https://etherscan.io",
@@ -536,8 +532,6 @@ pub fn get_evm_chain_info(chain: EvmChain) -> Result<EVMChainInfo, String> {
             EvmChain::Polygon => "https://polygonscan.com",
             EvmChain::Base => "https://basescan.org",
             EvmChain::Avalanche => "https://snowtrace.io",
-            EvmChain::Sonic => "https://explorer.sonic.game", // Official Sonic explorer
-            EvmChain::BnbSmartChain => "https://bscscan.com", // Official BSC explorer
         }.to_string(),
     })
 }
@@ -607,8 +601,6 @@ pub async fn compare_l2_costs(
             EvmChain::Polygon => 0.01,
             EvmChain::Base => 0.1,
             EvmChain::Avalanche => 0.2,
-            EvmChain::Sonic => 0.05, // Very low fees for independent L1
-            EvmChain::BnbSmartChain => 0.02, // Very low BSC fees
         };
         
         let fee_usd = base_fee * chain_multiplier;

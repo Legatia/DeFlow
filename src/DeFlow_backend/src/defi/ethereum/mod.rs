@@ -40,10 +40,6 @@ pub enum EvmChain {
     Base,
     /// Avalanche C-Chain (Chain ID: 43114)
     Avalanche,
-    /// Sonic L1 (Chain ID: 146)
-    Sonic,
-    /// BNB Smart Chain (Chain ID: 56)
-    BnbSmartChain,
 }
 
 impl EvmChain {
@@ -56,8 +52,6 @@ impl EvmChain {
             EvmChain::Polygon => 137,
             EvmChain::Base => 8453,
             EvmChain::Avalanche => 43114,
-            EvmChain::Sonic => 146,
-            EvmChain::BnbSmartChain => 56,
         }
     }
 
@@ -70,8 +64,6 @@ impl EvmChain {
             EvmChain::Polygon => "MATIC",
             EvmChain::Base => "ETH",
             EvmChain::Avalanche => "AVAX",
-            EvmChain::Sonic => "S",
-            EvmChain::BnbSmartChain => "BNB",
         }
     }
 
@@ -84,8 +76,6 @@ impl EvmChain {
             EvmChain::Polygon => "Polygon",
             EvmChain::Base => "Base",
             EvmChain::Avalanche => "Avalanche",
-            EvmChain::Sonic => "Sonic",
-            EvmChain::BnbSmartChain => "BNB Smart Chain",
         }
     }
 
@@ -99,12 +89,12 @@ impl EvmChain {
 
     /// Check if this is a sidechain
     pub fn is_sidechain(&self) -> bool {
-        matches!(self, EvmChain::Polygon | EvmChain::Avalanche | EvmChain::BnbSmartChain)
+        matches!(self, EvmChain::Polygon | EvmChain::Avalanche)
     }
 
     /// Check if this is an independent L1 chain (not Ethereum)
     pub fn is_independent_l1(&self) -> bool {
-        matches!(self, EvmChain::Sonic)
+        false // No independent L1s supported
     }
 }
 
@@ -405,23 +395,7 @@ mod mod_tests {
         assert!(avax.is_sidechain());
         assert!(!avax.is_independent_l1());
 
-        // Test Sonic (Independent L1)
-        let sonic = EvmChain::Sonic;
-        assert_eq!(sonic.chain_id(), 146);
-        assert_eq!(sonic.native_token(), "S");
-        assert_eq!(sonic.name(), "Sonic");
-        assert!(!sonic.is_l2());
-        assert!(!sonic.is_sidechain());
-        assert!(sonic.is_independent_l1());
 
-        // Test BNB Smart Chain (Sidechain)
-        let bnb = EvmChain::BnbSmartChain;
-        assert_eq!(bnb.chain_id(), 56);
-        assert_eq!(bnb.native_token(), "BNB");
-        assert_eq!(bnb.name(), "BNB Smart Chain");
-        assert!(!bnb.is_l2());
-        assert!(bnb.is_sidechain());
-        assert!(!bnb.is_independent_l1());
     }
 
     #[test]
@@ -586,8 +560,6 @@ mod mod_tests {
             EvmChain::Polygon,
             EvmChain::Base,
             EvmChain::Avalanche,
-            EvmChain::Sonic,
-            EvmChain::BnbSmartChain,
         ];
 
         for chain in chains {

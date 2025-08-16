@@ -383,7 +383,7 @@ impl YieldStrategyEngine {
             ChainId::Ethereum => 50.0,      // High gas costs
             ChainId::Bitcoin => 5.0,        // Transaction fees
             ChainId::Arbitrum | ChainId::Optimism => 3.0, // L2 efficiency
-            ChainId::Polygon | ChainId::BSC => 1.0,       // Very low costs
+            ChainId::Polygon => 1.0,       // Very low costs
             ChainId::Solana => 0.01,        // Extremely low costs
             _ => 15.0,                      // Default estimate
         }

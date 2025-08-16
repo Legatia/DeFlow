@@ -10,8 +10,8 @@ type ChainId = variant {
   Arbitrum;
   Optimism;
   Polygon;
+  Base;
   Solana;
-  BinanceSmartChain;
   Avalanche;
 };
 
@@ -24,7 +24,6 @@ type Asset = variant {
   SOL;
   MATIC;
   AVAX;
-  BNB;
 };
 
 type PoolPhase = variant {

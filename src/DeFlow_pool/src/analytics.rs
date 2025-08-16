@@ -346,7 +346,6 @@ Generated at: {}
             Asset::SOL => (100.0, 9),
             Asset::MATIC => (0.8, 18),
             Asset::AVAX => (25.0, 18),
-            Asset::BNB => (300.0, 18),
         };
         
         price_usd / 10_u64.pow(decimals) as f64

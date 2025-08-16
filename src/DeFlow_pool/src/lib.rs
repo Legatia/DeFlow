@@ -617,7 +617,6 @@ fn asset_to_string(asset: &Asset) -> String {
         Asset::SOL => "SOL".to_string(),
         Asset::MATIC => "MATIC".to_string(),
         Asset::AVAX => "AVAX".to_string(),
-        Asset::BNB => "BNB".to_string(),
     }
 }
 

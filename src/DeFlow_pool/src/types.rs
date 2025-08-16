@@ -15,8 +15,8 @@ pub enum ChainId {
     Arbitrum,
     Optimism,
     Polygon,
+    Base,
     Solana,
-    BinanceSmartChain,
     Avalanche,
 }
 
@@ -30,7 +30,6 @@ pub enum Asset {
     SOL,
     MATIC,
     AVAX,
-    BNB,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -319,7 +318,6 @@ impl Asset {
             Asset::SOL => "SOL".to_string(),
             Asset::MATIC => "MATIC".to_string(),
             Asset::AVAX => "AVAX".to_string(),
-            Asset::BNB => "BNB".to_string(),
         }
     }
     
@@ -333,7 +331,6 @@ impl Asset {
             Asset::SOL => 9,
             Asset::MATIC => 18,
             Asset::AVAX => 18,
-            Asset::BNB => 18,
         }
     }
 }
@@ -346,8 +343,8 @@ impl ChainId {
             ChainId::Arbitrum => "Arbitrum".to_string(),
             ChainId::Optimism => "Optimism".to_string(),
             ChainId::Polygon => "Polygon".to_string(),
+            ChainId::Base => "Base".to_string(),
             ChainId::Solana => "Solana".to_string(),
-            ChainId::BinanceSmartChain => "BSC".to_string(),
             ChainId::Avalanche => "Avalanche".to_string(),
         }
     }

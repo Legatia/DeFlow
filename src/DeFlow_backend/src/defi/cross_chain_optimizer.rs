@@ -47,8 +47,6 @@ impl CrossChainYieldOptimizer {
             ChainId::Polygon,
             ChainId::Base,
             ChainId::Avalanche,
-            ChainId::Sonic,
-            ChainId::BSC,
             ChainId::Solana,
         ];
 
@@ -254,7 +252,7 @@ impl CrossChainYieldOptimizer {
             ChainId::Ethereum => 25.0,     // High bridge costs to Ethereum
             ChainId::Bitcoin => 15.0,      // Moderate bridge costs
             ChainId::Arbitrum | ChainId::Optimism => 5.0, // L2 bridges
-            ChainId::Polygon | ChainId::BSC => 3.0,       // Cheaper bridges
+            ChainId::Polygon => 3.0,       // Cheaper bridges
             ChainId::Solana => 8.0,        // Wormhole/other bridges
             _ => 10.0,                     // Default bridge cost
         };
@@ -278,7 +276,6 @@ impl CrossChainYieldOptimizer {
             ChainId::Arbitrum | ChainId::Optimism => 120, // 2 minutes
             ChainId::Polygon => 60,        // 1 minute
             ChainId::Solana => 30,         // 30 seconds
-            ChainId::BSC => 90,            // 1.5 minutes
             _ => 300,                      // 5 minutes default
         }
     }
@@ -312,7 +309,7 @@ impl CrossChainYieldOptimizer {
                     ChainId::Ethereum => 60.0,      // High gas costs
                     ChainId::Bitcoin => 8.0,        // Transaction fees
                     ChainId::Arbitrum | ChainId::Optimism => 4.0, // L2 efficiency
-                    ChainId::Polygon | ChainId::BSC => 1.5,       // Very low costs
+                    ChainId::Polygon => 1.5,       // Very low costs
                     ChainId::Solana => 0.02,        // Extremely low costs
                     _ => 20.0,                      // Default estimate
                 }

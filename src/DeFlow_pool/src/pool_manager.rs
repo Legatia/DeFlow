@@ -223,7 +223,6 @@ impl PoolManager {
             Asset::SOL => ChainId::Solana,
             Asset::MATIC => ChainId::Polygon,
             Asset::AVAX => ChainId::Avalanche,
-            Asset::BNB => ChainId::BinanceSmartChain,
         }
     }
     
@@ -269,7 +268,6 @@ impl PoolManager {
             Asset::SOL => (100.0, 9),
             Asset::MATIC => (0.8, 18),
             Asset::AVAX => (25.0, 18),
-            Asset::BNB => (300.0, 18),
         };
         
         let normalized_amount = amount as f64 / 10_u64.pow(decimals) as f64;

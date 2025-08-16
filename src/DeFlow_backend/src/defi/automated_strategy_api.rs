@@ -498,7 +498,6 @@ pub fn get_supported_chains_and_protocols() -> SupportedChainsAndProtocols {
             ChainId::Polygon,
             ChainId::Base,
             ChainId::Avalanche,
-            ChainId::BSC,
             ChainId::Solana,
         ],
         protocols: vec![
@@ -956,8 +955,6 @@ fn parse_chain_id(chain_str: &str) -> Result<ChainId, String> {
         "Polygon" => Ok(ChainId::Polygon),
         "Base" => Ok(ChainId::Base),
         "Avalanche" => Ok(ChainId::Avalanche),
-        "Sonic" => Ok(ChainId::Sonic),
-        "BSC" => Ok(ChainId::BSC),
         "Solana" => Ok(ChainId::Solana),
         _ => Err(format!("Unknown chain: {}", chain_str)),
     }

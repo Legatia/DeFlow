@@ -288,8 +288,8 @@ impl CrossChainManager {
             ChainId::Arbitrum => 0.85,
             ChainId::Optimism => 0.85,
             ChainId::Polygon => 0.80,
+            ChainId::Base => 0.85,
             ChainId::Solana => 0.75,
-            ChainId::BinanceSmartChain => 0.70,
             ChainId::Avalanche => 0.80,
         }
     }

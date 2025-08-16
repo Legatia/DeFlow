@@ -47,8 +47,6 @@ impl CrossChainArbitrageEngine {
             ChainId::Polygon,
             ChainId::Base,
             ChainId::Avalanche,
-            ChainId::Sonic,
-            ChainId::BSC,
             ChainId::Solana,
         ];
 
@@ -197,7 +195,6 @@ impl CrossChainArbitrageEngine {
             ChainId::Polygon => 0.003,     // 0.3% QuickSwap
             ChainId::Base => 0.003,        // 0.3% Uniswap
             ChainId::Avalanche => 0.003,   // 0.3% Trader Joe
-            ChainId::BSC => 0.002,         // 0.2% PancakeSwap
             ChainId::Solana => 0.0025,     // 0.25% Raydium
             _ => 0.003,                    // Default 0.3%
         };
@@ -215,7 +212,6 @@ impl CrossChainArbitrageEngine {
             ChainId::Polygon => 0.5,       // Very low costs
             ChainId::Base => 2.0,          // Base L2
             ChainId::Avalanche => 3.0,     // Avalanche C-Chain
-            ChainId::BSC => 0.8,           // Low BSC fees
             ChainId::Solana => 0.002,      // Extremely low costs
             _ => 10.0,                     // Default estimate
         }
@@ -232,7 +228,6 @@ impl CrossChainArbitrageEngine {
             
             // Cross-chain (more expensive)
             (ChainId::Ethereum, ChainId::Solana) | (ChainId::Solana, ChainId::Ethereum) => 40.0,
-            (ChainId::Ethereum, ChainId::BSC) | (ChainId::BSC, ChainId::Ethereum) => 35.0,
             (ChainId::Ethereum, ChainId::Avalanche) | (ChainId::Avalanche, ChainId::Ethereum) => 30.0,
             
             // L2 <-> L2 (via Ethereum)
@@ -265,7 +260,6 @@ impl CrossChainArbitrageEngine {
             ChainId::Polygon => 60,        // 1 minute
             ChainId::Base => 60,           // 1 minute
             ChainId::Avalanche => 30,      // 30 seconds
-            ChainId::BSC => 60,            // 1 minute
             ChainId::Solana => 5,          // 5 seconds
             _ => 120,                      // 2 minutes default
         }
@@ -282,7 +276,6 @@ impl CrossChainArbitrageEngine {
             
             // Cross-chain bridges
             (_, ChainId::Solana) | (ChainId::Solana, _) => 900,     // 15 minutes
-            (_, ChainId::BSC) | (ChainId::BSC, _) => 600,           // 10 minutes
             (_, ChainId::Avalanche) | (ChainId::Avalanche, _) => 480, // 8 minutes
             
             // Default bridge time
@@ -325,7 +318,6 @@ impl CrossChainArbitrageEngine {
             
             // Major cross-chain routes
             (ChainId::Ethereum, ChainId::Solana) | (ChainId::Solana, ChainId::Ethereum) => true,
-            (ChainId::Ethereum, ChainId::BSC) | (ChainId::BSC, ChainId::Ethereum) => true,
             (ChainId::Ethereum, ChainId::Avalanche) | (ChainId::Avalanche, ChainId::Ethereum) => true,
             
             _ => false,
@@ -479,7 +471,6 @@ impl PriceOracle {
             "SOL" => 95.0,
             "AVAX" => 25.0,
             "MATIC" => 0.85,
-            "BNB" => 310.0,
             _ => return Err(ArbitrageError::AssetNotSupported(asset.to_string())),
         };
 
@@ -489,7 +480,6 @@ impl PriceOracle {
             ChainId::Arbitrum => 0.998,    // Slightly lower
             ChainId::Optimism => 0.999,    // Slightly lower
             ChainId::Polygon => 1.002,     // Slightly higher
-            ChainId::BSC => 1.001,         // Slightly higher
             ChainId::Solana => 0.997,      // Lower (more volatile)
             ChainId::Avalanche => 1.0015,  // Slightly higher
             _ => 1.0,
@@ -762,7 +752,7 @@ mod tests {
         let engine = create_test_arbitrage_engine();
         
         let score_eth_arb = engine.calculate_confidence_score(&ChainId::Ethereum, &ChainId::Arbitrum, "USDC");
-        let score_exotic = engine.calculate_confidence_score(&ChainId::Sonic, &ChainId::BSC, "UNKNOWN");
+        let score_exotic = engine.calculate_confidence_score(&ChainId::Avalanche, &ChainId::Solana, "UNKNOWN");
         
         assert!(score_eth_arb > score_exotic);
         assert!(score_eth_arb <= 1.0);

@@ -101,11 +101,9 @@ mod api_tests {
             EvmChain::Polygon,
             EvmChain::Base,
             EvmChain::Avalanche,
-            EvmChain::Sonic,
-            EvmChain::BnbSmartChain,
         ];
 
-        assert_eq!(chains.len(), 8);
+        assert_eq!(chains.len(), 6);
 
         // Test chain properties
         for chain in chains {
@@ -121,7 +119,7 @@ mod api_tests {
                     assert!(!chain.is_independent_l1());
                     assert_eq!(chain.native_token(), "ETH");
                 },
-                EvmChain::Polygon | EvmChain::Avalanche | EvmChain::BnbSmartChain => {
+                EvmChain::Polygon | EvmChain::Avalanche => {
                     assert!(!chain.is_l2());
                     assert!(chain.is_sidechain());
                     assert!(!chain.is_independent_l1());
@@ -132,12 +130,6 @@ mod api_tests {
                     assert!(!chain.is_sidechain());
                     assert!(!chain.is_independent_l1());
                     assert_eq!(chain.native_token(), "ETH");
-                },
-                EvmChain::Sonic => {
-                    assert!(!chain.is_l2());
-                    assert!(!chain.is_sidechain());
-                    assert!(chain.is_independent_l1());
-                    assert_eq!(chain.native_token(), "S");
                 },
             }
         }
@@ -224,8 +216,6 @@ mod integration_tests {
                 EvmChain::Polygon => 0.01,
                 EvmChain::Base => 0.1,
                 EvmChain::Avalanche => 0.2,
-                EvmChain::Sonic => 0.05,
-                EvmChain::BnbSmartChain => 0.02,
             };
             assert!(multiplier > 0.0);
 
