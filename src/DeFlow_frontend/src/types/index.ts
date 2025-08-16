@@ -1,3 +1,14 @@
+// Workflow states for better organization
+export type WorkflowState = 'draft' | 'published' | 'template'
+
+export interface WorkflowMetadata {
+  templateCategory?: string
+  templateDescription?: string
+  usageCount?: number
+  isPublic?: boolean
+  originalWorkflowId?: string // For templates created from existing workflows
+}
+
 // Simple types without BigInt dependencies
 export interface Workflow {
   id: string
@@ -9,9 +20,11 @@ export interface Workflow {
   created_at: string // ICP timestamp as string (nanoseconds)
   updated_at: string
   active: boolean
+  state: WorkflowState
   owner?: string
   tags?: string[]
   version?: string
+  metadata?: WorkflowMetadata
 }
 
 export interface WorkflowNode {

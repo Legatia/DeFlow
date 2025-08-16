@@ -1,4 +1,4 @@
-import { useCallback, useState, useMemo } from 'react'
+import React, { useCallback, useState, useMemo, useEffect } from 'react'
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -12,31 +12,49 @@ import ReactFlow, {
   NodeTypes,
   BackgroundVariant,
   Panel,
+  useReactFlow,
+  ReactFlowInstance,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 
 import { getAllNodeTypes, NodeType } from '../types/all-nodes'
+import { useEnhancedAuth } from '../contexts/EnhancedAuthContext'
+import { canAddNodeToWorkflow, getUpgradePath } from '../utils/subscriptionUtils'
+import { Workflow, WorkflowState } from '../types/index'
 import WorkflowNode from './WorkflowNode'
 import NodePalette from './NodePalette'
 import NodeConfigPanel from './NodeConfigPanel'
+import SaveWorkflowModal from './SaveWorkflowModal'
 
 interface WorkflowBuilderProps {
   initialNodes?: Node[]
   initialEdges?: Edge[]
   onSave?: (nodes: Node[], edges: Edge[]) => void
+  onSaveAsDraft?: (nodes: Node[], edges: Edge[], name: string) => void
+  onPublish?: (nodes: Node[], edges: Edge[], name: string) => void
+  onSaveAsTemplate?: (nodes: Node[], edges: Edge[], name: string, category: string, description: string) => void
   readOnly?: boolean
+  currentWorkflow?: Partial<Workflow>
 }
 
 const WorkflowBuilder = ({ 
   initialNodes = [], 
   initialEdges = [], 
   onSave,
-  readOnly = false 
+  onSaveAsDraft,
+  onPublish,
+  onSaveAsTemplate,
+  readOnly = false,
+  currentWorkflow 
 }: WorkflowBuilderProps) => {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false)
+  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [saveModalType, setSaveModalType] = useState<'draft' | 'publish' | 'template'>('draft')
+  const { subscriptionTier } = useEnhancedAuth()
 
   // Define custom node types
   const nodeTypes: NodeTypes = useMemo(
@@ -73,12 +91,22 @@ const WorkflowBuilder = ({
       
       if (!nodeType) return
 
-      // Get the position where the node was dropped
-      const reactFlowBounds = event.currentTarget.getBoundingClientRect()
-      const position = {
-        x: event.clientX - reactFlowBounds.left - 100, // Offset for node width
-        y: event.clientY - reactFlowBounds.top - 25,   // Offset for node height
+      // CHECK SUBSCRIPTION TIER ACCESS - Universal access control
+      if (!canAddNodeToWorkflow(subscriptionTier, nodeType)) {
+        const requiredTier = nodeType.requiredTier || 'standard'
+        const upgradePath = getUpgradePath(subscriptionTier, requiredTier)
+        
+        if (upgradePath) {
+          alert(`⚠️ Cannot add "${nodeType.name}" node\n\nThis node requires ${upgradePath.name} subscription (${upgradePath.price}/month).\n\nPlease upgrade to access this feature.`)
+        }
+        return // Prevent node creation
       }
+
+      // Get accurate position using React Flow instance
+      const position = reactFlowInstance?.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      }) || { x: 0, y: 0 }
 
       const newNode: Node = {
         id: `${nodeType.id}-${Date.now()}`,
@@ -94,7 +122,7 @@ const WorkflowBuilder = ({
 
       setNodes((nds) => nds.concat(newNode))
     },
-    [setNodes]
+    [setNodes, subscriptionTier, reactFlowInstance]
   )
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -128,12 +156,34 @@ const WorkflowBuilder = ({
     setSelectedNode(null)
   }, [setNodes, setEdges])
 
-  // Save workflow
+  // Save workflow (original function)
   const handleSave = useCallback(() => {
     if (onSave) {
       onSave(nodes, edges)
     }
   }, [nodes, edges, onSave])
+
+  // Open save modal
+  const handleSaveAs = useCallback((type: 'draft' | 'publish' | 'template') => {
+    setSaveModalType(type)
+    setShowSaveModal(true)
+  }, [])
+
+  // Handle auto-save as draft (every 30 seconds)
+  const handleAutoSaveDraft = useCallback(() => {
+    if (onSaveAsDraft && nodes.length > 0) {
+      const draftName = `Auto-saved ${new Date().toLocaleTimeString()}`
+      onSaveAsDraft(nodes, edges, draftName)
+    }
+  }, [nodes, edges, onSaveAsDraft])
+
+  // Auto-save effect
+  useEffect(() => {
+    if (!readOnly && nodes.length > 0) {
+      const interval = setInterval(handleAutoSaveDraft, 30000) // Auto-save every 30 seconds
+      return () => clearInterval(interval)
+    }
+  }, [handleAutoSaveDraft, nodes.length, readOnly])
 
   // Clear workflow
   const handleClear = useCallback(() => {
@@ -169,6 +219,7 @@ const WorkflowBuilder = ({
           onNodeClick={onNodeClick}
           onDrop={onDrop}
           onDragOver={onDragOver}
+          onInit={setReactFlowInstance}
           nodeTypes={nodeTypes}
           deleteKeyCode={readOnly ? null : 'Delete'}
           multiSelectionKeyCode={readOnly ? null : 'Shift'}
@@ -196,19 +247,48 @@ const WorkflowBuilder = ({
           
           {/* Top Panel with Actions */}
           {!readOnly && (
-            <Panel position="top-right" className="space-x-2">
+            <Panel position="top-right" className="flex space-x-2">
               <button
                 onClick={handleClear}
                 className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
               >
                 Clear
               </button>
-              <button
-                onClick={handleSave}
-                className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
-              >
-                Save
-              </button>
+              
+              {/* Save Dropdown */}
+              <div className="relative group">
+                <button
+                  onClick={handleSave}
+                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                >
+                  Save
+                </button>
+                <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="py-1 min-w-[160px]">
+                    <button
+                      onClick={() => handleSaveAs('draft')}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    >
+                      <span className="mr-2">📝</span>
+                      Save as Draft
+                    </button>
+                    <button
+                      onClick={() => handleSaveAs('publish')}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    >
+                      <span className="mr-2">🚀</span>
+                      Publish
+                    </button>
+                    <button
+                      onClick={() => handleSaveAs('template')}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    >
+                      <span className="mr-2">📋</span>
+                      Save as Template
+                    </button>
+                  </div>
+                </div>
+              </div>
             </Panel>
           )}
 
@@ -245,6 +325,25 @@ const WorkflowBuilder = ({
             />
           </div>
         </div>
+      )}
+
+      {/* Save Modal */}
+      {showSaveModal && (
+        <SaveWorkflowModal
+          type={saveModalType}
+          onSave={(name, category?, description?) => {
+            if (saveModalType === 'draft' && onSaveAsDraft) {
+              onSaveAsDraft(nodes, edges, name)
+            } else if (saveModalType === 'publish' && onPublish) {
+              onPublish(nodes, edges, name)
+            } else if (saveModalType === 'template' && onSaveAsTemplate && category && description) {
+              onSaveAsTemplate(nodes, edges, name, category, description)
+            }
+            setShowSaveModal(false)
+          }}
+          onCancel={() => setShowSaveModal(false)}
+          currentWorkflow={currentWorkflow}
+        />
       )}
     </div>
   )

@@ -1,3 +1,6 @@
+// Subscription tiers
+export type SubscriptionTier = 'standard' | 'premium' | 'pro'
+
 // Comprehensive node type system for DeFlow
 export interface NodeType {
   id: string
@@ -10,6 +13,7 @@ export interface NodeType {
   outputs: NodePort[]
   configSchema: ConfigField[]
   defaultConfig: Record<string, any>
+  requiredTier?: SubscriptionTier  // Minimum tier required to use this node (defaults to 'standard')
 }
 
 export interface NodePort {
@@ -66,7 +70,8 @@ export const NODE_TYPES: NodeType[] = [
         defaultValue: 'Start Workflow'
       }
     ],
-    defaultConfig: { name: 'Start Workflow' }
+    defaultConfig: { name: 'Start Workflow' },
+    requiredTier: 'standard'
   },
   {
     id: 'webhook-trigger',
@@ -190,7 +195,8 @@ export const NODE_TYPES: NodeType[] = [
       subject: '', 
       body: '', 
       useTemplate: true 
-    }
+    },
+    requiredTier: 'premium'  // Email sending requires Premium tier
   },
   {
     id: 'http-request',
@@ -247,7 +253,8 @@ export const NODE_TYPES: NodeType[] = [
       method: 'GET', 
       headers: '{}', 
       body: '' 
-    }
+    },
+    requiredTier: 'premium'  // HTTP requests require Premium tier
   },
   {
     id: 'delay',
@@ -423,7 +430,8 @@ export const NODE_TYPES: NodeType[] = [
       webhook_url: '',
       username: 'DeFlow Bot',
       avatar_url: ''
-    }
+    },
+    requiredTier: 'standard'  // Discord and Telegram are allowed for Standard tier
   },
 
   {
@@ -1051,7 +1059,8 @@ export const NODE_TYPES: NodeType[] = [
       api_secret: '',
       access_token: '',
       access_token_secret: ''
-    }
+    },
+    requiredTier: 'premium'  // Twitter requires Premium tier
   },
 
   {
@@ -1101,7 +1110,8 @@ export const NODE_TYPES: NodeType[] = [
       access_token: '',
       post_type: 'person',
       organization_id: ''
-    }
+    },
+    requiredTier: 'premium'  // LinkedIn requires Premium tier
   },
 
   {
@@ -1152,7 +1162,8 @@ export const NODE_TYPES: NodeType[] = [
       access_token: '',
       page_id: '',
       post_type: 'page'
-    }
+    },
+    requiredTier: 'premium'  // Facebook requires Premium tier
   },
 
   {

@@ -6,6 +6,7 @@ mod nodes;
 mod events;
 mod http_client;
 mod defi;
+mod user_management;
 
 // Re-export types for external use
 pub use types::*;
@@ -40,6 +41,12 @@ pub use defi::simple_template_api::{
     list_workflow_templates, get_templates_by_category, get_template_by_id,
     create_strategy_from_simple_template, get_simple_template_recommendations,
     get_template_categories, init_simple_workflow_template_system
+};
+// User Management API functions
+pub use user_management::{
+    register_user, get_user_info, upgrade_subscription, check_node_access,
+    get_allowed_node_types, record_workflow_execution, update_user_volume,
+    get_subscription_pricing, list_all_users, reset_monthly_stats
 };
 
 #[init]

@@ -455,3 +455,115 @@ impl Default for WorkflowRecovery {
         }
     }
 }
+
+// User Management and Subscription System
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct User {
+    pub principal_id: String,
+    pub subscription_tier: SubscriptionTier,
+    pub created_at: u64,
+    pub updated_at: u64,
+    pub monthly_volume: f64,
+    pub total_volume: f64,
+    pub active: bool,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
+pub enum SubscriptionTier {
+    Standard,  // $0/month - Telegram & Discord only
+    Premium,   // $19/month - All integrations
+    Pro,       // $149/month - All integrations + advanced features
+}
+
+impl SubscriptionTier {
+    pub fn allowed_node_types(&self) -> Vec<String> {
+        match self {
+            SubscriptionTier::Standard => vec![
+                "telegram".to_string(),
+                "discord".to_string(),
+                // Core workflow nodes always available
+                "delay".to_string(),
+                "condition".to_string(),
+                "transform".to_string(),
+                "timer".to_string(),
+            ],
+            SubscriptionTier::Premium | SubscriptionTier::Pro => vec![
+                "telegram".to_string(),
+                "discord".to_string(),
+                "twitter".to_string(),
+                "facebook".to_string(),
+                "email".to_string(),
+                "linkedin".to_string(),
+                "instagram".to_string(),
+                "webhook".to_string(),
+                "http_request".to_string(),
+                // Core workflow nodes
+                "delay".to_string(),
+                "condition".to_string(),
+                "transform".to_string(),
+                "timer".to_string(),
+                // DeFi nodes
+                "bitcoin_portfolio".to_string(),
+                "bitcoin_send".to_string(),
+                "bitcoin_address".to_string(),
+                "bitcoin_balance".to_string(),
+                "ethereum_portfolio".to_string(),
+                "ethereum_send".to_string(),
+                "ethereum_address".to_string(),
+                "ethereum_gas_estimate".to_string(),
+                "l2_optimization".to_string(),
+                "bridge_analysis".to_string(),
+            ],
+        }
+    }
+    
+    pub fn monthly_fee(&self) -> f64 {
+        match self {
+            SubscriptionTier::Standard => 0.0,
+            SubscriptionTier::Premium => 19.0,
+            SubscriptionTier::Pro => 149.0,
+        }
+    }
+    
+    pub fn transaction_fee_rate(&self) -> f64 {
+        match self {
+            SubscriptionTier::Standard => 0.0085, // 0.85%
+            SubscriptionTier::Premium => 0.0025,  // 0.25%
+            SubscriptionTier::Pro => 0.001,       // 0.1%
+        }
+    }
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct UserSubscriptionInfo {
+    pub user: User,
+    pub payment_history: Vec<PaymentRecord>,
+    pub usage_stats: UsageStats,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct PaymentRecord {
+    pub id: String,
+    pub amount: f64,
+    pub currency: String,
+    pub payment_date: u64,
+    pub subscription_tier: SubscriptionTier,
+    pub status: PaymentStatus,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum PaymentStatus {
+    Pending,
+    Completed,
+    Failed,
+    Refunded,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct UsageStats {
+    pub total_workflows_created: u32,
+    pub total_executions: u32,
+    pub monthly_executions: u32,
+    pub last_activity: u64,
+    pub preferred_node_types: Vec<String>,
+}

@@ -1,6 +1,7 @@
 use crate::types::{Workflow, ConfigValue, ValidationError};
 use crate::storage;
-use ic_cdk::{api, update, query};
+use crate::user_management;
+use ic_cdk::{api, update, query, caller};
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
 
@@ -63,6 +64,9 @@ pub fn validate_workflow(workflow: &Workflow) -> Result<(), ValidationError> {
         }
     }
 
+    // Note: Node access validation is handled by frontend for better UX
+    // Backend allows all nodes but execution will check user tier
+
     // Validate node configurations
     for node in &workflow.nodes {
         validate_node_configuration(&node.node_type, &node.configuration)
@@ -98,6 +102,36 @@ pub fn validate_workflow(workflow: &Workflow) -> Result<(), ValidationError> {
 
     Ok(())
 }
+
+// fn validate_node_access(workflow: &Workflow) -> Result<(), ValidationError> {
+//     // Get user's allowed node types
+//     let allowed_node_types = match user_management::get_allowed_node_types() {
+//         Ok(nodes) => nodes,
+//         Err(e) => {
+//             // If user is not registered, they get Standard tier access
+//             if e.contains("User not found") {
+//                 crate::types::SubscriptionTier::Standard.allowed_node_types()
+//             } else {
+//                 return Err(ValidationError::SchemaValidationFailed(format!("Failed to check user access: {}", e)));
+//             }
+//         }
+//     };
+
+//     // Check each node in the workflow
+//     for node in &workflow.nodes {
+//         if !allowed_node_types.contains(&node.node_type) {
+//             return Err(ValidationError::SchemaValidationFailed(
+//                 format!(
+//                     "Access denied: Node type '{}' requires Premium or Pro subscription. Your current tier only allows: {}",
+//                     node.node_type,
+//                     allowed_node_types.join(", ")
+//                 )
+//             ));
+//         }
+//     }
+
+//     Ok(())
+// }
 
 fn detect_cycles(workflow: &Workflow) -> Result<(), ValidationError> {
     let mut graph = std::collections::HashMap::new();

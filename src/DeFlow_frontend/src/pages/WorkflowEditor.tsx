@@ -119,7 +119,8 @@ const WorkflowEditor = () => {
         ...formData,
         nodes: workflowNodes,
         connections: workflowConnections,
-        triggers: [{ type: 'manual' as const }]
+        triggers: [{ type: 'manual' as const }],
+        state: 'published' as const
       }
 
       if (isEditing && currentWorkflow) {

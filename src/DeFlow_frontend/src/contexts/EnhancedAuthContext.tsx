@@ -11,6 +11,8 @@ import localCacheService from '../services/localCacheService'
 
 export type UserMode = 'guest' | 'authenticated'
 
+export type SubscriptionTier = 'standard' | 'premium' | 'pro'
+
 export interface AuthContextValue {
   // User mode
   userMode: UserMode
@@ -22,6 +24,10 @@ export interface AuthContextValue {
   isLoading: boolean
   error: string | null
   authMethod: 'nfid' | 'internet-identity' | null
+
+  // Subscription tier
+  subscriptionTier: SubscriptionTier
+  updateSubscriptionTier: (tier: SubscriptionTier) => void
 
   // Actions
   loginWithNFID: () => Promise<boolean>
@@ -63,6 +69,7 @@ interface EnhancedAuthProviderProps {
 export const EnhancedAuthProvider = ({ children }: EnhancedAuthProviderProps) => {
   const [userMode, setUserMode] = useState<UserMode>('guest')
   const [authMethod, setAuthMethod] = useState<'nfid' | 'internet-identity' | null>(null)
+  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('standard')
   const [iiAuth, setIIAuth] = useState({
     isAuthenticated: false,
     principal: null as Principal | null,
@@ -71,6 +78,19 @@ export const EnhancedAuthProvider = ({ children }: EnhancedAuthProviderProps) =>
     error: null as string | null
   })
   const nfidAuth = useNFIDAuth()
+
+  // Load subscription tier from localStorage
+  useEffect(() => {
+    const savedTier = localStorage.getItem('deflow_subscription_tier') as SubscriptionTier
+    if (savedTier && ['standard', 'premium', 'pro'].includes(savedTier)) {
+      setSubscriptionTier(savedTier)
+    }
+  }, [])
+
+  const updateSubscriptionTier = (tier: SubscriptionTier) => {
+    setSubscriptionTier(tier)
+    localStorage.setItem('deflow_subscription_tier', tier)
+  }
 
   // Initialize Internet Identity listener
   useEffect(() => {
@@ -254,6 +274,10 @@ export const EnhancedAuthProvider = ({ children }: EnhancedAuthProviderProps) =>
     isLoading,
     error,
     authMethod,
+    
+    // Subscription tier
+    subscriptionTier,
+    updateSubscriptionTier,
     
     // Actions
     loginWithNFID,

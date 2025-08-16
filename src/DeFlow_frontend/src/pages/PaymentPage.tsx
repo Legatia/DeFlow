@@ -136,6 +136,9 @@ const PaymentPage = () => {
         
         console.log(`✅ Subscribed to ${selectedPlan} plan for $${currentPlan.price}/${currentPlan.period}`)
         
+        // Update user's subscription tier in the auth context
+        auth.updateSubscriptionTier(selectedPlan)
+        
         // Redirect to dashboard after successful subscription
         setTimeout(() => {
           navigate('/')
