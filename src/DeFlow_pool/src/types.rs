@@ -358,6 +358,95 @@ pub enum TreasuryTransactionType {
     TransferToWarm,
     Rebalancing,
     EmergencyWithdrawal,
+    PaymentReceived,          // User payments (USDC/USDT)
+    RefundIssued,            // Refunds to users
+}
+
+// =============================================================================
+// PAYMENT METHOD TYPES
+// =============================================================================
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct PaymentMethod {
+    pub id: String,
+    pub chain: ChainId,
+    pub asset: Asset,
+    pub token_address: Option<String>,    // ERC-20/SPL token contract address
+    pub enabled: bool,
+    pub min_amount_usd: f64,
+    pub max_amount_usd: f64,
+    pub processing_fee_bps: u16,          // basis points (100 = 1%)
+    pub confirmation_blocks: u32,
+    pub estimated_settlement_time: u64,    // seconds
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct Payment {
+    pub id: String,
+    pub user_principal: Principal,
+    pub payment_method: PaymentMethod,
+    pub amount: f64,                      // amount in token units
+    pub amount_usd: f64,                  // USD value at payment time
+    pub fee_amount: f64,                  // processing fee in token units
+    pub fee_amount_usd: f64,              // processing fee in USD
+    pub destination_address: String,       // our treasury address
+    pub sender_address: String,           // user's wallet address
+    pub tx_hash: Option<String>,
+    pub status: PaymentStatus,
+    pub initiated_at: u64,
+    pub confirmed_at: Option<u64>,
+    pub expires_at: u64,                  // payment expiration time
+    pub purpose: PaymentPurpose,
+    pub metadata: PaymentMetadata,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
+pub enum PaymentStatus {
+    Created,           // Payment request created
+    WaitingConfirmation, // Transaction sent, waiting for confirmations
+    Confirmed,         // Payment confirmed and processed
+    Failed,           // Payment failed
+    Expired,          // Payment expired
+    Refunded,         // Payment refunded to user
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum PaymentPurpose {
+    Subscription { plan: String, duration_months: u32 },
+    WorkflowExecution { workflow_id: String, estimated_cost: f64 },
+    PremiumFeatures { features: Vec<String> },
+    TopUp { credits: f64 },
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct PaymentMetadata {
+    pub invoice_id: Option<String>,
+    pub notes: Option<String>,
+    pub tags: Vec<String>,
+    pub refund_policy: RefundPolicy,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
+pub enum RefundPolicy {
+    NoRefund,
+    FullRefund { within_hours: u32 },
+    PartialRefund { percentage: u8, within_hours: u32 },
+    CustomTerms { terms: String },
+}
+
+// Stablecoin configurations for each supported chain
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct StablecoinConfig {
+    pub usdc_ethereum: PaymentMethod,
+    pub usdt_ethereum: PaymentMethod,
+    pub usdc_polygon: PaymentMethod,
+    pub usdt_polygon: PaymentMethod,
+    pub usdc_arbitrum: PaymentMethod,
+    pub usdt_arbitrum: PaymentMethod,
+    pub usdc_base: PaymentMethod,
+    pub usdt_base: PaymentMethod,
+    pub usdc_solana: PaymentMethod,
+    pub usdt_solana: PaymentMethod,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]

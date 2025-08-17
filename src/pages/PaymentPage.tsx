@@ -6,7 +6,6 @@ import { useEnhancedAuth } from '../contexts/EnhancedAuthContext'
 import { useNavigate } from 'react-router-dom'
 import localCacheService from '../services/localCacheService'
 import PaymentFlow from '../components/PaymentFlow'
-import SubscriptionService from '../services/subscriptionService'
 import { PaymentPurpose } from '../services/paymentService'
 
 const PaymentPage = () => {
@@ -22,12 +21,11 @@ const PaymentPage = () => {
       period: 'forever',
       savings: null,
       title: 'Standard',
-      subtitle: 'Get started with DeFlow (Free)',
+      subtitle: 'Get started with DeFlow',
       feeRate: '0.85%',
       breakEven: null,
       targetUsers: 'New users, light traders, trial usage',
       features: [
-        'Telegram & Discord nodes only',
         'Basic workflow automation',
         'Community support',
         'Standard execution speed',
@@ -45,12 +43,9 @@ const PaymentPage = () => {
       targetUsers: 'Active DeFi users, moderate volume',
       features: [
         'All Standard features',
-        'Full social media integrations (Twitter, Facebook, LinkedIn)',
-        'Email & SMS sending capabilities',
-        'HTTP API calls & webhooks',
-        'Advanced data processing tools',
         'Priority execution queue',
         'Email support (24h response)',
+        'Basic analytics dashboard',
         '0.25% transaction fees (70% savings!)',
         'Break-even at $3,167/month volume'
       ]
@@ -66,7 +61,6 @@ const PaymentPage = () => {
       targetUsers: 'Professional traders, funds, API users',
       features: [
         'All Premium features',
-        'Complete DeFi integration suite',
         'Full API access',
         'Custom strategy development',
         'Portfolio insurance options',
@@ -94,37 +88,8 @@ const PaymentPage = () => {
   };
 
   const handleSubscribe = async () => {
-    const currentSubscription = SubscriptionService.getCurrentSubscription()
-    const currentPlan = currentSubscription.plan
-    
-    // Check if this is a downgrade (cancellation)
-    const planHierarchy = { 'standard': 0, 'premium': 1, 'pro': 2 }
-    const isDowngrade = planHierarchy[selectedPlan] < planHierarchy[currentPlan]
-    
-    if (isDowngrade) {
-      // Cancel current subscription and downgrade
-      const confirmMessage = `Are you sure you want to downgrade from ${currentPlan} to ${selectedPlan}? You will lose access to premium features immediately.`
-      if (!confirm(confirmMessage)) {
-        return
-      }
-      
-      SubscriptionService.cancelSubscription()
-      
-      localCacheService.addNotification({
-        id: `downgrade_${Date.now()}`,
-        title: `Downgraded to ${currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)} Plan`,
-        message: `Your subscription has been cancelled and you've been downgraded to ${selectedPlan} plan.`,
-        type: 'info',
-        createdAt: Date.now(),
-        read: false
-      })
-    }
-    
     // Handle Standard (free) plan
     if (selectedPlan === 'standard') {
-      // Activate standard plan in subscription service
-      SubscriptionService.activateSubscription('standard', 'free_plan', 0);
-      
       if (!auth.isAuthenticated) {
         localCacheService.addNotification({
           id: `standard_guest_${Date.now()}`,
@@ -154,10 +119,6 @@ const PaymentPage = () => {
 
   const handlePaymentComplete = (paymentId: string) => {
     console.log('Payment completed:', paymentId);
-    
-    // Activate the subscription in the subscription service
-    SubscriptionService.activateSubscription(selectedPlan, paymentId, 1);
-    
     localCacheService.addNotification({
       id: `payment_success_${Date.now()}`,
       title: `${currentPlan.title} Plan Activated!`,

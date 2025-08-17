@@ -8,6 +8,7 @@ import { useNFIDAuth } from '../hooks/useNFIDAuth'
 import internetIdentityService from '../services/internetIdentityService'
 import multiChainWalletService from '../services/multiChainWalletService'
 import localCacheService from '../services/localCacheService'
+import SubscriptionService, { UserSubscription } from '../services/subscriptionService'
 
 export type UserMode = 'guest' | 'authenticated'
 
@@ -28,6 +29,7 @@ export interface AuthContextValue {
   // Subscription tier
   subscriptionTier: SubscriptionTier
   updateSubscriptionTier: (tier: SubscriptionTier) => void
+  cancelSubscription: () => void
 
   // Actions
   loginWithNFID: () => Promise<boolean>
@@ -69,7 +71,10 @@ interface EnhancedAuthProviderProps {
 export const EnhancedAuthProvider = ({ children }: EnhancedAuthProviderProps) => {
   const [userMode, setUserMode] = useState<UserMode>('guest')
   const [authMethod, setAuthMethod] = useState<'nfid' | 'internet-identity' | null>(null)
-  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('standard')
+  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>(() => {
+    // Initialize from SubscriptionService
+    return SubscriptionService.getCurrentSubscription().plan
+  })
   const [iiAuth, setIIAuth] = useState({
     isAuthenticated: false,
     principal: null as Principal | null,
@@ -79,17 +84,30 @@ export const EnhancedAuthProvider = ({ children }: EnhancedAuthProviderProps) =>
   })
   const nfidAuth = useNFIDAuth()
 
-  // Load subscription tier from localStorage
+  // Listen to subscription changes from SubscriptionService
   useEffect(() => {
-    const savedTier = localStorage.getItem('deflow_subscription_tier') as SubscriptionTier
-    if (savedTier && ['standard', 'premium', 'pro'].includes(savedTier)) {
-      setSubscriptionTier(savedTier)
+    const handleSubscriptionUpdate = (subscription: UserSubscription) => {
+      setSubscriptionTier(subscription.plan)
+    }
+
+    SubscriptionService.addSubscriptionListener(handleSubscriptionUpdate)
+    
+    // Initial load
+    const currentSubscription = SubscriptionService.getCurrentSubscription()
+    setSubscriptionTier(currentSubscription.plan)
+
+    return () => {
+      SubscriptionService.removeSubscriptionListener(handleSubscriptionUpdate)
     }
   }, [])
 
   const updateSubscriptionTier = (tier: SubscriptionTier) => {
-    setSubscriptionTier(tier)
-    localStorage.setItem('deflow_subscription_tier', tier)
+    // Update through SubscriptionService instead of local state
+    SubscriptionService.activateSubscription(tier, `manual_${Date.now()}`, tier === 'standard' ? 0 : 1)
+  }
+
+  const cancelSubscription = () => {
+    SubscriptionService.cancelSubscription()
   }
 
   // Initialize Internet Identity listener
@@ -278,6 +296,7 @@ export const EnhancedAuthProvider = ({ children }: EnhancedAuthProviderProps) =>
     // Subscription tier
     subscriptionTier,
     updateSubscriptionTier,
+    cancelSubscription,
     
     // Actions
     loginWithNFID,

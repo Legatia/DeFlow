@@ -1097,6 +1097,252 @@ fn generate_security_alerts(pool_state: &PoolState) -> Vec<String> {
 }
 
 // =============================================================================
+// PAYMENT METHODS API
+// =============================================================================
+
+#[query]
+fn get_supported_payment_methods() -> Vec<PaymentMethod> {
+    vec![
+        // Ethereum USDC
+        PaymentMethod {
+            id: "ethereum_usdc".to_string(),
+            chain: ChainId::Ethereum,
+            asset: Asset::USDC,
+            token_address: Some("0xA0b86a33E6441b5cBb5b9c7e9a8e49A44A2a1c6f".to_string()), // USDC on Ethereum
+            enabled: true,
+            min_amount_usd: 1.0,
+            max_amount_usd: 10000.0,
+            processing_fee_bps: 100, // 1%
+            confirmation_blocks: 12,
+            estimated_settlement_time: 900, // 15 minutes
+        },
+        // Ethereum USDT
+        PaymentMethod {
+            id: "ethereum_usdt".to_string(),
+            chain: ChainId::Ethereum,
+            asset: Asset::USDT,
+            token_address: Some("0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()), // USDT on Ethereum
+            enabled: true,
+            min_amount_usd: 1.0,
+            max_amount_usd: 10000.0,
+            processing_fee_bps: 100, // 1%
+            confirmation_blocks: 12,
+            estimated_settlement_time: 900, // 15 minutes
+        },
+        // Polygon USDC
+        PaymentMethod {
+            id: "polygon_usdc".to_string(),
+            chain: ChainId::Polygon,
+            asset: Asset::USDC,
+            token_address: Some("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174".to_string()), // USDC on Polygon
+            enabled: true,
+            min_amount_usd: 1.0,
+            max_amount_usd: 10000.0,
+            processing_fee_bps: 75, // 0.75%
+            confirmation_blocks: 20,
+            estimated_settlement_time: 300, // 5 minutes
+        },
+        // Polygon USDT
+        PaymentMethod {
+            id: "polygon_usdt".to_string(),
+            chain: ChainId::Polygon,
+            asset: Asset::USDT,
+            token_address: Some("0xc2132D05D31c914a87C6611C10748AEb04B58e8F".to_string()), // USDT on Polygon
+            enabled: true,
+            min_amount_usd: 1.0,
+            max_amount_usd: 10000.0,
+            processing_fee_bps: 75, // 0.75%
+            confirmation_blocks: 20,
+            estimated_settlement_time: 300, // 5 minutes
+        },
+        // Arbitrum USDC
+        PaymentMethod {
+            id: "arbitrum_usdc".to_string(),
+            chain: ChainId::Arbitrum,
+            asset: Asset::USDC,
+            token_address: Some("0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8".to_string()), // USDC on Arbitrum
+            enabled: true,
+            min_amount_usd: 1.0,
+            max_amount_usd: 10000.0,
+            processing_fee_bps: 50, // 0.5%
+            confirmation_blocks: 1,
+            estimated_settlement_time: 60, // 1 minute
+        },
+        // Base USDC
+        PaymentMethod {
+            id: "base_usdc".to_string(),
+            chain: ChainId::Base,
+            asset: Asset::USDC,
+            token_address: Some("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913".to_string()), // USDC on Base
+            enabled: true,
+            min_amount_usd: 1.0,
+            max_amount_usd: 10000.0,
+            processing_fee_bps: 50, // 0.5%
+            confirmation_blocks: 1,
+            estimated_settlement_time: 60, // 1 minute
+        },
+    ]
+}
+
+#[update]
+fn create_payment_request(
+    payment_method_id: String,
+    amount_usd: f64,
+    purpose: PaymentPurpose,
+    sender_address: String
+) -> Result<Payment, String> {
+    let caller = ic_cdk::caller();
+    let current_time = ic_cdk::api::time();
+    
+    // Find payment method
+    let payment_methods = get_supported_payment_methods();
+    let payment_method = payment_methods.iter()
+        .find(|pm| pm.id == payment_method_id)
+        .ok_or("Payment method not found")?;
+    
+    if !payment_method.enabled {
+        return Err("Payment method is currently disabled".to_string());
+    }
+    
+    if amount_usd < payment_method.min_amount_usd || amount_usd > payment_method.max_amount_usd {
+        return Err(format!("Amount must be between ${} and ${}", 
+                          payment_method.min_amount_usd, payment_method.max_amount_usd));
+    }
+    
+    // Calculate fee
+    let fee_amount_usd = amount_usd * (payment_method.processing_fee_bps as f64) / 10000.0;
+    let total_amount_usd = amount_usd + fee_amount_usd;
+    
+    // Convert to token units (assuming 1:1 for stablecoins)
+    let amount = total_amount_usd;
+    let fee_amount = fee_amount_usd;
+    
+    // Get destination address from treasury config
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        let key = format!("{}_{}", 
+                         payment_method.chain.to_string().to_lowercase(),
+                         asset_to_string(&payment_method.asset).to_lowercase());
+        
+        let destination_address = pool_state.treasury_config.payment_addresses
+            .get(&key)
+            .ok_or("Treasury address not configured for this payment method")?
+            .clone();
+        
+        let payment_id = format!("pay_{}_{}", caller.to_text(), current_time);
+        
+        let payment = Payment {
+            id: payment_id,
+            user_principal: caller,
+            payment_method: payment_method.clone(),
+            amount,
+            amount_usd: total_amount_usd,
+            fee_amount,
+            fee_amount_usd,
+            destination_address,
+            sender_address,
+            tx_hash: None,
+            status: PaymentStatus::Created,
+            initiated_at: current_time,
+            confirmed_at: None,
+            expires_at: current_time + (24 * 60 * 60 * 1_000_000_000), // 24 hours in nanoseconds
+            purpose,
+            metadata: PaymentMetadata {
+                invoice_id: None,
+                notes: None,
+                tags: vec![],
+                refund_policy: RefundPolicy::FullRefund { within_hours: 24 },
+            },
+        };
+        
+        Ok(payment)
+    })
+}
+
+#[update]
+fn confirm_payment(payment_id: String, tx_hash: String) -> Result<(), String> {
+    let caller = ic_cdk::caller();
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        let current_time = ic_cdk::api::time();
+        
+        // Create treasury transaction for the payment
+        let treasury_tx = TreasuryTransaction {
+            id: format!("payment_{}", payment_id),
+            transaction_type: TreasuryTransactionType::PaymentReceived,
+            chain: "polygon".to_string(), // This should come from payment data
+            asset: "usdc".to_string(),    // This should come from payment data
+            amount: 100.0,                // This should come from payment data
+            amount_usd: 100.0,           // This should come from payment data
+            from_address: "user_wallet".to_string(), // This should come from payment data
+            to_address: "treasury_wallet".to_string(), // This should come from payment data
+            tx_hash: Some(tx_hash),
+            status: TransactionStatus::Confirmed,
+            timestamp: current_time,
+            initiated_by: caller,
+            notes: Some(format!("Payment confirmed for user {}", caller.to_text())),
+        };
+        
+        pool_state.treasury_transactions.push(treasury_tx);
+        Ok(())
+    })
+}
+
+#[query]
+fn get_payment_status(payment_id: String) -> Result<PaymentStatus, String> {
+    let caller = ic_cdk::caller();
+    
+    // In a full implementation, we would store payments and check their status
+    // For now, return a mock status
+    Ok(PaymentStatus::WaitingConfirmation)
+}
+
+#[query]
+fn get_user_payments(user_principal: Principal) -> Vec<Payment> {
+    let caller = ic_cdk::caller();
+    
+    // Only allow users to see their own payments, or managers to see all
+    if caller != user_principal && !is_manager_or_above(caller) {
+        return Vec::new();
+    }
+    
+    // In a full implementation, we would fetch payments from storage
+    // For now, return empty list
+    Vec::new()
+}
+
+#[update]
+fn issue_refund(payment_id: String, reason: String) -> Result<(), String> {
+    require_manager_or_above()?;
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        let current_time = ic_cdk::api::time();
+        
+        // Create refund transaction
+        let refund_tx = TreasuryTransaction {
+            id: format!("refund_{}", payment_id),
+            transaction_type: TreasuryTransactionType::RefundIssued,
+            chain: "polygon".to_string(), // This should come from original payment
+            asset: "usdc".to_string(),    // This should come from original payment
+            amount: 100.0,                // This should come from original payment
+            amount_usd: 100.0,           // This should come from original payment
+            from_address: "treasury_wallet".to_string(),
+            to_address: "user_wallet".to_string(), // This should come from original payment
+            tx_hash: None, // Will be filled when refund is processed
+            status: TransactionStatus::Pending,
+            timestamp: current_time,
+            initiated_by: ic_cdk::caller(),
+            notes: Some(format!("Refund issued: {}", reason)),
+        };
+        
+        pool_state.treasury_transactions.push(refund_tx);
+        Ok(())
+    })
+}
+
+// =============================================================================
 // UTILITY FUNCTIONS
 // =============================================================================
 

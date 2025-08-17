@@ -9,6 +9,7 @@ import { useEnhancedAuth } from '../contexts/EnhancedAuthContext'
 import { AuthDropdown } from './AuthDropdown'
 import { NotificationDropdown } from './NotificationDropdown'
 import localCacheService from '../services/localCacheService'
+import SubscriptionService, { UserSubscription } from '../services/subscriptionService'
 import { useNavigate } from 'react-router-dom'
 
 interface LayoutProps {
@@ -21,6 +22,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
   const [wallet, setWallet] = useState<MultiChainWallet>(multiChainWalletService.getWallet())
   const [unreadNotifications, setUnreadNotifications] = useState(0)
+  const [subscription, setSubscription] = useState<UserSubscription>(SubscriptionService.getCurrentSubscription())
   const auth = useEnhancedAuth()
 
   useEffect(() => {
@@ -28,10 +30,16 @@ const Layout = ({ children }: LayoutProps) => {
       setWallet(updatedWallet)
     }
 
+    const handleSubscriptionUpdate = (updatedSubscription: UserSubscription) => {
+      setSubscription(updatedSubscription)
+    }
+
     multiChainWalletService.addListener(handleWalletUpdate)
+    SubscriptionService.addSubscriptionListener(handleSubscriptionUpdate)
 
     return () => {
       multiChainWalletService.removeListener(handleWalletUpdate)
+      SubscriptionService.removeSubscriptionListener(handleSubscriptionUpdate)
     }
   }, [])
 
@@ -105,12 +113,15 @@ const Layout = ({ children }: LayoutProps) => {
             <div className="flex items-center space-x-4">
               {/* User Plan Indicator */}
               <div className="flex items-center space-x-2">
-                <div className={`w-3 h-3 rounded-full ${
-                  auth.userMode === 'authenticated' ? 'bg-green-500' : 'bg-orange-500'
-                }`}></div>
+                <div className={`w-3 h-3 rounded-full ${SubscriptionService.getSubscriptionColor()}`}></div>
                 <span className="text-sm font-medium text-gray-700">
-                  {auth.userMode === 'authenticated' ? 'Premium Plan' : 'Standard Plan'}
+                  {SubscriptionService.getSubscriptionDisplayText()}
                 </span>
+                {SubscriptionService.isExpiringSoon() && (
+                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                    {SubscriptionService.getDaysRemaining()} days left
+                  </span>
+                )}
               </div>
 
               {/* Notifications */}

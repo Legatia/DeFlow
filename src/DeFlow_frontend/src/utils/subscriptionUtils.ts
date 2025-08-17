@@ -71,21 +71,59 @@ export function getSubscriptionTierInfo(tier: SubscriptionTier) {
   const tierInfo = {
     'standard': {
       name: 'Standard',
-      price: '$0',
+      price: 'Free',
+      monthlyPrice: '$0',
       color: '#6b7280',
-      features: ['Telegram & Discord nodes', 'Basic workflow automation', 'Community support']
+      feeRate: '0.85%',
+      features: [
+        'Telegram & Discord nodes only',
+        'Basic workflow automation', 
+        'Community support',
+        'Standard execution speed',
+        '0.85% transaction fees'
+      ],
+      limitations: [
+        'Limited to Telegram and Discord integrations',
+        'No access to social media nodes (Twitter, Facebook, LinkedIn)',
+        'No email/SMS capabilities',
+        'No DeFi integrations'
+      ]
     },
     'premium': {
       name: 'Premium', 
-      price: '$19',
+      price: '$19/month',
+      monthlyPrice: '$19',
       color: '#3b82f6',
-      features: ['All Standard features', 'Full social media integrations', 'Priority execution', 'Email support']
+      feeRate: '0.25%',
+      features: [
+        'All Standard features',
+        'Full social media integrations (Twitter, Facebook, LinkedIn)',
+        'Email & SMS sending capabilities',
+        'HTTP API calls & webhooks',
+        'Advanced data processing tools',
+        'Priority execution queue',
+        'Email support (24h response)',
+        '0.25% transaction fees (70% savings!)',
+        'Break-even at $3,167/month volume'
+      ]
     },
     'pro': {
       name: 'Pro',
-      price: '$149', 
+      price: '$149/month',
+      monthlyPrice: '$149', 
       color: '#7c3aed',
-      features: ['All Premium features', 'Advanced analytics', 'API access', 'Priority support']
+      feeRate: '0.1%',
+      features: [
+        'All Premium features',
+        'Complete DeFi integration suite',
+        'Full API access',
+        'Custom strategy development',
+        'Portfolio insurance options',
+        'Priority phone support',
+        'Advanced risk management tools',
+        '0.1% transaction fees (88% savings!)',
+        'Break-even at $19,867/month volume'
+      ]
     }
   }
   

@@ -130,26 +130,45 @@ export const TIER_UPGRADE_MESSAGES = {
   premium: {
     title: 'Upgrade to Premium',
     price: '$19/month',
+    savings: '70% fee savings (0.25% vs 0.85%)',
+    breakEven: 'Break-even at $3,167/month volume',
     benefits: [
-      'Full social media integrations (Twitter, Facebook, LinkedIn)',
-      'Email & SMS sending capabilities', 
-      'HTTP API calls & webhooks',
-      'Advanced data processing tools',
-      'Priority execution queue',
-      'Email support (24h response)'
+      '🌐 Full social media integrations (Twitter, Facebook, LinkedIn)',
+      '📧 Email & SMS sending capabilities', 
+      '🔗 HTTP API calls & webhooks',
+      '⚡ Advanced data processing tools',
+      '🚀 Priority execution queue',
+      '💬 Email support (24h response)',
+      '💰 0.25% transaction fees (70% savings!)'
     ]
   },
   pro: {
     title: 'Upgrade to Pro', 
     price: '$149/month',
+    savings: '88% fee savings (0.1% vs 0.85%)',
+    breakEven: 'Break-even at $19,867/month volume',
     benefits: [
-      'All Premium features',
-      'Complete DeFi integration suite',
-      'AI/ML analysis capabilities',
-      'Multi-chain bridge operations',
-      'Enterprise compliance tools',
-      'Advanced analytics & reporting',
-      '24/7 priority support'
+      '✨ All Premium features',
+      '🏦 Complete DeFi integration suite',
+      '🤖 AI/ML analysis capabilities',
+      '🌉 Multi-chain bridge operations',
+      '🔒 Enterprise compliance tools',
+      '📊 Advanced analytics & reporting',
+      '📞 24/7 priority phone support',
+      '💰 0.1% transaction fees (88% savings!)'
+    ]
+  },
+  standard: {
+    title: 'Standard Plan (Free)',
+    price: 'Free forever',
+    limitations: 'Telegram & Discord nodes only',
+    benefits: [
+      '💬 Telegram bot integrations',
+      '🎮 Discord webhook & messaging',
+      '⚙️ Basic workflow automation',
+      '👥 Community support',
+      '🐌 Standard execution speed',
+      '💸 0.85% transaction fees'
     ]
   }
 } as const
