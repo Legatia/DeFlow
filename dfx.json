@@ -19,6 +19,15 @@
         "src/DeFlow_frontend/dist"
       ],
       "type": "assets"
+    },
+    "DeFlow_admin": {
+      "dependencies": [
+        "DeFlow_pool"
+      ],
+      "source": [
+        "src/DeFlow_admin/dist"
+      ],
+      "type": "assets"
     }
   },
   "defaults": {
