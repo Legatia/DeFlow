@@ -374,8 +374,10 @@ impl YieldOptimizer {
             })
             .collect();
 
-        // Sort by score (highest first)
-        scored_strategies.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        // Sort by score (highest first) - DEMO: Safe comparison
+        scored_strategies.sort_by(|a, b| {
+            b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         // Allocate capital using greedy approach with constraints
         let mut allocations = Vec::new();

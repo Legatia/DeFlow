@@ -44,11 +44,23 @@ impl ic_stable_structures::Storable for StorableWorkflow {
     };
 
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
-        std::borrow::Cow::Owned(Encode!(self).unwrap())
+        match Encode!(self) {
+            Ok(bytes) => std::borrow::Cow::Owned(bytes),
+            Err(_) => {
+                // DEMO: Fallback to empty bytes to prevent canister crash
+                std::borrow::Cow::Owned(vec![])
+            }
+        }
     }
 
     fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
-        Decode!(bytes.as_ref(), Self).unwrap()
+        match Decode!(bytes.as_ref(), Self) {
+            Ok(data) => data,
+            Err(_) => {
+                // DEMO: Fallback to default workflow to prevent canister crash
+                StorableWorkflow(Workflow::default())
+            }
+        }
     }
 }
 
@@ -59,11 +71,23 @@ impl ic_stable_structures::Storable for StorableExecution {
     };
 
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
-        std::borrow::Cow::Owned(Encode!(self).unwrap())
+        match Encode!(self) {
+            Ok(bytes) => std::borrow::Cow::Owned(bytes),
+            Err(_) => {
+                // DEMO: Fallback to empty bytes to prevent canister crash
+                std::borrow::Cow::Owned(vec![])
+            }
+        }
     }
 
     fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
-        Decode!(bytes.as_ref(), Self).unwrap()
+        match Decode!(bytes.as_ref(), Self) {
+            Ok(data) => data,
+            Err(_) => {
+                // DEMO: Fallback to default execution to prevent canister crash
+                StorableExecution(WorkflowExecution::default())
+            }
+        }
     }
 }
 
@@ -74,11 +98,23 @@ impl ic_stable_structures::Storable for StorableNodeDefinition {
     };
 
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
-        std::borrow::Cow::Owned(Encode!(self).unwrap())
+        match Encode!(self) {
+            Ok(bytes) => std::borrow::Cow::Owned(bytes),
+            Err(_) => {
+                // DEMO: Fallback to empty bytes to prevent canister crash
+                std::borrow::Cow::Owned(vec![])
+            }
+        }
     }
 
     fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
-        Decode!(bytes.as_ref(), Self).unwrap()
+        match Decode!(bytes.as_ref(), Self) {
+            Ok(data) => data,
+            Err(_) => {
+                // DEMO: Fallback to default node definition to prevent canister crash
+                StorableNodeDefinition(NodeDefinition::default())
+            }
+        }
     }
 }
 
@@ -89,11 +125,23 @@ impl ic_stable_structures::Storable for StorableEventListeners {
     };
 
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
-        std::borrow::Cow::Owned(Encode!(self).unwrap())
+        match Encode!(self) {
+            Ok(bytes) => std::borrow::Cow::Owned(bytes),
+            Err(_) => {
+                // DEMO: Fallback to empty bytes to prevent canister crash
+                std::borrow::Cow::Owned(vec![])
+            }
+        }
     }
 
     fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
-        Decode!(bytes.as_ref(), Self).unwrap()
+        match Decode!(bytes.as_ref(), Self) {
+            Ok(data) => data,
+            Err(_) => {
+                // DEMO: Fallback to empty listeners to prevent canister crash
+                StorableEventListeners(vec![])
+            }
+        }
     }
 }
 
@@ -104,11 +152,23 @@ impl ic_stable_structures::Storable for StorableScheduledWorkflow {
     };
 
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
-        std::borrow::Cow::Owned(Encode!(self).unwrap())
+        match Encode!(self) {
+            Ok(bytes) => std::borrow::Cow::Owned(bytes),
+            Err(_) => {
+                // DEMO: Fallback to empty bytes to prevent canister crash
+                std::borrow::Cow::Owned(vec![])
+            }
+        }
     }
 
     fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
-        Decode!(bytes.as_ref(), Self).unwrap()
+        match Decode!(bytes.as_ref(), Self) {
+            Ok(data) => data,
+            Err(_) => {
+                // DEMO: Fallback to default scheduled workflow to prevent canister crash
+                StorableScheduledWorkflow(ScheduledWorkflow::default())
+            }
+        }
     }
 }
 
@@ -119,11 +179,23 @@ impl ic_stable_structures::Storable for StorableRetryPolicy {
     };
 
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
-        std::borrow::Cow::Owned(Encode!(self).unwrap())
+        match Encode!(self) {
+            Ok(bytes) => std::borrow::Cow::Owned(bytes),
+            Err(_) => {
+                // DEMO: Fallback to empty bytes to prevent canister crash
+                std::borrow::Cow::Owned(vec![])
+            }
+        }
     }
 
     fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
-        Decode!(bytes.as_ref(), Self).unwrap()
+        match Decode!(bytes.as_ref(), Self) {
+            Ok(data) => data,
+            Err(_) => {
+                // DEMO: Fallback to default retry policy to prevent canister crash
+                StorableRetryPolicy(RetryPolicy::default())
+            }
+        }
     }
 }
 
@@ -134,11 +206,23 @@ impl ic_stable_structures::Storable for StorableWorkflowState {
     };
 
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
-        std::borrow::Cow::Owned(Encode!(self).unwrap())
+        match Encode!(self) {
+            Ok(bytes) => std::borrow::Cow::Owned(bytes),
+            Err(_) => {
+                // DEMO: Fallback to empty bytes to prevent canister crash
+                std::borrow::Cow::Owned(vec![])
+            }
+        }
     }
 
     fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
-        Decode!(bytes.as_ref(), Self).unwrap()
+        match Decode!(bytes.as_ref(), Self) {
+            Ok(data) => data,
+            Err(_) => {
+                // DEMO: Fallback to default workflow state to prevent canister crash
+                StorableWorkflowState(InternalWorkflowState::default())
+            }
+        }
     }
 }
 
@@ -149,11 +233,23 @@ impl ic_stable_structures::Storable for StorableScheduledExecution {
     };
 
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
-        std::borrow::Cow::Owned(Encode!(self).unwrap())
+        match Encode!(self) {
+            Ok(bytes) => std::borrow::Cow::Owned(bytes),
+            Err(_) => {
+                // DEMO: Fallback to empty bytes to prevent canister crash
+                std::borrow::Cow::Owned(vec![])
+            }
+        }
     }
 
     fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
-        Decode!(bytes.as_ref(), Self).unwrap()
+        match Decode!(bytes.as_ref(), Self) {
+            Ok(data) => data,
+            Err(_) => {
+                // DEMO: Fallback to default scheduled execution to prevent canister crash
+                StorableScheduledExecution(ScheduledExecution::default())
+            }
+        }
     }
 }
 

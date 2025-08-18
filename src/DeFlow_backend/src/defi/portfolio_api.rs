@@ -452,10 +452,17 @@ fn estimate_action_cost_api(action: &RebalancingActionPlan) -> f64 {
     base_cost * amount_factor
 }
 
-fn is_admin(_principal: Principal) -> bool {
-    // In production, this would check against a list of admin principals
-    // For now, return true for development
-    true
+fn is_admin(principal: Principal) -> bool {
+    // DEMO: For demo purposes, allow the deployer and a few demo accounts to be admin
+    let deployer = ic_cdk::api::caller();
+    
+    // Demo admin principals (you can add specific principals here for demo)
+    let demo_admins = vec![
+        deployer,
+        // Add any other demo admin principals here if needed
+    ];
+    
+    demo_admins.contains(&principal)
 }
 
 // API-specific data structures

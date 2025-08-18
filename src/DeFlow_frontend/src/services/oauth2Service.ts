@@ -1,11 +1,16 @@
 // OAuth2 service for Gmail and Outlook integration
 import { Actor, HttpAgent } from '@dfinity/agent'
+// SECURITY: Import security utilities
+import securityUtilsService from './securityUtilsService'
 
 export interface OAuth2Config {
   clientId: string
-  clientSecret: string
+  // SECURITY: Client secret removed from frontend
   redirectUri: string
   scopes: string[]
+  tokenEndpoint: string
+  authEndpoint?: string
+  usePKCE?: boolean
 }
 
 export interface OAuth2Token {
@@ -29,6 +34,28 @@ export interface OAuth2Provider {
 class OAuth2Service {
   private providers: Map<string, OAuth2Provider> = new Map()
   private tokens: Map<string, OAuth2Token> = new Map()
+  private codeVerifiers: Map<string, string> = new Map()
+
+  // SECURITY: PKCE helper methods for secure OAuth without client secrets
+  private generateCodeVerifier(): string {
+    const array = new Uint32Array(56)
+    crypto.getRandomValues(array)
+    return Array.from(array, dec => ('0' + dec.toString(16)).substr(-2)).join('')
+  }
+
+  private async generateCodeChallenge(verifier: string): Promise<string> {
+    const encoder = new TextEncoder()
+    const data = encoder.encode(verifier)
+    const digest = await crypto.subtle.digest('SHA-256', data)
+    return btoa(String.fromCharCode(...new Uint8Array(digest)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '')
+  }
+
+  private getStoredCodeVerifier(state: string): string {
+    return this.codeVerifiers.get(state) || ''
+  }
 
   // OAuth2 endpoints and configurations
   private readonly OAUTH_CONFIGS = {
@@ -112,14 +139,16 @@ class OAuth2Service {
 
     const tokenData = {
       client_id: provider.config.clientId,
-      client_secret: provider.config.clientSecret,
+      // SECURITY: Client secret handled by backend - use PKCE instead
       code,
       grant_type: 'authorization_code',
-      redirect_uri: provider.config.redirectUri
+      redirect_uri: provider.config.redirectUri,
+      code_verifier: this.getStoredCodeVerifier(state || '') // PKCE verification
     }
 
     try {
-      const response = await fetch(provider.tokenUrl, {
+      // SECURITY: Use secure fetch with HTTPS enforcement and error sanitization
+      const response = await securityUtilsService.secureFetch(provider.tokenUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -130,7 +159,9 @@ class OAuth2Service {
 
       if (!response.ok) {
         const errorText = await response.text()
-        throw new Error(`Token exchange failed: ${response.status} ${errorText}`)
+        // SECURITY: Sanitize error message to prevent information disclosure
+        const sanitizedError = securityUtilsService.sanitizeErrorMessage(errorText, 'Token exchange')
+        throw new Error(`Token exchange failed: ${response.status} - ${sanitizedError}`)
       }
 
       const tokenResponse = await response.json()
@@ -153,8 +184,10 @@ class OAuth2Service {
 
       return token
     } catch (error) {
-      console.error(`OAuth2 token exchange error for ${providerName}:`, error)
-      throw error
+      // SECURITY: Sanitize error before logging and re-throwing
+      const sanitizedError = securityUtilsService.sanitizeErrorMessage(error, 'OAuth2 token exchange')
+      console.error(`OAuth2 token exchange error for ${providerName}:`, sanitizedError)
+      throw new Error(securityUtilsService.getUserFriendlyErrorMessage(error, 'authenticate'))
     }
   }
 
@@ -169,13 +202,14 @@ class OAuth2Service {
 
     const refreshData = {
       client_id: provider.config.clientId,
-      client_secret: provider.config.clientSecret,
+      // SECURITY: Client secret handled by backend proxy
       refresh_token: currentToken.refresh_token,
       grant_type: 'refresh_token'
     }
 
     try {
-      const response = await fetch(provider.tokenUrl, {
+      // SECURITY: Use secure fetch with HTTPS enforcement
+      const response = await securityUtilsService.secureFetch(provider.tokenUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -186,7 +220,9 @@ class OAuth2Service {
 
       if (!response.ok) {
         const errorText = await response.text()
-        throw new Error(`Token refresh failed: ${response.status} ${errorText}`)
+        // SECURITY: Sanitize error message
+        const sanitizedError = securityUtilsService.sanitizeErrorMessage(errorText, 'Token refresh')
+        throw new Error(`Token refresh failed: ${response.status} - ${sanitizedError}`)
       }
 
       const tokenResponse = await response.json()
@@ -210,8 +246,10 @@ class OAuth2Service {
 
       return updatedToken
     } catch (error) {
-      console.error(`OAuth2 token refresh error for ${providerName}:`, error)
-      throw error
+      // SECURITY: Sanitize error before logging and re-throwing
+      const sanitizedError = securityUtilsService.sanitizeErrorMessage(error, 'OAuth2 token refresh')
+      console.error(`OAuth2 token refresh error for ${providerName}:`, sanitizedError)
+      throw new Error(securityUtilsService.getUserFriendlyErrorMessage(error, 'refresh authentication'))
     }
   }
 
@@ -397,15 +435,19 @@ export const configureOAuth2ForDevelopment = () => {
   const configs = {
     gmail: {
       clientId: process.env.REACT_APP_GOOGLE_CLIENT_ID || 'your-google-client-id',
-      clientSecret: process.env.REACT_APP_GOOGLE_CLIENT_SECRET || 'your-google-client-secret',
+      // SECURITY: Client secret removed from frontend - handled by backend proxy
       redirectUri: `${window.location.origin}/oauth/callback/gmail`,
-      scopes: []
+      scopes: ['https://www.googleapis.com/auth/gmail.send'],
+      tokenEndpoint: '/api/auth/google/token', // Proxy through secure backend
+      usePKCE: true
     },
     outlook: {
       clientId: process.env.REACT_APP_MICROSOFT_CLIENT_ID || 'your-microsoft-client-id',
-      clientSecret: process.env.REACT_APP_MICROSOFT_CLIENT_SECRET || 'your-microsoft-client-secret',
+      // SECURITY: Client secret removed from frontend - handled by backend proxy
       redirectUri: `${window.location.origin}/oauth/callback/outlook`,
-      scopes: []
+      scopes: ['https://graph.microsoft.com/mail.send'],
+      tokenEndpoint: '/api/auth/microsoft/token', // Proxy through secure backend
+      usePKCE: true
     }
   }
 

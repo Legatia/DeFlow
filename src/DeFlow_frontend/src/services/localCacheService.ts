@@ -1,5 +1,7 @@
 // Import BigInt polyfill FIRST to prevent conversion errors
 import '../utils/bigint-polyfill'
+// SECURITY: Import secure storage for sensitive data
+import secureStorageService from './secureStorageService'
 
 // Local cache for guest users and authenticated users
 export interface CachedWorkflow {
@@ -303,17 +305,13 @@ class LocalCacheService {
     }
   }
 
-  // Browser notifications
+  // SECURITY: Browser notifications with explicit user consent
   private async showBrowserNotification(notification: CachedNotification): Promise<void> {
     const preferences = this.getUserPreferences()
     
     if (!preferences.notifications.browser) return
 
-    // Request permission if not granted
-    if ('Notification' in window && Notification.permission === 'default') {
-      await Notification.requestPermission()
-    }
-
+    // SECURITY: Only show notifications if user has explicitly granted permission
     if ('Notification' in window && Notification.permission === 'granted') {
       const notif = new Notification(notification.title, {
         body: notification.message,
@@ -325,6 +323,40 @@ class LocalCacheService {
       // Auto close after 5 seconds
       setTimeout(() => notif.close(), 5000)
     }
+    // Note: Permission request is now handled explicitly in user settings
+  }
+
+  // SECURITY: Explicit method to request notification permission
+  async requestNotificationPermission(): Promise<boolean> {
+    if (!('Notification' in window)) {
+      console.warn('Browser does not support notifications')
+      return false
+    }
+
+    if (Notification.permission === 'granted') {
+      return true
+    }
+
+    if (Notification.permission === 'denied') {
+      console.warn('Notification permission has been denied by user')
+      return false
+    }
+
+    try {
+      const permission = await Notification.requestPermission()
+      return permission === 'granted'
+    } catch (error) {
+      console.error('Failed to request notification permission:', error)
+      return false
+    }
+  }
+
+  // SECURITY: Check notification permission status
+  getNotificationPermissionStatus(): 'granted' | 'denied' | 'default' | 'unsupported' {
+    if (!('Notification' in window)) {
+      return 'unsupported'
+    }
+    return Notification.permission
   }
 
   // Cache management
@@ -408,44 +440,88 @@ class LocalCacheService {
     }
   }
 
-  // LinkedIn Configurations
-  getLinkedInConfigs(): LinkedInConfig[] {
+  // SECURITY: LinkedIn Configurations with encryption
+  async getLinkedInConfigs(): Promise<LinkedInConfig[]> {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEYS.LINKEDIN_CONFIGS)
-      return stored ? JSON.parse(stored) : []
+      if (!secureStorageService.isEncryptionReady()) {
+        await secureStorageService.initializeEncryption()
+      }
+      
+      const configs = await secureStorageService.getSecureItem<LinkedInConfig[]>('linkedin_configs')
+      return configs || []
     } catch (error) {
-      console.error('Failed to load LinkedIn configs:', error)
-      return []
+      console.error('SECURITY: Failed to load encrypted LinkedIn configs:', error)
+      // Fallback to unencrypted (migration)
+      try {
+        const stored = localStorage.getItem(this.STORAGE_KEYS.LINKEDIN_CONFIGS)
+        return stored ? JSON.parse(stored) : []
+      } catch (fallbackError) {
+        console.error('Failed to load LinkedIn configs (fallback):', fallbackError)
+        return []
+      }
     }
   }
 
-  saveLinkedInConfigs(configs: LinkedInConfig[]): boolean {
+  async saveLinkedInConfigs(configs: LinkedInConfig[]): Promise<boolean> {
     try {
-      localStorage.setItem(this.STORAGE_KEYS.LINKEDIN_CONFIGS, JSON.stringify(configs))
-      return true
+      if (!secureStorageService.isEncryptionReady()) {
+        await secureStorageService.initializeEncryption()
+      }
+      
+      // SECURITY: Store encrypted
+      const success = await secureStorageService.setSecureItem('linkedin_configs', configs)
+      
+      if (success) {
+        // Remove unencrypted version
+        localStorage.removeItem(this.STORAGE_KEYS.LINKEDIN_CONFIGS)
+      }
+      
+      return success
     } catch (error) {
-      console.error('Failed to save LinkedIn configs:', error)
+      console.error('SECURITY: Failed to save encrypted LinkedIn configs:', error)
       return false
     }
   }
 
-  // Facebook Configurations  
-  getFacebookConfigs(): FacebookConfig[] {
+  // SECURITY: Facebook Configurations with encryption
+  async getFacebookConfigs(): Promise<FacebookConfig[]> {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEYS.FACEBOOK_CONFIGS)
-      return stored ? JSON.parse(stored) : []
+      if (!secureStorageService.isEncryptionReady()) {
+        await secureStorageService.initializeEncryption()
+      }
+      
+      const configs = await secureStorageService.getSecureItem<FacebookConfig[]>('facebook_configs')
+      return configs || []
     } catch (error) {
-      console.error('Failed to load Facebook configs:', error)
-      return []
+      console.error('SECURITY: Failed to load encrypted Facebook configs:', error)
+      // Fallback to unencrypted (migration)
+      try {
+        const stored = localStorage.getItem(this.STORAGE_KEYS.FACEBOOK_CONFIGS)
+        return stored ? JSON.parse(stored) : []
+      } catch (fallbackError) {
+        console.error('Failed to load Facebook configs (fallback):', fallbackError)
+        return []
+      }
     }
   }
 
-  saveFacebookConfigs(configs: FacebookConfig[]): boolean {
+  async saveFacebookConfigs(configs: FacebookConfig[]): Promise<boolean> {
     try {
-      localStorage.setItem(this.STORAGE_KEYS.FACEBOOK_CONFIGS, JSON.stringify(configs))
-      return true
+      if (!secureStorageService.isEncryptionReady()) {
+        await secureStorageService.initializeEncryption()
+      }
+      
+      // SECURITY: Store encrypted
+      const success = await secureStorageService.setSecureItem('facebook_configs', configs)
+      
+      if (success) {
+        // Remove unencrypted version
+        localStorage.removeItem(this.STORAGE_KEYS.FACEBOOK_CONFIGS)
+      }
+      
+      return success
     } catch (error) {
-      console.error('Failed to save Facebook configs:', error)
+      console.error('SECURITY: Failed to save encrypted Facebook configs:', error)
       return false
     }
   }

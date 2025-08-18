@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import localCacheService, { LinkedInConfig } from '../services/localCacheService'
 import linkedinService, { LinkedInCredentials } from '../services/linkedinService'
+// SECURITY: Import input validation service
+import inputValidationService from '../services/inputValidationService'
 
 const LinkedInAPISetup: React.FC = () => {
   const [configs, setConfigs] = useState<LinkedInConfig[]>([])
@@ -13,49 +15,99 @@ const LinkedInAPISetup: React.FC = () => {
   })
   const [testing, setTesting] = useState<string | null>(null)
   const [testResults, setTestResults] = useState<Record<string, { status: string; message: string }>>({})
+  // SECURITY: Add validation state
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [lastSubmitTime, setLastSubmitTime] = useState(0)
 
   useEffect(() => {
     loadConfigs()
   }, [])
 
-  const loadConfigs = () => {
-    const savedConfigs = localCacheService.getLinkedInConfigs()
-    setConfigs(savedConfigs)
+  const loadConfigs = async () => {
+    try {
+      // SECURITY: Use encrypted storage for sensitive configs
+      const savedConfigs = await localCacheService.getLinkedInConfigs()
+      setConfigs(savedConfigs)
+    } catch (error) {
+      console.error('SECURITY: Failed to load LinkedIn configs:', error)
+      setConfigs([])
+    }
   }
 
   const handleAddConfig = async () => {
-    if (!newConfig.name || !newConfig.access_token) {
-      alert('Please fill in all required fields')
+    // SECURITY: Rate limiting check
+    if (!inputValidationService.validateRateLimiting(lastSubmitTime, 2000)) {
+      setValidationErrors({ general: 'Please wait before submitting again' })
       return
     }
 
-    const config: LinkedInConfig = {
-      id: Date.now().toString(),
-      name: newConfig.name,
-      access_token: newConfig.access_token,
+    // SECURITY: Comprehensive validation
+    const validation = inputValidationService.validateLinkedInCredentials({
+      name: newConfig.name || '',
+      access_token: newConfig.access_token || '',
       post_type: newConfig.post_type || 'person',
-      organization_id: newConfig.organization_id || '',
-      createdAt: new Date().toISOString()
+      organization_id: newConfig.organization_id
+    })
+
+    setValidationErrors(validation.errors)
+
+    if (!validation.isValid) {
+      return
     }
 
-    const updatedConfigs = [...configs, config]
-    setConfigs(updatedConfigs)
-    localCacheService.saveLinkedInConfigs(updatedConfigs)
-    
-    setNewConfig({
-      name: '',
-      access_token: '',
-      post_type: 'person',
-      organization_id: ''
-    })
-    setShowAddForm(false)
+    // Check for duplicate names
+    if (configs.some(config => config.name === validation.sanitizedData!.name)) {
+      setValidationErrors({ name: 'A configuration with this name already exists' })
+      return
+    }
+
+    try {
+      const config: LinkedInConfig = {
+        id: Date.now().toString(),
+        name: validation.sanitizedData!.name,
+        access_token: validation.sanitizedData!.access_token,
+        post_type: validation.sanitizedData!.post_type,
+        organization_id: validation.sanitizedData!.organization_id || '',
+        createdAt: new Date().toISOString()
+      }
+
+      const updatedConfigs = [...configs, config]
+      setConfigs(updatedConfigs)
+      
+      // SECURITY: Save to encrypted storage
+      const success = await localCacheService.saveLinkedInConfigs(updatedConfigs)
+      if (!success) {
+        setValidationErrors({ general: 'Failed to save configuration securely' })
+        return
+      }
+      
+      setNewConfig({
+        name: '',
+        access_token: '',
+        post_type: 'person',
+        organization_id: ''
+      })
+      setValidationErrors({})
+      setShowAddForm(false)
+      setLastSubmitTime(Date.now())
+      
+    } catch (error) {
+      console.error('SECURITY: Failed to save LinkedIn config:', error)
+      setValidationErrors({ general: 'Failed to save configuration' })
+    }
   }
 
-  const handleDeleteConfig = (id: string) => {
+  const handleDeleteConfig = async (id: string) => {
     if (confirm('Delete this LinkedIn configuration?')) {
-      const updatedConfigs = configs.filter(config => config.id !== id)
-      setConfigs(updatedConfigs)
-      localCacheService.saveLinkedInConfigs(updatedConfigs)
+      try {
+        const updatedConfigs = configs.filter(config => config.id !== id)
+        setConfigs(updatedConfigs)
+        // SECURITY: Save to encrypted storage
+        await localCacheService.saveLinkedInConfigs(updatedConfigs)
+      } catch (error) {
+        console.error('SECURITY: Failed to delete LinkedIn config:', error)
+        alert('Failed to delete configuration')
+      }
     }
   }
 

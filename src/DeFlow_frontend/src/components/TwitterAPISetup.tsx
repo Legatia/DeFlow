@@ -5,6 +5,8 @@
 
 import React, { useState, useEffect } from 'react'
 import twitterService, { TwitterCredentials } from '../services/twitterService'
+// SECURITY: Import input validation service
+import inputValidationService from '../services/inputValidationService'
 
 interface TwitterAPIConfig extends TwitterCredentials {
   id: string
@@ -28,6 +30,8 @@ const TwitterAPISetup: React.FC = () => {
   })
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [testResults, setTestResults] = useState<Record<string, { success: boolean; message: string }>>({})
+  // SECURITY: Add rate limiting state
+  const [lastSubmitTime, setLastSubmitTime] = useState(0)
 
   // Load saved configs from localStorage
   useEffect(() => {
@@ -54,53 +58,44 @@ const TwitterAPISetup: React.FC = () => {
     }
   }
 
-  const validateConfig = (config: typeof newConfig): Record<string, string> => {
-    const errors: Record<string, string> = {}
-
-    if (!config.name.trim()) {
-      errors.name = 'Configuration name is required'
-    }
-
-    if (!config.api_key.trim()) {
-      errors.api_key = 'API Key is required'
-    }
-
-    if (!config.api_secret.trim()) {
-      errors.api_secret = 'API Secret is required'
-    }
-
-    if (!config.access_token.trim()) {
-      errors.access_token = 'Access Token is required'
-    }
-
-    if (!config.access_token_secret.trim()) {
-      errors.access_token_secret = 'Access Token Secret is required'
-    }
-
-    return errors
+  // SECURITY: Use comprehensive validation service
+  const validateConfig = (config: typeof newConfig): { isValid: boolean; errors: Record<string, string>; sanitizedData?: any } => {
+    return inputValidationService.validateTwitterCredentials({
+      name: config.name,
+      api_key: config.api_key,
+      api_secret: config.api_secret,
+      access_token: config.access_token,
+      access_token_secret: config.access_token_secret
+    })
   }
 
   const handleAddConfig = async () => {
-    const errors = validateConfig(newConfig)
-    setValidationErrors(errors)
+    // SECURITY: Rate limiting check
+    if (!inputValidationService.validateRateLimiting(lastSubmitTime, 2000)) {
+      setValidationErrors({ general: 'Please wait before submitting again' })
+      return
+    }
 
-    if (Object.keys(errors).length > 0) {
+    const validation = validateConfig(newConfig)
+    setValidationErrors(validation.errors)
+
+    if (!validation.isValid) {
       return
     }
 
     // Check for duplicate names
-    if (configs.some(config => config.name === newConfig.name)) {
+    if (configs.some(config => config.name === validation.sanitizedData!.name)) {
       setValidationErrors({ name: 'A configuration with this name already exists' })
       return
     }
 
     const apiConfig: TwitterAPIConfig = {
       id: Date.now().toString(),
-      name: newConfig.name,
-      api_key: newConfig.api_key,
-      api_secret: newConfig.api_secret,
-      access_token: newConfig.access_token,
-      access_token_secret: newConfig.access_token_secret,
+      name: validation.sanitizedData!.name,
+      api_key: validation.sanitizedData!.api_key,
+      api_secret: validation.sanitizedData!.api_secret,
+      access_token: validation.sanitizedData!.access_token,
+      access_token_secret: validation.sanitizedData!.access_token_secret,
       is_connected: false,
       created_at: new Date().toISOString()
     }
@@ -125,9 +120,10 @@ const TwitterAPISetup: React.FC = () => {
       setNewConfig({ name: '', api_key: '', api_secret: '', access_token: '', access_token_secret: '' })
       setValidationErrors({})
       setIsAddingConfig(false)
+      setLastSubmitTime(Date.now())
 
     } catch (error) {
-      setValidationErrors({ api_key: 'Failed to validate credentials. Check your internet connection.' })
+      setValidationErrors({ general: 'Failed to validate credentials. Check your internet connection.' })
     }
   }
 

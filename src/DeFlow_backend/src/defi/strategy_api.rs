@@ -197,15 +197,15 @@ async fn fetch_yield_opportunities() -> Result<YieldOpportunitiesResponse, Strin
 
 // Mock function for cached opportunities - in production this would be real cached data
 fn get_cached_yield_opportunities(_manager: &mut RealProtocolIntegrationManager) -> Vec<RealYieldOpportunity> {
-    // Return mock opportunities - in production this would be cached real data
+    // DEMO: Enhanced mock opportunities with realistic current market data
     vec![
         RealYieldOpportunity {
             protocol: crate::defi::yield_farming::DeFiProtocol::Aave,
             chain: crate::defi::yield_farming::ChainId::Ethereum,
             token_symbol: "USDC".to_string(),
-            apy: 4.2,
-            tvl: 500_000_000.0,
-            risk_score: 3,
+            apy: 3.8, // More realistic current yield
+            tvl: 750_000_000.0, // Updated TVL
+            risk_score: 2, // Aave is lower risk
             min_deposit: 100.0,
             max_deposit: 100_000.0,
             liquidity_available: 50_000_000.0,

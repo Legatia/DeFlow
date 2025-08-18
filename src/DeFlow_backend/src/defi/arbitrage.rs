@@ -463,14 +463,17 @@ impl PriceOracle {
 
     /// Fetch price from chain (mock implementation)
     async fn fetch_price_from_chain(&self, asset: &str) -> Result<f64, ArbitrageError> {
-        // Mock prices with slight variations across chains
+        // DEMO: Enhanced mock prices with realistic variations
         let base_price = match asset {
             "USDC" | "USDT" => 1.0,
-            "ETH" | "WETH" => 2400.0,
-            "BTC" | "WBTC" => 45000.0,
-            "SOL" => 95.0,
-            "AVAX" => 25.0,
-            "MATIC" => 0.85,
+            "ETH" | "WETH" => 3200.0,  // Updated to more realistic current price
+            "BTC" | "WBTC" => 67000.0, // Updated to more realistic current price
+            "SOL" => 140.0,            // Updated to more realistic current price
+            "AVAX" => 32.0,            // Updated to more realistic current price
+            "MATIC" => 0.92,           // Updated to more realistic current price
+            "LINK" => 14.5,            // Added popular token
+            "UNI" => 8.2,              // Added popular token
+            "AAVE" => 95.0,            // Added DeFi token
             _ => return Err(ArbitrageError::AssetNotSupported(asset.to_string())),
         };
 

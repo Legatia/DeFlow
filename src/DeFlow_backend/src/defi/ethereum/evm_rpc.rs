@@ -334,7 +334,13 @@ impl EvmRpcService {
         }
 
         // Use maximum gas estimate for safety
-        Ok(*gas_estimates.iter().max().unwrap())
+        match gas_estimates.iter().max() {
+            Some(max_gas) => Ok(*max_gas),
+            None => {
+                // DEMO: Fallback to reasonable default gas limit
+                Ok(21000) // Standard ETH transfer gas limit
+            }
+        }
     }
 
     fn resolve_inconsistent_fee_history_results(&self, results: Vec<ProviderResult>) -> Result<FeeHistory, EthereumError> {

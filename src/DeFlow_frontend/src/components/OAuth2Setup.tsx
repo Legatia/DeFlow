@@ -18,12 +18,10 @@ const OAuth2Setup: React.FC<OAuth2SetupProps> = ({
   const [configs, setConfigs] = useState({
     gmail: {
       clientId: '',
-      clientSecret: '',
       enabled: false
     },
     outlook: {
       clientId: '',
-      clientSecret: '',
       enabled: false
     }
   })
@@ -52,18 +50,20 @@ const OAuth2Setup: React.FC<OAuth2SetupProps> = ({
         if (parsedConfigs.gmail.enabled && parsedConfigs.gmail.clientId) {
           oauth2Service.configureProvider('gmail', {
             clientId: parsedConfigs.gmail.clientId,
-            clientSecret: parsedConfigs.gmail.clientSecret,
             redirectUri: `${window.location.origin}/oauth/callback/gmail`,
-            scopes: []
+            scopes: [],
+            tokenEndpoint: '/api/auth/google/token',
+            usePKCE: true
           })
         }
         
         if (parsedConfigs.outlook.enabled && parsedConfigs.outlook.clientId) {
           oauth2Service.configureProvider('outlook', {
             clientId: parsedConfigs.outlook.clientId,
-            clientSecret: parsedConfigs.outlook.clientSecret,
             redirectUri: `${window.location.origin}/oauth/callback/outlook`,
-            scopes: []
+            scopes: [],
+            tokenEndpoint: '/api/auth/microsoft/token',
+            usePKCE: true
           })
         }
       }
@@ -80,18 +80,20 @@ const OAuth2Setup: React.FC<OAuth2SetupProps> = ({
       if (configs.gmail.enabled && configs.gmail.clientId) {
         oauth2Service.configureProvider('gmail', {
           clientId: configs.gmail.clientId,
-          clientSecret: configs.gmail.clientSecret,
           redirectUri: `${window.location.origin}/oauth/callback/gmail`,
-          scopes: []
+          scopes: [],
+          tokenEndpoint: '/api/auth/google/token',
+          usePKCE: true
         })
       }
       
       if (configs.outlook.enabled && configs.outlook.clientId) {
         oauth2Service.configureProvider('outlook', {
           clientId: configs.outlook.clientId,
-          clientSecret: configs.outlook.clientSecret,
           redirectUri: `${window.location.origin}/oauth/callback/outlook`,
-          scopes: []
+          scopes: [],
+          tokenEndpoint: '/api/auth/microsoft/token',
+          usePKCE: true
         })
       }
       
@@ -437,20 +439,9 @@ const OAuth2Setup: React.FC<OAuth2SetupProps> = ({
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Google Client Secret
-                      </label>
-                      <input
-                        type="password"
-                        value={configs.gmail.clientSecret}
-                        onChange={(e) => setConfigs(prev => ({
-                          ...prev,
-                          gmail: { ...prev.gmail, clientSecret: e.target.value }
-                        }))}
-                        placeholder="GOCSPX-..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
+                    <div className="text-sm text-green-600 bg-green-50 p-3 rounded">
+                      <p className="font-medium">🔒 SECURITY: Client secrets are handled securely by the backend using PKCE flow.</p>
+                      <p>No client secret needed in the frontend for enhanced security.</p>
                     </div>
                     <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
                       <p className="font-medium mb-1">Setup Instructions:</p>
@@ -500,20 +491,9 @@ const OAuth2Setup: React.FC<OAuth2SetupProps> = ({
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Microsoft Client Secret
-                      </label>
-                      <input
-                        type="password"
-                        value={configs.outlook.clientSecret}
-                        onChange={(e) => setConfigs(prev => ({
-                          ...prev,
-                          outlook: { ...prev.outlook, clientSecret: e.target.value }
-                        }))}
-                        placeholder="Client secret value"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
+                    <div className="text-sm text-green-600 bg-green-50 p-3 rounded">
+                      <p className="font-medium">🔒 SECURITY: Client secrets are handled securely by the backend using PKCE flow.</p>
+                      <p>No client secret needed in the frontend for enhanced security.</p>
                     </div>
                     <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
                       <p className="font-medium mb-1">Setup Instructions:</p>

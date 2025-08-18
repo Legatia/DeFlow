@@ -64,6 +64,63 @@ impl Default for WorkflowMetadata {
     }
 }
 
+impl Default for Workflow {
+    fn default() -> Self {
+        Self {
+            id: "default".to_string(),
+            name: "Default Workflow".to_string(),
+            description: None,
+            nodes: Vec::new(),
+            connections: Vec::new(),
+            triggers: Vec::new(),
+            created_at: 0,
+            updated_at: 0,
+            active: false,
+            state: WorkflowState::default(),
+            owner: None,
+            tags: None,
+            version: None,
+            metadata: None,
+        }
+    }
+}
+
+impl Default for WorkflowNode {
+    fn default() -> Self {
+        Self {
+            id: "default".to_string(),
+            node_type: "default".to_string(),
+            position: NodePosition::default(),
+            configuration: NodeConfiguration::default(),
+            metadata: NodeMetadata::default(),
+        }
+    }
+}
+
+impl Default for NodePosition {
+    fn default() -> Self {
+        Self { x: 0.0, y: 0.0 }
+    }
+}
+
+impl Default for NodeConfiguration {
+    fn default() -> Self {
+        Self {
+            parameters: HashMap::new(),
+        }
+    }
+}
+
+impl Default for NodeMetadata {
+    fn default() -> Self {
+        Self {
+            label: "Default Node".to_string(),
+            description: None,
+            version: "1.0.0".to_string(),
+        }
+    }
+}
+
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct WorkflowNode {
     pub id: String,
@@ -753,5 +810,120 @@ impl Default for UISettings {
             grid_snap: true,
             auto_arrange: false,
         }
+    }
+}
+
+// Additional Default implementations for storage compatibility
+
+impl Default for WorkflowExecution {
+    fn default() -> Self {
+        Self {
+            id: "default".to_string(),
+            workflow_id: "default".to_string(),
+            status: ExecutionStatus::default(),
+            started_at: 0,
+            completed_at: None,
+            trigger_data: None,
+            node_executions: Vec::new(),
+            error_message: None,
+        }
+    }
+}
+
+impl Default for ExecutionStatus {
+    fn default() -> Self {
+        ExecutionStatus::Pending
+    }
+}
+
+impl Default for NodeExecution {
+    fn default() -> Self {
+        Self {
+            node_id: "default".to_string(),
+            status: ExecutionStatus::default(),
+            started_at: None,
+            completed_at: None,
+            input_data: None,
+            output_data: None,
+            error_message: None,
+            retry_count: 0,
+        }
+    }
+}
+
+impl Default for NodeDefinition {
+    fn default() -> Self {
+        Self {
+            node_type: "default".to_string(),
+            name: "Default Node".to_string(),
+            description: "Default node description".to_string(),
+            category: "default".to_string(),
+            version: "1.0.0".to_string(),
+            input_schema: Vec::new(),
+            output_schema: Vec::new(),
+            configuration_schema: Vec::new(),
+        }
+    }
+}
+
+impl Default for ParameterSchema {
+    fn default() -> Self {
+        Self {
+            name: "default".to_string(),
+            parameter_type: "string".to_string(),
+            required: false,
+            description: None,
+            default_value: None,
+        }
+    }
+}
+
+impl Default for ScheduledWorkflow {
+    fn default() -> Self {
+        Self {
+            id: "default".to_string(),
+            workflow_id: "default".to_string(),
+            cron_expression: "0 0 * * *".to_string(),
+            next_execution: 0,
+            active: false,
+            timer_id: None,
+        }
+    }
+}
+
+impl Default for ScheduledExecution {
+    fn default() -> Self {
+        Self {
+            workflow_id: "default".to_string(),
+            next_execution: 0,
+            interval: None,
+            timer_id: None,
+            schedule_type: ScheduleType::default(),
+            metadata: HashMap::new(),
+        }
+    }
+}
+
+impl Default for ScheduleType {
+    fn default() -> Self {
+        ScheduleType::Once
+    }
+}
+
+impl Default for NodeConnection {
+    fn default() -> Self {
+        Self {
+            id: "default".to_string(),
+            source_node_id: "default".to_string(),
+            source_output: "output".to_string(),
+            target_node_id: "default".to_string(),
+            target_input: "input".to_string(),
+        }
+    }
+}
+
+impl Default for WorkflowTrigger {
+    fn default() -> Self {
+        WorkflowTrigger::Manual
     }
 }

@@ -2,6 +2,8 @@
 import './utils/bigint-polyfill'
 // Load timestamp utilities (BigNumber.js based, no BigInt)
 import './utils/timestamp-utils'
+// SECURITY: Initialize security features
+import './utils/securityInit'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

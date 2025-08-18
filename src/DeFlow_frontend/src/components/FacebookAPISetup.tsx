@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import localCacheService, { FacebookConfig } from '../services/localCacheService'
 import facebookService, { FacebookCredentials } from '../services/facebookService'
+// SECURITY: Import input validation service
+import inputValidationService from '../services/inputValidationService'
 
 const FacebookAPISetup: React.FC = () => {
   const [configs, setConfigs] = useState<FacebookConfig[]>([])
@@ -13,49 +15,99 @@ const FacebookAPISetup: React.FC = () => {
   })
   const [testing, setTesting] = useState<string | null>(null)
   const [testResults, setTestResults] = useState<Record<string, { status: string; message: string }>>({})
+  // SECURITY: Add validation state
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [lastSubmitTime, setLastSubmitTime] = useState(0)
 
   useEffect(() => {
     loadConfigs()
   }, [])
 
-  const loadConfigs = () => {
-    const savedConfigs = localCacheService.getFacebookConfigs()
-    setConfigs(savedConfigs)
+  const loadConfigs = async () => {
+    try {
+      // SECURITY: Use encrypted storage for sensitive configs
+      const savedConfigs = await localCacheService.getFacebookConfigs()
+      setConfigs(savedConfigs)
+    } catch (error) {
+      console.error('SECURITY: Failed to load Facebook configs:', error)
+      setConfigs([])
+    }
   }
 
   const handleAddConfig = async () => {
-    if (!newConfig.name || !newConfig.access_token || !newConfig.page_id) {
-      alert('Please fill in all required fields')
+    // SECURITY: Rate limiting check
+    if (!inputValidationService.validateRateLimiting(lastSubmitTime, 2000)) {
+      setValidationErrors({ general: 'Please wait before submitting again' })
       return
     }
 
-    const config: FacebookConfig = {
-      id: Date.now().toString(),
-      name: newConfig.name,
-      access_token: newConfig.access_token,
-      page_id: newConfig.page_id,
-      post_type: newConfig.post_type || 'page',
-      createdAt: new Date().toISOString()
+    // SECURITY: Comprehensive validation
+    const validation = inputValidationService.validateFacebookCredentials({
+      name: newConfig.name || '',
+      access_token: newConfig.access_token || '',
+      page_id: newConfig.page_id || '',
+      post_type: newConfig.post_type || 'page'
+    })
+
+    setValidationErrors(validation.errors)
+
+    if (!validation.isValid) {
+      return
     }
 
-    const updatedConfigs = [...configs, config]
-    setConfigs(updatedConfigs)
-    localCacheService.saveFacebookConfigs(updatedConfigs)
-    
-    setNewConfig({
-      name: '',
-      access_token: '',
-      page_id: '',
-      post_type: 'page'
-    })
-    setShowAddForm(false)
+    // Check for duplicate names
+    if (configs.some(config => config.name === validation.sanitizedData!.name)) {
+      setValidationErrors({ name: 'A configuration with this name already exists' })
+      return
+    }
+
+    try {
+      const config: FacebookConfig = {
+        id: Date.now().toString(),
+        name: validation.sanitizedData!.name,
+        access_token: validation.sanitizedData!.access_token,
+        page_id: validation.sanitizedData!.page_id,
+        post_type: validation.sanitizedData!.post_type,
+        createdAt: new Date().toISOString()
+      }
+
+      const updatedConfigs = [...configs, config]
+      setConfigs(updatedConfigs)
+      
+      // SECURITY: Save to encrypted storage
+      const success = await localCacheService.saveFacebookConfigs(updatedConfigs)
+      if (!success) {
+        setValidationErrors({ general: 'Failed to save configuration securely' })
+        return
+      }
+      
+      setNewConfig({
+        name: '',
+        access_token: '',
+        page_id: '',
+        post_type: 'page'
+      })
+      setValidationErrors({})
+      setShowAddForm(false)
+      setLastSubmitTime(Date.now())
+      
+    } catch (error) {
+      console.error('SECURITY: Failed to save Facebook config:', error)
+      setValidationErrors({ general: 'Failed to save configuration' })
+    }
   }
 
-  const handleDeleteConfig = (id: string) => {
+  const handleDeleteConfig = async (id: string) => {
     if (confirm('Delete this Facebook configuration?')) {
-      const updatedConfigs = configs.filter(config => config.id !== id)
-      setConfigs(updatedConfigs)
-      localCacheService.saveFacebookConfigs(updatedConfigs)
+      try {
+        const updatedConfigs = configs.filter(config => config.id !== id)
+        setConfigs(updatedConfigs)
+        // SECURITY: Save to encrypted storage
+        await localCacheService.saveFacebookConfigs(updatedConfigs)
+      } catch (error) {
+        console.error('SECURITY: Failed to delete Facebook config:', error)
+        alert('Failed to delete configuration')
+      }
     }
   }
 
@@ -191,10 +243,21 @@ const FacebookAPISetup: React.FC = () => {
               <input
                 type="text"
                 value={newConfig.name || ''}
-                onChange={(e) => setNewConfig({ ...newConfig, name: e.target.value })}
+                onChange={(e) => {
+                  setNewConfig({ ...newConfig, name: e.target.value })
+                  // Clear validation error on change
+                  if (validationErrors.name) {
+                    setValidationErrors(prev => ({ ...prev, name: '' }))
+                  }
+                }}
                 placeholder="My Business Page"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  validationErrors.name ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
+              {validationErrors.name && (
+                <p className="text-red-600 text-sm mt-1">{validationErrors.name}</p>
+              )}
             </div>
 
             <div>
@@ -204,10 +267,21 @@ const FacebookAPISetup: React.FC = () => {
               <input
                 type="password"
                 value={newConfig.access_token || ''}
-                onChange={(e) => setNewConfig({ ...newConfig, access_token: e.target.value })}
+                onChange={(e) => {
+                  setNewConfig({ ...newConfig, access_token: e.target.value })
+                  // Clear validation error on change
+                  if (validationErrors.access_token) {
+                    setValidationErrors(prev => ({ ...prev, access_token: '' }))
+                  }
+                }}
                 placeholder="Facebook Page access token (long-lived)"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  validationErrors.access_token ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
+              {validationErrors.access_token && (
+                <p className="text-red-600 text-sm mt-1">{validationErrors.access_token}</p>
+              )}
               <p className="text-xs text-gray-500 mt-1">
                 Long-lived page access token from Graph API Explorer
               </p>
@@ -220,10 +294,21 @@ const FacebookAPISetup: React.FC = () => {
               <input
                 type="text"
                 value={newConfig.page_id || ''}
-                onChange={(e) => setNewConfig({ ...newConfig, page_id: e.target.value })}
+                onChange={(e) => {
+                  setNewConfig({ ...newConfig, page_id: e.target.value })
+                  // Clear validation error on change
+                  if (validationErrors.page_id) {
+                    setValidationErrors(prev => ({ ...prev, page_id: '' }))
+                  }
+                }}
                 placeholder="1234567890"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  validationErrors.page_id ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
+              {validationErrors.page_id && (
+                <p className="text-red-600 text-sm mt-1">{validationErrors.page_id}</p>
+              )}
               <p className="text-xs text-gray-500 mt-1">
                 Facebook Page ID (found in Page settings)
               </p>
@@ -245,10 +330,17 @@ const FacebookAPISetup: React.FC = () => {
             </div>
           </div>
 
+          {validationErrors.general && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm">{validationErrors.general}</p>
+            </div>
+          )}
+
           <div className="flex space-x-3 mt-6">
             <button
               onClick={handleAddConfig}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              disabled={Object.values(validationErrors).some(error => error.length > 0)}
             >
               Add Configuration
             </button>
