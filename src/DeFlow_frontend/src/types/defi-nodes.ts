@@ -51,7 +51,12 @@ export const DEFI_NODE_TYPES: NodeType[] = [
         validation: { min: 0 }
       }
     ],
-    defaultConfig: { asset: 'BTC', condition: 'greater_than', value: 50000 }
+    defaultConfig: { asset: 'BTC', condition: 'greater_than', value: 50000 },
+    tieredPricing: {
+      standard: { executionFee: 0.1, description: 'Basic execution with standard speed' },
+      premium: { executionFee: 0.05, description: 'Faster execution with priority processing' },
+      pro: { executionFee: 0.02, description: 'Fastest execution with advanced features' }
+    }
   },
 
   // DeFi Strategy Actions
@@ -125,6 +130,11 @@ export const DEFI_NODE_TYPES: NodeType[] = [
       amount: 1000, 
       min_apy: 5.0, 
       auto_compound: true 
+    },
+    tieredPricing: {
+      standard: { executionFee: 0.1, description: 'Basic execution with standard speed' },
+      premium: { executionFee: 0.05, description: 'Faster execution with priority processing' },
+      pro: { executionFee: 0.02, description: 'Fastest execution with advanced features' }
     }
   },
 
@@ -205,6 +215,11 @@ export const DEFI_NODE_TYPES: NodeType[] = [
       sell_chain: 'ICP', 
       min_profit_percent: 1.0, 
       max_amount: 5000 
+    },
+    tieredPricing: {
+      standard: { executionFee: 0.1, description: 'Basic execution with standard speed' },
+      premium: { executionFee: 0.05, description: 'Faster execution with priority processing' },
+      pro: { executionFee: 0.02, description: 'Fastest execution with advanced features' }
     }
   },
 
@@ -256,6 +271,11 @@ export const DEFI_NODE_TYPES: NodeType[] = [
       target_token: 'ETH', 
       amount_per_execution: 100, 
       price_threshold_percentage: null 
+    },
+    tieredPricing: {
+      standard: { executionFee: 0.1, description: 'Basic execution with standard speed' },
+      premium: { executionFee: 0.05, description: 'Faster execution with priority processing' },
+      pro: { executionFee: 0.02, description: 'Fastest execution with advanced features' }
     }
   },
 
@@ -304,6 +324,11 @@ export const DEFI_NODE_TYPES: NodeType[] = [
       target_allocations: '{"BTC": 60, "ETH": 30, "USDC": 10}', 
       rebalance_threshold: 5, 
       min_trade_amount: 50 
+    },
+    tieredPricing: {
+      standard: { executionFee: 0.1, description: 'Basic execution with standard speed' },
+      premium: { executionFee: 0.05, description: 'Faster execution with priority processing' },
+      pro: { executionFee: 0.02, description: 'Fastest execution with advanced features' }
     }
   },
 
@@ -356,7 +381,12 @@ export const DEFI_NODE_TYPES: NodeType[] = [
         defaultValue: 5.0
       }
     ],
-    defaultConfig: { protocol: 'Aave', asset: 'USDC', min_apy: 5.0 }
+    defaultConfig: { protocol: 'Aave', asset: 'USDC', min_apy: 5.0 },
+    tieredPricing: {
+      standard: { executionFee: 0.1, description: 'Basic execution with standard speed' },
+      premium: { executionFee: 0.05, description: 'Faster execution with priority processing' },
+      pro: { executionFee: 0.02, description: 'Fastest execution with advanced features' }
+    }
   },
 
   // DeFi Utilities
@@ -402,7 +432,12 @@ export const DEFI_NODE_TYPES: NodeType[] = [
         defaultValue: 'Ethereum'
       }
     ],
-    defaultConfig: { asset: 'ICP', chain: 'ICP' }
+    defaultConfig: { asset: 'ICP', chain: 'ICP' },
+    tieredPricing: {
+      standard: { executionFee: 0.1, description: 'Basic execution with standard speed' },
+      premium: { executionFee: 0.05, description: 'Faster execution with priority processing' },
+      pro: { executionFee: 0.02, description: 'Fastest execution with advanced features' }
+    }
   },
 
   {
@@ -454,7 +489,12 @@ export const DEFI_NODE_TYPES: NodeType[] = [
         placeholder: 'Optional gas price limit'
       }
     ],
-    defaultConfig: { chain: 'Ethereum', priority: 'medium', max_gas_price: null }
+    defaultConfig: { chain: 'Ethereum', priority: 'medium', max_gas_price: null },
+    tieredPricing: {
+      standard: { executionFee: 0.1, description: 'Basic execution with standard speed' },
+      premium: { executionFee: 0.05, description: 'Faster execution with priority processing' },
+      pro: { executionFee: 0.02, description: 'Fastest execution with advanced features' }
+    }
   },
 
   // Tier 1 Web3 Components
@@ -562,6 +602,11 @@ export const DEFI_NODE_TYPES: NodeType[] = [
       delegate_address: '',
       proposal_title: '',
       proposal_description: ''
+    },
+    tieredPricing: {
+      standard: { executionFee: 0.1, description: 'Basic execution with standard speed' },
+      premium: { executionFee: 0.05, description: 'Faster execution with priority processing' },
+      pro: { executionFee: 0.02, description: 'Fastest execution with advanced features' }
     }
   }
 ]

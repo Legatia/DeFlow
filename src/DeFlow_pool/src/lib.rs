@@ -40,8 +40,19 @@ fn init(owner: Option<Principal>) {
     POOL_STATE.with(|state| {
         let mut pool_state = state.borrow_mut();
         
-        // TEAM HIERARCHY: Set specified owner or deployer as project owner
-        let owner_principal = owner.unwrap_or_else(|| ic_cdk::caller());
+        // SECURITY: Validate and set owner principal
+        let caller = ic_cdk::caller();
+        let owner_principal = owner.unwrap_or(caller);
+        
+        // SECURITY: Prevent anonymous principal as owner
+        if owner_principal == Principal::anonymous() {
+            ic_cdk::trap("SECURITY: Cannot initialize with anonymous principal as owner");
+        }
+        
+        // SECURITY: Log initialization for audit
+        ic_cdk::println!("AUDIT: Canister initialized - Owner: {}, Caller: {}", 
+                         owner_principal.to_text(), caller.to_text());
+        
         pool_state.dev_team_business.team_hierarchy.owner_principal = owner_principal;
         
         // Business configuration
@@ -55,14 +66,72 @@ fn init(owner: Option<Principal>) {
 
 #[pre_upgrade]
 fn pre_upgrade() {
-    // Store state in stable memory before upgrade
-    // Implementation depends on stable structures setup
+    // SECURITY: Store critical state in stable memory before upgrade
+    ic_cdk::println!("SECURITY: Starting canister upgrade - preserving state");
+    
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        
+        // Store the pool state in stable memory
+        MEMORY_MANAGER.with(|m| {
+            let memory = m.borrow().get(POOL_STATE_MEMORY_ID);
+            let mut stable_storage: StableStorage<u64, PoolState> = 
+                StableBTreeMap::init(memory);
+            
+            match stable_storage.insert(0, pool_state.clone()) {
+                Some(_) => ic_cdk::println!("SECURITY: Pool state updated in stable memory"),
+                None => ic_cdk::println!("SECURITY: Pool state stored in stable memory"),
+            }
+        });
+        
+        // Log critical metrics before upgrade
+        ic_cdk::println!("AUDIT: Pre-upgrade - Total liquidity: ${}, Team members: {}, Treasury transactions: {}", 
+                         pool_state.total_liquidity_usd,
+                         pool_state.dev_team_business.team_member_earnings.len(),
+                         pool_state.treasury_transactions.len());
+    });
+    
+    ic_cdk::println!("SECURITY: Pre-upgrade state preservation completed");
 }
 
 #[post_upgrade]
 fn post_upgrade() {
-    // Restore state from stable memory after upgrade
-    // Implementation depends on stable structures setup
+    // SECURITY: Restore critical state from stable memory after upgrade
+    ic_cdk::println!("SECURITY: Starting post-upgrade state restoration");
+    
+    MEMORY_MANAGER.with(|m| {
+        let memory = m.borrow().get(POOL_STATE_MEMORY_ID);
+        let stable_storage: StableStorage<u64, PoolState> = 
+            StableBTreeMap::init(memory);
+        
+        match stable_storage.get(&0) {
+            Some(restored_state) => {
+                POOL_STATE.with(|state| {
+                    *state.borrow_mut() = restored_state;
+                });
+                
+                ic_cdk::println!("SECURITY: Pool state successfully restored from stable memory");
+                
+                // Log critical metrics after upgrade
+                POOL_STATE.with(|state| {
+                    let pool_state = state.borrow();
+                    ic_cdk::println!("AUDIT: Post-upgrade - Total liquidity: ${}, Team members: {}, Treasury transactions: {}", 
+                                     pool_state.total_liquidity_usd,
+                                     pool_state.dev_team_business.team_member_earnings.len(),
+                                     pool_state.treasury_transactions.len());
+                });
+            }
+            None => {
+                ic_cdk::println!("WARNING: No saved state found in stable memory - using default state");
+                // Initialize with default state
+                POOL_STATE.with(|state| {
+                    *state.borrow_mut() = PoolState::default();
+                });
+            }
+        }
+    });
+    
+    ic_cdk::println!("SECURITY: Post-upgrade state restoration completed");
 }
 
 // =============================================================================
@@ -133,6 +202,59 @@ fn require_dev_team_member() -> Result<Principal, String> {
     }
 }
 
+fn is_authorized_fee_depositor(caller: Principal) -> bool {
+    // SECURITY: Only managers and above can deposit fees, plus whitelisted services
+    if is_manager_or_above(caller) {
+        return true;
+    }
+    
+    // Add whitelisted service principals here
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        // Check if caller is in authorized services list
+        pool_state.treasury_config.withdrawal_approvers.contains(&caller)
+    })
+}
+
+fn is_authorized_payment_processor(caller: Principal) -> bool {
+    // SECURITY: Only managers and above can process payments, plus whitelisted services
+    if is_manager_or_above(caller) {
+        return true;
+    }
+    
+    // Check if caller is in authorized payment processors list
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        pool_state.treasury_config.withdrawal_approvers.contains(&caller)
+    })
+}
+
+fn verify_financial_access_session(caller: Principal) -> bool {
+    // SECURITY: Additional session verification for financial data access
+    // In production, this would check for recent authentication, MFA, etc.
+    
+    let current_time = ic_cdk::api::time();
+    
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        
+        // Check if caller has had recent activity (within last hour)
+        // This is a simplified check - production should implement proper session management
+        let hierarchy = &pool_state.dev_team_business.team_hierarchy;
+        
+        // Owner and senior managers get longer session validity
+        if caller == hierarchy.owner_principal {
+            true // Owner always has access
+        } else if hierarchy.senior_managers.contains(&caller) {
+            // Senior managers get 4 hour sessions
+            current_time - hierarchy.last_team_change < (4 * 60 * 60 * 1_000_000_000)
+        } else {
+            // Others need more recent verification
+            current_time - hierarchy.last_team_change < (1 * 60 * 60 * 1_000_000_000)
+        }
+    })
+}
+
 // =============================================================================
 // POOL STATE MANAGEMENT
 // =============================================================================
@@ -150,8 +272,19 @@ fn get_financial_overview() -> Result<FinancialOverview, String> {
     
     // SECURITY: Only owner and senior managers can view full financial overview
     if !can_view_financial_data(caller) {
+        // AUDIT: Log unauthorized access attempts
+        ic_cdk::println!("SECURITY: Unauthorized financial data access attempt by {}", caller.to_text());
         return Err("Unauthorized: Financial data access restricted to Owner and Senior Managers".to_string());
     }
+    
+    // SECURITY: Additional verification for financial data access
+    if !verify_financial_access_session(caller) {
+        ic_cdk::println!("SECURITY: Financial access session verification failed for {}", caller.to_text());
+        return Err("Session verification required for financial data access".to_string());
+    }
+    
+    // AUDIT: Log successful financial data access
+    ic_cdk::println!("AUDIT: Financial overview accessed by {} at {}", caller.to_text(), ic_cdk::api::time());
     
     ANALYTICS.with(|analytics| {
         POOL_STATE.with(|state| {
@@ -174,7 +307,27 @@ fn get_bootstrap_progress() -> f64 {
 // =============================================================================
 
 #[update]
-fn deposit_fee(asset: Asset, amount: u64, tx_id: String, _user: Principal) -> Result<String, String> {
+fn deposit_fee(asset: Asset, amount: u64, tx_id: String, user: Principal) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Only authorized services can deposit fees
+    if !is_authorized_fee_depositor(caller) {
+        return Err("Unauthorized: Only authorized services can deposit fees".to_string());
+    }
+    
+    // SECURITY: Input validation
+    if amount == 0 {
+        return Err("Invalid amount: Must be greater than 0".to_string());
+    }
+    
+    if tx_id.is_empty() || tx_id.len() > 100 {
+        return Err("Invalid transaction ID: Must be 1-100 characters".to_string());
+    }
+    
+    // SECURITY: Audit logging
+    ic_cdk::println!("AUDIT: Fee deposit - Asset: {:?}, Amount: {}, TxID: {}, User: {}, Caller: {}", 
+                     asset, amount, tx_id, user.to_text(), caller.to_text());
+    
     POOL_MANAGER.with(|pool_manager| {
         BUSINESS_MANAGER.with(|business_manager| {
             POOL_STATE.with(|state| {
@@ -243,6 +396,26 @@ fn deposit_fee(asset: Asset, amount: u64, tx_id: String, _user: Principal) -> Re
 
 #[update]
 fn process_subscription_payment(user: Principal, amount: f64) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Only authorized payment processors can process subscriptions
+    if !is_authorized_payment_processor(caller) {
+        return Err("Unauthorized: Only authorized payment processors allowed".to_string());
+    }
+    
+    // SECURITY: Input validation
+    if amount <= 0.0 || amount > 100000.0 {
+        return Err("Invalid amount: Must be between 0 and $100,000".to_string());
+    }
+    
+    if user == Principal::anonymous() {
+        return Err("Invalid user: Cannot process payment for anonymous principal".to_string());
+    }
+    
+    // SECURITY: Audit logging
+    ic_cdk::println!("AUDIT: Subscription payment - User: {}, Amount: ${}, Caller: {}", 
+                     user.to_text(), amount, caller.to_text());
+    
     BUSINESS_MANAGER.with(|business_manager| {
         POOL_STATE.with(|state| {
             let mut pool_state = state.borrow_mut();
@@ -731,6 +904,36 @@ fn record_subscription_payment(
 ) -> Result<(), String> {
     require_manager_or_above()?;
     
+    // SECURITY: Input validation
+    if user_principal == Principal::anonymous() {
+        return Err("Invalid user principal".to_string());
+    }
+    
+    if chain.is_empty() || asset.is_empty() || tx_hash.is_empty() {
+        return Err("Invalid input: chain, asset, and tx_hash cannot be empty".to_string());
+    }
+    
+    if amount <= 0.0 || amount_usd <= 0.0 || !amount.is_finite() || !amount_usd.is_finite() {
+        return Err("Invalid amounts: must be positive finite numbers".to_string());
+    }
+    
+    // SECURITY: Prevent duplicate transaction hash
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        for existing_tx in &pool_state.treasury_transactions {
+            if let Some(existing_hash) = &existing_tx.tx_hash {
+                if existing_hash == &tx_hash {
+                    return Err(format!("Transaction hash already recorded: {}", tx_hash));
+                }
+            }
+        }
+        Ok(())
+    })?;
+    
+    // SECURITY: Audit logging
+    ic_cdk::println!("AUDIT: Recording subscription payment - User: {}, Amount: ${}, TX: {}", 
+                     user_principal.to_text(), amount_usd, tx_hash);
+    
     POOL_STATE.with(|state| {
         let mut pool_state = state.borrow_mut();
         let current_time = ic_cdk::api::time();
@@ -751,22 +954,43 @@ fn record_subscription_payment(
             amount_usd,
             from_address: "user_wallet".to_string(),
             to_address,
-            tx_hash: Some(tx_hash),
+            tx_hash: Some(tx_hash.clone()),
             status: TransactionStatus::Confirmed,
             timestamp: current_time,
             initiated_by: user_principal,
             notes: Some(format!("Subscription payment for {} tier", subscription_tier)),
         };
         
+        // SECURITY: Check storage limits before adding transaction
+        if pool_state.treasury_transactions.len() >= pool_state.storage_metrics.max_treasury_transactions {
+            ic_cdk::println!("SECURITY: Treasury transactions limit reached - pruning old records");
+            prune_old_transactions(&mut pool_state)?;
+        }
+        
         pool_state.treasury_transactions.push(tx);
         
-        // Update treasury balance
+        // SECURITY: Update treasury balance with validation
         let mut balance_found = false;
+        let old_balance_usd = pool_state.treasury_balances
+            .iter()
+            .find(|b| b.chain == chain && b.asset == asset)
+            .map(|b| b.amount_usd)
+            .unwrap_or(0.0);
+            
         for balance in &mut pool_state.treasury_balances {
             if balance.chain == chain && balance.asset == asset {
-                balance.amount += amount;
-                balance.amount_usd += amount_usd;
+                // SECURITY: Verify balance calculations
+                let new_amount = balance.amount + amount;
+                let new_amount_usd = balance.amount_usd + amount_usd;
+                
+                if new_amount < 0.0 || new_amount_usd < 0.0 || !new_amount.is_finite() || !new_amount_usd.is_finite() {
+                    return Err("SECURITY: Invalid balance calculation".to_string());
+                }
+                
+                balance.amount = new_amount;
+                balance.amount_usd = new_amount_usd;
                 balance.last_updated = current_time;
+                balance.last_tx_hash = Some(tx_hash.clone());
                 balance_found = true;
                 break;
             }
@@ -1003,15 +1227,39 @@ fn get_treasury_transactions(limit: Option<usize>) -> Vec<TreasuryTransaction> {
 // =============================================================================
 
 fn estimate_usd_value(asset: &str, amount: f64) -> f64 {
-    // Simplified price estimation - in production, use price oracle
-    match asset {
-        "USDC" | "USDT" | "DAI" => amount, // Stablecoins = 1:1 USD
-        "ETH" => amount * 2500.0, // Rough ETH price
-        "BTC" => amount * 45000.0, // Rough BTC price
-        "SOL" => amount * 100.0, // Rough SOL price
-        "MATIC" => amount * 0.9, // Rough MATIC price
-        _ => amount, // Default to face value
+    // SECURITY: Input validation
+    if asset.is_empty() || asset.len() > 10 {
+        ic_cdk::println!("SECURITY: Invalid asset name: {}", asset);
+        return 0.0;
     }
+    
+    if amount < 0.0 || amount > 1_000_000_000.0 || !amount.is_finite() {
+        ic_cdk::println!("SECURITY: Invalid amount: {}", amount);
+        return 0.0;
+    }
+    
+    // TODO: Replace with secure price oracle - this is temporary
+    let price_multiplier = match asset.to_uppercase().as_str() {
+        "USDC" | "USDT" | "DAI" => 1.0, // Stablecoins = 1:1 USD
+        "ETH" => 2500.0, // TEMPORARY: Use oracle
+        "BTC" => 45000.0, // TEMPORARY: Use oracle
+        "SOL" => 100.0, // TEMPORARY: Use oracle
+        "MATIC" => 0.9, // TEMPORARY: Use oracle
+        _ => {
+            ic_cdk::println!("SECURITY: Unknown asset: {}", asset);
+            return 0.0; // Don't guess unknown assets
+        }
+    };
+    
+    let result = amount * price_multiplier;
+    
+    // SECURITY: Bounds check result
+    if result > 1_000_000_000_000.0 || !result.is_finite() {
+        ic_cdk::println!("SECURITY: Calculation overflow for asset: {}, amount: {}", asset, amount);
+        return 0.0;
+    }
+    
+    result
 }
 
 fn calculate_hot_wallet_utilization(pool_state: &PoolState) -> f64 {
@@ -1094,6 +1342,48 @@ fn generate_security_alerts(pool_state: &PoolState) -> Vec<String> {
     }
     
     alerts
+}
+
+// SECURITY: Storage management functions
+fn prune_old_transactions(pool_state: &mut PoolState) -> Result<(), String> {
+    let initial_count = pool_state.treasury_transactions.len();
+    let target_count = pool_state.storage_metrics.max_treasury_transactions * 3 / 4; // Keep 75% of max
+    
+    if initial_count <= target_count {
+        return Ok(()); // No pruning needed
+    }
+    
+    // Sort by timestamp (newest first)
+    pool_state.treasury_transactions.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    
+    // Keep only the most recent transactions
+    pool_state.treasury_transactions.truncate(target_count);
+    
+    let pruned_count = initial_count - pool_state.treasury_transactions.len();
+    pool_state.storage_metrics.transactions_pruned += pruned_count as u64;
+    pool_state.storage_metrics.last_cleanup_time = ic_cdk::api::time();
+    
+    ic_cdk::println!("SECURITY: Pruned {} old transactions, kept {}", pruned_count, pool_state.treasury_transactions.len());
+    
+    Ok(())
+}
+
+fn check_storage_limits(pool_state: &PoolState) -> Result<(), String> {
+    let metrics = &pool_state.storage_metrics;
+    
+    if pool_state.treasury_transactions.len() >= metrics.max_treasury_transactions {
+        return Err("SECURITY: Treasury transactions storage limit exceeded".to_string());
+    }
+    
+    if pool_state.withdrawal_requests.len() >= metrics.max_withdrawal_requests {
+        return Err("SECURITY: Withdrawal requests storage limit exceeded".to_string());
+    }
+    
+    if pool_state.payment_addresses.len() >= metrics.max_payment_addresses {
+        return Err("SECURITY: Payment addresses storage limit exceeded".to_string());
+    }
+    
+    Ok(())
 }
 
 // =============================================================================
@@ -1193,6 +1483,27 @@ fn create_payment_request(
 ) -> Result<Payment, String> {
     let caller = ic_cdk::caller();
     let current_time = ic_cdk::api::time();
+    
+    // SECURITY: Input validation
+    if payment_method_id.is_empty() || payment_method_id.len() > 50 {
+        return Err("Invalid payment method ID".to_string());
+    }
+    
+    if amount_usd <= 0.0 || amount_usd > 1_000_000.0 || !amount_usd.is_finite() {
+        return Err("Invalid amount: Must be between $0.01 and $1,000,000".to_string());
+    }
+    
+    if sender_address.is_empty() || sender_address.len() > 100 {
+        return Err("Invalid sender address".to_string());
+    }
+    
+    if caller == Principal::anonymous() {
+        return Err("Anonymous users cannot create payment requests".to_string());
+    }
+    
+    // SECURITY: Audit logging
+    ic_cdk::println!("AUDIT: Payment request - Method: {}, Amount: ${}, Caller: {}", 
+                     payment_method_id, amount_usd, caller.to_text());
     
     // Find payment method
     let payment_methods = get_supported_payment_methods();

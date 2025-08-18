@@ -164,8 +164,12 @@ pub struct DevTeamBusinessModel {
 
 impl Default for TeamHierarchy {
     fn default() -> Self {
+        // SECURITY: Never use anonymous principal as owner
+        // This should be properly initialized in init() function
+        let placeholder_principal = Principal::from_text("rkp4c-7iaaa-aaaah-qcpwa-cai").unwrap_or(Principal::anonymous());
+        
         TeamHierarchy {
-            owner_principal: Principal::anonymous(),
+            owner_principal: placeholder_principal, // Will be overridden in init()
             senior_managers: Vec::new(),
             operations_managers: Vec::new(), 
             tech_managers: Vec::new(),
@@ -222,10 +226,13 @@ pub struct PoolState {
     // ===== TREASURY MANAGEMENT FIELDS =====
     pub treasury_config: TreasuryConfig,
     pub payment_addresses: Vec<PaymentAddress>,
-    pub treasury_transactions: Vec<TreasuryTransaction>,
+    pub treasury_transactions: Vec<TreasuryTransaction>, // SECURITY: Consider bounded collection
     pub treasury_balances: Vec<TreasuryBalance>,
-    pub withdrawal_requests: Vec<WithdrawalRequest>,
+    pub withdrawal_requests: Vec<WithdrawalRequest>, // SECURITY: Consider bounded collection
     pub last_balance_update: u64,
+    
+    // SECURITY: Storage limits and monitoring
+    pub storage_metrics: StorageMetrics,
 }
 
 impl Default for PoolState {
@@ -253,6 +260,9 @@ impl Default for PoolState {
             treasury_balances: Vec::new(),
             withdrawal_requests: Vec::new(),
             last_balance_update: ic_cdk::api::time(),
+            
+            // SECURITY: Initialize storage monitoring
+            storage_metrics: StorageMetrics::default(),
         }
     }
 }
@@ -507,6 +517,30 @@ pub struct TreasuryHealthReport {
     pub largest_single_balance: f64,         // largest balance in USD
     pub diversification_score: f64,          // how spread across assets/chains
     pub security_alerts: Vec<String>,
+}
+
+// SECURITY: Storage monitoring and limits
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct StorageMetrics {
+    pub max_treasury_transactions: usize,
+    pub max_withdrawal_requests: usize,
+    pub max_payment_addresses: usize,
+    pub current_memory_usage: u64,
+    pub last_cleanup_time: u64,
+    pub transactions_pruned: u64,
+}
+
+impl Default for StorageMetrics {
+    fn default() -> Self {
+        StorageMetrics {
+            max_treasury_transactions: 10000,  // Max 10K transactions
+            max_withdrawal_requests: 1000,     // Max 1K withdrawal requests
+            max_payment_addresses: 100,        // Max 100 payment addresses
+            current_memory_usage: 0,
+            last_cleanup_time: ic_cdk::api::time(),
+            transactions_pruned: 0,
+        }
+    }
 }
 
 impl Default for TreasuryConfig {

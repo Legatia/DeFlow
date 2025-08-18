@@ -1,6 +1,13 @@
 // Subscription tiers
 export type SubscriptionTier = 'standard' | 'premium' | 'pro'
 
+// Tiered pricing structure for nodes
+export interface TieredPricing {
+  standard: { executionFee: number; description: string }
+  premium: { executionFee: number; description: string }
+  pro: { executionFee: number; description: string }
+}
+
 // Comprehensive node type system for DeFlow
 export interface NodeType {
   id: string
@@ -14,6 +21,7 @@ export interface NodeType {
   configSchema: ConfigField[]
   defaultConfig: Record<string, any>
   requiredTier?: SubscriptionTier  // Minimum tier required to use this node (defaults to 'standard')
+  tieredPricing?: TieredPricing    // Optional tiered pricing (mainly for DeFi nodes)
 }
 
 export interface NodePort {
