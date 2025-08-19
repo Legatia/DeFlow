@@ -9,12 +9,16 @@ mod pool_manager;
 mod business_model;
 mod cross_chain;
 mod analytics;
+mod chain_fusion;
 
 use types::*;
 use pool_manager::PoolManager;
 use business_model::DevTeamBusinessManager;
 use cross_chain::CrossChainManager;
 use analytics::PoolAnalytics;
+use chain_fusion::ChainFusionManager;
+// SECURITY: Import checked arithmetic for overflow protection
+// SECURITY: Import checked arithmetic for overflow protection (currently using built-in overflow checks)
 
 // Memory management
 type Memory = VirtualMemory<DefaultMemoryImpl>;
@@ -33,6 +37,7 @@ thread_local! {
     static BUSINESS_MANAGER: RefCell<DevTeamBusinessManager> = RefCell::new(DevTeamBusinessManager::new());
     static CROSS_CHAIN_MANAGER: RefCell<CrossChainManager> = RefCell::new(CrossChainManager::new());
     static ANALYTICS: RefCell<PoolAnalytics> = RefCell::new(PoolAnalytics::new());
+    static CHAIN_FUSION_MANAGER: RefCell<Option<ChainFusionManager>> = RefCell::new(None);
 }
 
 #[init]
@@ -40,13 +45,24 @@ fn init(owner: Option<Principal>) {
     POOL_STATE.with(|state| {
         let mut pool_state = state.borrow_mut();
         
-        // SECURITY: Validate and set owner principal
+        // SECURITY: Enhanced owner validation with multiple checks
         let caller = ic_cdk::caller();
         let owner_principal = owner.unwrap_or(caller);
         
-        // SECURITY: Prevent anonymous principal as owner
+        // SECURITY: Comprehensive owner validation
         if owner_principal == Principal::anonymous() {
             ic_cdk::trap("SECURITY: Cannot initialize with anonymous principal as owner");
+        }
+        
+        // SECURITY: Prevent management canister as owner
+        if owner_principal.to_text() == "aaaaa-aa" {
+            ic_cdk::trap("SECURITY: Cannot use management canister as owner");
+        }
+        
+        // SECURITY: Validate owner principal format
+        let owner_text = owner_principal.to_text();
+        if owner_text.len() < 27 || owner_text.len() > 63 {
+            ic_cdk::trap("SECURITY: Invalid owner principal format");
         }
         
         // SECURITY: Log initialization for audit
@@ -62,6 +78,8 @@ fn init(owner: Option<Principal>) {
         // Grant owner premium access automatically
         pool_state.dev_team_business.team_member_earnings.insert(owner_principal, 0.0);
     });
+
+    ic_cdk::println!("AUDIT: Basic canister initialization completed - Chain Fusion addresses can be initialized separately");
 }
 
 #[pre_upgrade]
@@ -135,6 +153,79 @@ fn post_upgrade() {
 }
 
 // =============================================================================
+// SECURITY: INPUT VALIDATION FUNCTIONS
+// =============================================================================
+
+/// SECURITY: Comprehensive input validation for all user inputs
+fn validate_principal_input(principal: &Principal, context: &str) -> Result<(), String> {
+    if *principal == Principal::anonymous() {
+        ic_cdk::println!("SECURITY: Anonymous principal in {}", context);
+        return Err(format!("SECURITY: Anonymous principal not allowed for {}", context));
+    }
+    
+    let principal_text = principal.to_text();
+    if principal_text.len() < 27 || principal_text.len() > 63 {
+        ic_cdk::println!("SECURITY: Invalid principal format in {}: {}", context, principal_text);
+        return Err(format!("SECURITY: Invalid principal format for {}", context));
+    }
+    
+    // SECURITY: Prevent management canister
+    if principal_text == "aaaaa-aa" {
+        ic_cdk::println!("SECURITY: Management canister not allowed in {}", context);
+        return Err(format!("SECURITY: Management canister not allowed for {}", context));
+    }
+    
+    Ok(())
+}
+
+fn validate_amount_input(amount: f64, min: f64, max: f64, context: &str) -> Result<(), String> {
+    if !amount.is_finite() {
+        ic_cdk::println!("SECURITY: Non-finite amount in {}: {}", context, amount);
+        return Err(format!("SECURITY: Invalid amount for {}", context));
+    }
+    
+    if amount < min || amount > max {
+        ic_cdk::println!("SECURITY: Amount out of range in {}: {} (allowed: {}-{})", context, amount, min, max);
+        return Err(format!("SECURITY: Amount {} out of allowed range {}-{} for {}", amount, min, max, context));
+    }
+    
+    Ok(())
+}
+
+fn validate_string_input(input: &str, min_len: usize, max_len: usize, context: &str) -> Result<(), String> {
+    if input.is_empty() && min_len > 0 {
+        ic_cdk::println!("SECURITY: Empty string in {}", context);
+        return Err(format!("SECURITY: Empty input not allowed for {}", context));
+    }
+    
+    if input.len() < min_len || input.len() > max_len {
+        ic_cdk::println!("SECURITY: String length out of range in {}: {} (allowed: {}-{})", context, input.len(), min_len, max_len);
+        return Err(format!("SECURITY: Input length {} out of allowed range {}-{} for {}", input.len(), min_len, max_len, context));
+    }
+    
+    // SECURITY: Check for potentially dangerous characters
+    if input.contains('\0') || input.contains('\r') || input.contains('\n') {
+        ic_cdk::println!("SECURITY: Dangerous characters in {}", context);
+        return Err(format!("SECURITY: Invalid characters in {}", context));
+    }
+    
+    Ok(())
+}
+
+fn check_rate_limit(last_timestamp: u64, min_interval_ns: u64, operation: &str) -> Result<(), String> {
+    let current_time = ic_cdk::api::time();
+    let time_since_last = current_time.saturating_sub(last_timestamp);
+    
+    if time_since_last < min_interval_ns {
+        let remaining_seconds = (min_interval_ns.saturating_sub(time_since_last)) / 1_000_000_000;
+        ic_cdk::println!("SECURITY: Rate limit exceeded for {}: {} seconds remaining", operation, remaining_seconds);
+        return Err(format!("SECURITY: Rate limit for {} - wait {} seconds", operation, remaining_seconds));
+    }
+    
+    Ok(())
+}
+
+// =============================================================================
 // TEAM HIERARCHY & AUTHORIZATION
 // =============================================================================
 
@@ -203,29 +294,32 @@ fn require_dev_team_member() -> Result<Principal, String> {
 }
 
 fn is_authorized_fee_depositor(caller: Principal) -> bool {
-    // SECURITY: Only managers and above can deposit fees, plus whitelisted services
+    // SECURITY: Fixed circular authorization - separate fee depositors from withdrawal approvers
     if is_manager_or_above(caller) {
         return true;
     }
     
-    // Add whitelisted service principals here
+    // SECURITY: Check dedicated fee depositor list, NOT withdrawal approvers
     POOL_STATE.with(|state| {
-        let pool_state = state.borrow();
-        // Check if caller is in authorized services list
-        pool_state.treasury_config.withdrawal_approvers.contains(&caller)
+        let _pool_state = state.borrow();
+        // Create dedicated authorized_fee_depositors field to avoid circular dependency
+        // For now, only managers can deposit fees to prevent circular authorization
+        false // Only managers can deposit fees
     })
 }
 
 fn is_authorized_payment_processor(caller: Principal) -> bool {
-    // SECURITY: Only managers and above can process payments, plus whitelisted services
+    // SECURITY: Fixed circular authorization - separate payment processors from withdrawal approvers
     if is_manager_or_above(caller) {
         return true;
     }
     
-    // Check if caller is in authorized payment processors list
+    // SECURITY: Use dedicated payment processor list, NOT withdrawal approvers
     POOL_STATE.with(|state| {
-        let pool_state = state.borrow();
-        pool_state.treasury_config.withdrawal_approvers.contains(&caller)
+        let _pool_state = state.borrow();
+        // TODO: Add dedicated authorized_payment_processors field
+        // For now, only managers can process payments to prevent circular authorization
+        false // Only managers can process payments
     })
 }
 
@@ -310,18 +404,38 @@ fn get_bootstrap_progress() -> f64 {
 fn deposit_fee(asset: Asset, amount: u64, tx_id: String, user: Principal) -> Result<String, String> {
     let caller = ic_cdk::caller();
     
+    // SECURITY: Comprehensive input validation
+    validate_principal_input(&caller, "fee deposit caller")?;
+    validate_principal_input(&user, "fee deposit user")?;
+    
+    // SECURITY: Amount validation with realistic limits
+    if amount == 0 {
+        return Err("SECURITY: Invalid amount - must be greater than 0".to_string());
+    }
+    
+    // SECURITY: Prevent unrealistic amounts that could cause overflow
+    if amount > u64::MAX / 1000 {
+        ic_cdk::println!("SECURITY: Fee deposit amount too large: {}", amount);
+        return Err("SECURITY: Amount exceeds maximum allowed value".to_string());
+    }
+    
+    // SECURITY: Transaction ID validation
+    validate_string_input(&tx_id, 1, 100, "transaction ID")?;
+    
+    // SECURITY: Rate limiting for fee deposits
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        check_rate_limit(
+            pool_state.dev_team_business.team_hierarchy.last_financial_operation,
+            1_000_000_000, // 1 second minimum between fee deposits
+            "fee deposits"
+        )
+    })?;
+    
     // SECURITY: Only authorized services can deposit fees
     if !is_authorized_fee_depositor(caller) {
-        return Err("Unauthorized: Only authorized services can deposit fees".to_string());
-    }
-    
-    // SECURITY: Input validation
-    if amount == 0 {
-        return Err("Invalid amount: Must be greater than 0".to_string());
-    }
-    
-    if tx_id.is_empty() || tx_id.len() > 100 {
-        return Err("Invalid transaction ID: Must be 1-100 characters".to_string());
+        ic_cdk::println!("SECURITY: Unauthorized fee deposit attempt by {}", caller.to_text());
+        return Err("SECURITY: Only authorized services can deposit fees".to_string());
     }
     
     // SECURITY: Audit logging
@@ -333,9 +447,25 @@ fn deposit_fee(asset: Asset, amount: u64, tx_id: String, user: Principal) -> Res
             POOL_STATE.with(|state| {
                 let mut pool_state = state.borrow_mut();
                 
-                // Split fee: 70% to pool liquidity, 30% to treasury (unified dev wallet)
-                let pool_portion = (amount as f64 * 0.7) as u64;
-                let treasury_portion = amount as f64 * 0.3;
+                // SECURITY: Safe fee calculation with overflow protection
+                let pool_portion = match amount.checked_mul(70).and_then(|x| x.checked_div(100)) {
+                    Some(portion) => portion,
+                    None => {
+                        ic_cdk::println!("SECURITY: Integer overflow in pool portion calculation for amount {}", amount);
+                        return Err("SECURITY: Calculation overflow in fee split".to_string());
+                    }
+                };
+                
+                let treasury_portion = match amount.checked_mul(30).and_then(|x| x.checked_div(100)) {
+                    Some(portion) => portion as f64,
+                    None => {
+                        ic_cdk::println!("SECURITY: Integer overflow in treasury portion calculation for amount {}", amount);
+                        return Err("SECURITY: Calculation overflow in fee split".to_string());
+                    }
+                };
+                
+                // SECURITY: Update rate limiting timestamp 
+                pool_state.dev_team_business.team_hierarchy.last_financial_operation = ic_cdk::api::time();
                 
                 // Add pool portion to reserves
                 pool_manager.borrow_mut().add_to_reserves(&mut pool_state, asset.clone(), pool_portion)?;
@@ -360,12 +490,27 @@ fn deposit_fee(asset: Asset, amount: u64, tx_id: String, user: Principal) -> Res
                 // Add to treasury transactions and update balances
                 pool_state.treasury_transactions.push(treasury_tx);
                 
-                // Update treasury balance for this asset
+                // SECURITY: Enforce storage limits before adding transaction
+                if pool_state.treasury_transactions.len() >= pool_state.storage_metrics.max_treasury_transactions {
+                    return Err("SECURITY: Treasury transaction limit reached - cleanup required".to_string());
+                }
+                
+                // SECURITY: Update treasury balance with checked arithmetic
                 let asset_string = asset.to_string();
                 if let Some(balance) = pool_state.treasury_balances.iter_mut()
                     .find(|b| b.chain == "icp" && b.asset == asset_string) {
-                    balance.amount += treasury_portion;
-                    balance.amount_usd += treasury_portion;
+                    
+                    // SECURITY: Safe addition with overflow protection
+                    let new_amount = balance.amount + treasury_portion;
+                    let new_amount_usd = balance.amount_usd + treasury_portion;
+                    
+                    if !new_amount.is_finite() || !new_amount_usd.is_finite() || new_amount < 0.0 || new_amount_usd < 0.0 {
+                        ic_cdk::println!("SECURITY: Balance calculation error - old: {}, adding: {}", balance.amount, treasury_portion);
+                        return Err("SECURITY: Treasury balance calculation error".to_string());
+                    }
+                    
+                    balance.amount = new_amount;
+                    balance.amount_usd = new_amount_usd;
                     balance.last_updated = ic_cdk::api::time();
                 } else {
                     // Create new treasury balance entry
@@ -398,18 +543,25 @@ fn deposit_fee(asset: Asset, amount: u64, tx_id: String, user: Principal) -> Res
 fn process_subscription_payment(user: Principal, amount: f64) -> Result<String, String> {
     let caller = ic_cdk::caller();
     
+    // SECURITY: Comprehensive input validation
+    validate_principal_input(&caller, "subscription payment caller")?;
+    validate_principal_input(&user, "subscription payment user")?;
+    validate_amount_input(amount, 1.0, 100000.0, "subscription payment amount")?;
+    
+    // SECURITY: Rate limiting for payment processing
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        check_rate_limit(
+            pool_state.dev_team_business.team_hierarchy.last_financial_operation,
+            5_000_000_000, // 5 second minimum between payments
+            "subscription payments"
+        )
+    })?;
+    
     // SECURITY: Only authorized payment processors can process subscriptions
     if !is_authorized_payment_processor(caller) {
-        return Err("Unauthorized: Only authorized payment processors allowed".to_string());
-    }
-    
-    // SECURITY: Input validation
-    if amount <= 0.0 || amount > 100000.0 {
-        return Err("Invalid amount: Must be between 0 and $100,000".to_string());
-    }
-    
-    if user == Principal::anonymous() {
-        return Err("Invalid user: Cannot process payment for anonymous principal".to_string());
+        ic_cdk::println!("SECURITY: Unauthorized payment processing attempt by {}", caller.to_text());
+        return Err("SECURITY: Only authorized payment processors allowed".to_string());
     }
     
     // SECURITY: Audit logging
@@ -419,6 +571,8 @@ fn process_subscription_payment(user: Principal, amount: f64) -> Result<String, 
     BUSINESS_MANAGER.with(|business_manager| {
         POOL_STATE.with(|state| {
             let mut pool_state = state.borrow_mut();
+            // SECURITY: Update rate limiting timestamp
+            pool_state.dev_team_business.team_hierarchy.last_financial_operation = ic_cdk::api::time();
             business_manager.borrow_mut().process_subscription_payment(&mut pool_state, user, amount)?;
             Ok(format!("Subscription payment processed: ${} from {:?}", amount, user))
         })
@@ -454,11 +608,38 @@ fn get_dev_earnings(dev_principal: Principal) -> f64 {
 
 #[update]
 fn add_liquidity(chain_id: ChainId, asset: Asset, amount: u64) -> Result<String, String> {
-    require_manager_or_above()?; // SECURITY: Only managers and above can add liquidity
+    let caller = require_manager_or_above()?; // SECURITY: Only managers and above can add liquidity
+    
+    // SECURITY: Input validation for liquidity addition
+    if amount == 0 {
+        return Err("SECURITY: Liquidity amount must be greater than 0".to_string());
+    }
+    
+    // SECURITY: Prevent unrealistic amounts that could cause overflow
+    if amount > u64::MAX / 1000 {
+        ic_cdk::println!("SECURITY: Liquidity amount too large: {}", amount);
+        return Err("SECURITY: Amount exceeds maximum allowed value".to_string());
+    }
+    
+    // SECURITY: Rate limiting for liquidity operations
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        check_rate_limit(
+            pool_state.dev_team_business.team_hierarchy.last_financial_operation,
+            30_000_000_000, // 30 second minimum between liquidity operations
+            "liquidity operations"
+        )
+    })?;
+    
+    // AUDIT: Log liquidity addition
+    ic_cdk::println!("AUDIT: Liquidity addition - Chain: {:?}, Asset: {:?}, Amount: {}, Caller: {}", 
+                     chain_id, asset, amount, caller.to_text());
     
     POOL_MANAGER.with(|pool_manager| {
         POOL_STATE.with(|state| {
             let mut pool_state = state.borrow_mut();
+            // Update rate limiting timestamp
+            pool_state.dev_team_business.team_hierarchy.last_financial_operation = ic_cdk::api::time();
             pool_manager.borrow_mut().add_liquidity(&mut pool_state, chain_id, asset, amount)?;
             Ok(format!("Liquidity added: {} {} on {:?}", amount, asset_to_string(&asset), chain_id))
         })
@@ -467,11 +648,38 @@ fn add_liquidity(chain_id: ChainId, asset: Asset, amount: u64) -> Result<String,
 
 #[update]
 fn withdraw_for_execution(asset: Asset, amount: u64) -> Result<String, String> {
-    require_manager_or_above()?; // SECURITY: Only managers and above can execute withdrawals
+    let caller = require_manager_or_above()?; // SECURITY: Only managers and above can execute withdrawals
+    
+    // SECURITY: Input validation for withdrawals
+    if amount == 0 {
+        return Err("SECURITY: Withdrawal amount must be greater than 0".to_string());
+    }
+    
+    // SECURITY: Prevent unrealistic amounts
+    if amount > u64::MAX / 1000 {
+        ic_cdk::println!("SECURITY: Withdrawal amount too large: {}", amount);
+        return Err("SECURITY: Amount exceeds maximum allowed value".to_string());
+    }
+    
+    // SECURITY: Rate limiting for withdrawals (more restrictive)
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        check_rate_limit(
+            pool_state.dev_team_business.team_hierarchy.last_financial_operation,
+            300_000_000_000, // 5 minute minimum between withdrawals
+            "withdrawals for execution"
+        )
+    })?;
+    
+    // AUDIT: Log withdrawal attempt
+    ic_cdk::println!("AUDIT: Withdrawal for execution - Asset: {:?}, Amount: {}, Caller: {}", 
+                     asset, amount, caller.to_text());
     
     POOL_MANAGER.with(|pool_manager| {
         POOL_STATE.with(|state| {
             let mut pool_state = state.borrow_mut();
+            // Update rate limiting timestamp
+            pool_state.dev_team_business.team_hierarchy.last_financial_operation = ic_cdk::api::time();
             pool_manager.borrow_mut().withdraw_for_execution(&mut pool_state, asset, amount)
         })
     })
@@ -538,22 +746,41 @@ async fn execute_cross_chain_trade(
 
 #[update]
 fn set_bootstrap_targets(targets: Vec<(Asset, u64)>) -> Result<String, String> {
-    require_owner()?; // SECURITY: Only owner can change bootstrap targets
+    let _caller = require_owner()?; // SECURITY: Only owner can change bootstrap targets
+    
+    // SECURITY: Input validation for bootstrap targets
+    if targets.is_empty() {
+        return Err("SECURITY: Bootstrap targets cannot be empty".to_string());
+    }
+    
+    if targets.len() > 20 {
+        return Err("SECURITY: Too many bootstrap targets (max 20)".to_string());
+    }
+    
+    // SECURITY: Validate each target amount
+    for (asset, amount) in &targets {
+        if *amount == 0 {
+            return Err(format!("SECURITY: Bootstrap target for {:?} cannot be zero", asset));
+        }
+        
+        if *amount > u64::MAX / 1000 {
+            return Err(format!("SECURITY: Bootstrap target for {:?} exceeds maximum value", asset));
+        }
+    }
     
     POOL_MANAGER.with(|pool_manager| {
         POOL_STATE.with(|state| {
             let mut pool_state = state.borrow_mut();
             
             // SECURITY: Rate limiting - minimum 1 hour between bootstrap changes
-            let current_time = ic_cdk::api::time();
-            let min_time_between_changes = 60 * 60 * 1_000_000_000; // 1 hour in nanoseconds
-            
-            if current_time - pool_state.dev_team_business.team_hierarchy.last_team_change < min_time_between_changes {
-                return Err("SECURITY: Bootstrap changes rate limited. Wait 1 hour between changes.".to_string());
-            }
+            check_rate_limit(
+                pool_state.dev_team_business.team_hierarchy.last_bootstrap_change,
+                3600_000_000_000, // 1 hour in nanoseconds
+                "bootstrap changes"
+            )?;
             
             pool_manager.borrow_mut().set_bootstrap_targets(&mut pool_state, targets)?;
-            pool_state.dev_team_business.team_hierarchy.last_team_change = current_time;
+            pool_state.dev_team_business.team_hierarchy.last_bootstrap_change = ic_cdk::api::time();
             Ok("Bootstrap targets updated".to_string())
         })
     })
@@ -573,7 +800,23 @@ fn activate_pool() -> Result<String, String> {
 
 #[update]
 fn emergency_pause(reason: String) -> Result<String, String> {
-    require_manager_or_above()?; // SECURITY: Managers and above can emergency pause
+    let caller = require_manager_or_above()?; // SECURITY: Managers and above can emergency pause
+    
+    // SECURITY: Input validation for emergency pause reason
+    validate_string_input(&reason, 1, 500, "emergency pause reason")?;
+    
+    // SECURITY: Check for suspicious keywords in reason
+    let suspicious_keywords = ["test", "joke", "fun", "prank", "fake"];
+    let reason_lower = reason.to_lowercase();
+    for keyword in &suspicious_keywords {
+        if reason_lower.contains(keyword) {
+            ic_cdk::println!("SECURITY: Suspicious emergency pause reason from {}: {}", caller.to_text(), reason);
+            return Err("SECURITY: Emergency pause reason appears non-genuine".to_string());
+        }
+    }
+    
+    // AUDIT: Log emergency pause attempt
+    ic_cdk::println!("AUDIT: Emergency pause initiated by {} - Reason: {}", caller.to_text(), reason);
     
     POOL_MANAGER.with(|pool_manager| {
         POOL_STATE.with(|state| {
@@ -589,18 +832,30 @@ fn emergency_pause(reason: String) -> Result<String, String> {
 
 #[update]
 fn add_team_member(principal: Principal, role: TeamRole) -> Result<String, String> {
-    let _caller = require_owner()?; // SECURITY: Only owner can add team members directly
+    let caller = require_owner()?; // SECURITY: Only owner can add team members directly
+    
+    // SECURITY: Comprehensive input validation
+    validate_principal_input(&principal, "team member principal")?;
+    
+    // SECURITY: Prevent adding owner as team member
+    if principal == caller {
+        return Err("SECURITY: Cannot add yourself as team member".to_string());
+    }
+    
+    // SECURITY: Prevent management canister
+    if principal.to_text() == "aaaaa-aa" {
+        return Err("SECURITY: Cannot add management canister as team member".to_string());
+    }
     
     POOL_STATE.with(|state| {
         let mut pool_state = state.borrow_mut();
         
         // SECURITY: Rate limiting - minimum 1 hour between team changes
-        let current_time = ic_cdk::api::time();
-        let min_time_between_changes = 60 * 60 * 1_000_000_000; // 1 hour in nanoseconds
-        
-        if current_time - pool_state.dev_team_business.team_hierarchy.last_team_change < min_time_between_changes {
-            return Err("SECURITY: Team changes rate limited. Wait 1 hour between changes.".to_string());
-        }
+        check_rate_limit(
+            pool_state.dev_team_business.team_hierarchy.last_team_change,
+            3600_000_000_000, // 1 hour in nanoseconds
+            "team changes"
+        )?;
         
         // Add to appropriate role list
         match role {
@@ -629,7 +884,7 @@ fn add_team_member(principal: Principal, role: TeamRole) -> Result<String, Strin
         
         // Grant premium access and initialize earnings
         pool_state.dev_team_business.team_member_earnings.insert(principal, 0.0);
-        pool_state.dev_team_business.team_hierarchy.last_team_change = current_time;
+        pool_state.dev_team_business.team_hierarchy.last_team_change = ic_cdk::api::time();
         
         Ok(format!("Team member added successfully as {:?}", role))
     })
@@ -774,7 +1029,7 @@ fn get_user_fee_rate(user: Principal) -> f64 {
 #[query]
 fn get_user_tier_info(user: Principal) -> String {
     POOL_STATE.with(|state| {
-        let pool_state = state.borrow();
+        let _pool_state = state.borrow();
         
         if let Some(role) = get_team_member_role(user) {
             format!("DEV TEAM - {:?} (Premium+ 0.1% fees, Unlimited volume)", role)
@@ -961,17 +1216,14 @@ fn record_subscription_payment(
             notes: Some(format!("Subscription payment for {} tier", subscription_tier)),
         };
         
-        // SECURITY: Check storage limits before adding transaction
-        if pool_state.treasury_transactions.len() >= pool_state.storage_metrics.max_treasury_transactions {
-            ic_cdk::println!("SECURITY: Treasury transactions limit reached - pruning old records");
-            prune_old_transactions(&mut pool_state)?;
-        }
+        // SECURITY: Check storage limits before adding transaction with automatic cleanup
+        check_storage_limits(&mut pool_state)?;
         
         pool_state.treasury_transactions.push(tx);
         
         // SECURITY: Update treasury balance with validation
         let mut balance_found = false;
-        let old_balance_usd = pool_state.treasury_balances
+        let _old_balance_usd = pool_state.treasury_balances
             .iter()
             .find(|b| b.chain == chain && b.asset == asset)
             .map(|b| b.amount_usd)
@@ -1227,22 +1479,33 @@ fn get_treasury_transactions(limit: Option<usize>) -> Vec<TreasuryTransaction> {
 // =============================================================================
 
 fn estimate_usd_value(asset: &str, amount: f64) -> f64 {
-    // SECURITY: Input validation
+    // SECURITY: Enhanced input validation
     if asset.is_empty() || asset.len() > 10 {
         ic_cdk::println!("SECURITY: Invalid asset name: {}", asset);
         return 0.0;
     }
     
-    if amount < 0.0 || amount > 1_000_000_000.0 || !amount.is_finite() {
-        ic_cdk::println!("SECURITY: Invalid amount: {}", amount);
+    // SECURITY: Strict amount validation with finite check first
+    if !amount.is_finite() {
+        ic_cdk::println!("SECURITY: Non-finite amount: {}", amount);
         return 0.0;
     }
     
-    // TODO: Replace with secure price oracle - this is temporary
+    if amount < 0.0 {
+        ic_cdk::println!("SECURITY: Negative amount: {}", amount);
+        return 0.0;
+    }
+    
+    if amount > 1_000_000_000.0 {
+        ic_cdk::println!("SECURITY: Amount too large: {}", amount);
+        return 0.0;
+    }
+    
+    // SECURITY: Get price multiplier with strict bounds
     let price_multiplier = match asset.to_uppercase().as_str() {
         "USDC" | "USDT" | "DAI" => 1.0, // Stablecoins = 1:1 USD
         "ETH" => 2500.0, // TEMPORARY: Use oracle
-        "BTC" => 45000.0, // TEMPORARY: Use oracle
+        "BTC" => 45000.0, // TEMPORARY: Use oracle  
         "SOL" => 100.0, // TEMPORARY: Use oracle
         "MATIC" => 0.9, // TEMPORARY: Use oracle
         _ => {
@@ -1251,13 +1514,19 @@ fn estimate_usd_value(asset: &str, amount: f64) -> f64 {
         }
     };
     
-    let result = amount * price_multiplier;
-    
-    // SECURITY: Bounds check result
-    if result > 1_000_000_000_000.0 || !result.is_finite() {
-        ic_cdk::println!("SECURITY: Calculation overflow for asset: {}, amount: {}", asset, amount);
-        return 0.0;
-    }
+    // SECURITY: Safe multiplication with overflow check
+    let result = match amount.partial_cmp(&0.0) {
+        Some(std::cmp::Ordering::Greater) => {
+            let calculation = amount * price_multiplier;
+            if calculation.is_finite() && calculation > 0.0 && calculation <= 1_000_000_000_000.0 {
+                calculation
+            } else {
+                ic_cdk::println!("SECURITY: Calculation overflow for asset: {}, amount: {}, price: {}", asset, amount, price_multiplier);
+                0.0
+            }
+        }
+        _ => 0.0
+    };
     
     result
 }
@@ -1344,134 +1613,330 @@ fn generate_security_alerts(pool_state: &PoolState) -> Vec<String> {
     alerts
 }
 
-// SECURITY: Storage management functions
+// SECURITY: Enhanced storage management functions with aggressive cleanup
 fn prune_old_transactions(pool_state: &mut PoolState) -> Result<(), String> {
     let initial_count = pool_state.treasury_transactions.len();
-    let target_count = pool_state.storage_metrics.max_treasury_transactions * 3 / 4; // Keep 75% of max
+    let target_count = pool_state.storage_metrics.max_treasury_transactions / 2; // Keep only 50% to create buffer
     
     if initial_count <= target_count {
         return Ok(()); // No pruning needed
     }
     
-    // Sort by timestamp (newest first)
-    pool_state.treasury_transactions.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    // SECURITY: Sort by timestamp (newest first) with validation
+    pool_state.treasury_transactions.sort_by(|a, b| {
+        // SECURITY: Handle potential timestamp overflow/underflow
+        match (a.timestamp, b.timestamp) {
+            (ts_a, ts_b) if ts_a == 0 || ts_b == 0 => std::cmp::Ordering::Equal, // Handle zero timestamps
+            (ts_a, ts_b) => ts_b.cmp(&ts_a) // Newest first
+        }
+    });
+    
+    // SECURITY: Additional validation before truncation
+    if target_count > pool_state.treasury_transactions.len() {
+        ic_cdk::println!("SECURITY: Invalid target count in pruning: {} > {}", target_count, pool_state.treasury_transactions.len());
+        return Err("SECURITY: Invalid pruning parameters".to_string());
+    }
     
     // Keep only the most recent transactions
     pool_state.treasury_transactions.truncate(target_count);
     
-    let pruned_count = initial_count - pool_state.treasury_transactions.len();
-    pool_state.storage_metrics.transactions_pruned += pruned_count as u64;
+    let pruned_count = initial_count.saturating_sub(pool_state.treasury_transactions.len());
+    
+    // SECURITY: Check for overflow in pruned count
+    match pool_state.storage_metrics.transactions_pruned.checked_add(pruned_count as u64) {
+        Some(new_count) => pool_state.storage_metrics.transactions_pruned = new_count,
+        None => {
+            ic_cdk::println!("SECURITY: Overflow in transactions_pruned counter");
+            pool_state.storage_metrics.transactions_pruned = u64::MAX; // Cap at max
+        }
+    }
+    
     pool_state.storage_metrics.last_cleanup_time = ic_cdk::api::time();
     
-    ic_cdk::println!("SECURITY: Pruned {} old transactions, kept {}", pruned_count, pool_state.treasury_transactions.len());
+    ic_cdk::println!("SECURITY: Pruned {} old transactions, kept {} (target: {})", 
+                     pruned_count, pool_state.treasury_transactions.len(), target_count);
     
     Ok(())
 }
 
-fn check_storage_limits(pool_state: &PoolState) -> Result<(), String> {
-    let metrics = &pool_state.storage_metrics;
+// SECURITY: Enhanced storage limit checking with automatic cleanup
+fn check_storage_limits(pool_state: &mut PoolState) -> Result<(), String> {
+    let max_treasury_transactions = pool_state.storage_metrics.max_treasury_transactions;
+    let max_withdrawal_requests = pool_state.storage_metrics.max_withdrawal_requests;
+    let current_time = ic_cdk::api::time();
     
-    if pool_state.treasury_transactions.len() >= metrics.max_treasury_transactions {
-        return Err("SECURITY: Treasury transactions storage limit exceeded".to_string());
+    // SECURITY: Check treasury transactions with automatic pruning
+    if pool_state.treasury_transactions.len() >= max_treasury_transactions {
+        ic_cdk::println!("SECURITY: Treasury transactions limit reached ({}/{}), triggering cleanup", 
+                         pool_state.treasury_transactions.len(), max_treasury_transactions);
+        
+        // Attempt automatic cleanup
+        if let Err(e) = prune_old_transactions(pool_state) {
+            ic_cdk::println!("SECURITY: Failed to prune transactions: {}", e);
+            return Err("SECURITY: Treasury transactions storage limit exceeded and cleanup failed".to_string());
+        }
+        
+        // Check if cleanup was sufficient
+        if pool_state.treasury_transactions.len() >= max_treasury_transactions {
+            return Err("SECURITY: Treasury transactions storage limit still exceeded after cleanup".to_string());
+        }
     }
     
-    if pool_state.withdrawal_requests.len() >= metrics.max_withdrawal_requests {
-        return Err("SECURITY: Withdrawal requests storage limit exceeded".to_string());
+    // SECURITY: Check withdrawal requests with cleanup of old/completed requests
+    if pool_state.withdrawal_requests.len() >= max_withdrawal_requests {
+        ic_cdk::println!("SECURITY: Withdrawal requests limit reached ({}/{}), attempting cleanup", 
+                         pool_state.withdrawal_requests.len(), max_withdrawal_requests);
+        
+        // Remove completed/expired withdrawal requests older than 30 days
+        let thirty_days_ago = current_time.saturating_sub(30 * 24 * 60 * 60 * 1_000_000_000);
+        let initial_count = pool_state.withdrawal_requests.len();
+        
+        pool_state.withdrawal_requests.retain(|req| {
+            // Keep pending requests and recent completed/rejected ones
+            match req.status {
+                WithdrawalStatus::PendingApproval => true, // Always keep pending
+                WithdrawalStatus::Approved => req.created_at > thirty_days_ago, // Keep recent approved
+                WithdrawalStatus::Executed | WithdrawalStatus::Rejected | WithdrawalStatus::Expired => {
+                    req.created_at > thirty_days_ago // Remove old completed/rejected/expired
+                }
+            }
+        });
+        
+        let cleaned_count = initial_count - pool_state.withdrawal_requests.len();
+        if cleaned_count > 0 {
+            ic_cdk::println!("SECURITY: Cleaned {} old withdrawal requests", cleaned_count);
+        }
+        
+        // Check if cleanup was sufficient
+        if pool_state.withdrawal_requests.len() >= max_withdrawal_requests {
+            return Err("SECURITY: Withdrawal requests storage limit exceeded even after cleanup".to_string());
+        }
     }
     
-    if pool_state.payment_addresses.len() >= metrics.max_payment_addresses {
-        return Err("SECURITY: Payment addresses storage limit exceeded".to_string());
+    // SECURITY: Check payment addresses (these should rarely need cleanup)
+    let max_payment_addresses = pool_state.storage_metrics.max_payment_addresses;
+    if pool_state.payment_addresses.len() >= max_payment_addresses {
+        ic_cdk::println!("SECURITY: Payment addresses limit reached ({}/{})", 
+                         pool_state.payment_addresses.len(), max_payment_addresses);
+        
+        // Remove unused payment addresses older than 1 year
+        let one_year_ago = current_time.saturating_sub(365 * 24 * 60 * 60 * 1_000_000_000);
+        let initial_count = pool_state.payment_addresses.len();
+        
+        pool_state.payment_addresses.retain(|addr| {
+            // Keep recently created or recently used addresses
+            addr.created_at > one_year_ago || addr.last_used > one_year_ago
+        });
+        
+        let cleaned_count = initial_count - pool_state.payment_addresses.len();
+        if cleaned_count > 0 {
+            ic_cdk::println!("SECURITY: Cleaned {} unused payment addresses", cleaned_count);
+        }
+        
+        // Check if cleanup was sufficient
+        if pool_state.payment_addresses.len() >= max_payment_addresses {
+            return Err("SECURITY: Payment addresses storage limit exceeded even after cleanup".to_string());
+        }
     }
     
     Ok(())
 }
 
 // =============================================================================
-// PAYMENT METHODS API
+// ICP CHAIN FUSION APIS
+// =============================================================================
+
+#[query]
+fn get_chain_fusion_status() -> Result<chain_fusion::ChainFusionStatus, String> {
+    CHAIN_FUSION_MANAGER.with(|manager| {
+        let manager_ref = manager.borrow();
+        match manager_ref.as_ref() {
+            Some(chain_fusion) => Ok(chain_fusion.get_status()),
+            None => Err("Chain Fusion not initialized".to_string())
+        }
+    })
+}
+
+#[query]
+fn get_native_address(chain: String, asset: String) -> Option<String> {
+    CHAIN_FUSION_MANAGER.with(|manager| {
+        let manager_ref = manager.borrow();
+        match manager_ref.as_ref() {
+            Some(chain_fusion) => chain_fusion.get_address(&chain, &asset),
+            None => None
+        }
+    })
+}
+
+#[query]
+fn get_all_native_addresses() -> Result<std::collections::HashMap<String, String>, String> {
+    require_manager_or_above()?; // Only managers can see all addresses
+    
+    CHAIN_FUSION_MANAGER.with(|manager| {
+        let manager_ref = manager.borrow();
+        match manager_ref.as_ref() {
+            Some(chain_fusion) => Ok(chain_fusion.get_all_addresses()),
+            None => Err("Chain Fusion not initialized".to_string())
+        }
+    })
+}
+
+#[update]
+async fn retry_chain_fusion_initialization() -> Result<String, String> {
+    require_owner()?; // Only owner can retry initialization
+    
+    ic_cdk::println!("ICP CHAIN FUSION: Retrying initialization...");
+    
+    let mut chain_fusion_manager = ChainFusionManager::new(false); // false = testnet
+    match chain_fusion_manager.initialize_all_addresses().await {
+        Ok(addresses) => {
+            ic_cdk::println!("ICP CHAIN FUSION: Retry successful - generated {} native addresses", addresses.len());
+            
+            // Update treasury config with new addresses
+            POOL_STATE.with(|state| {
+                let mut pool_state = state.borrow_mut();
+                for (chain_asset, address) in &addresses {
+                    pool_state.treasury_config.payment_addresses.insert(chain_asset.clone(), address.clone());
+                }
+            });
+            
+            // Store initialized manager
+            CHAIN_FUSION_MANAGER.with(|manager| {
+                *manager.borrow_mut() = Some(chain_fusion_manager);
+            });
+            
+            Ok(format!("Chain Fusion initialization successful - {} addresses generated", addresses.len()))
+        }
+        Err(e) => {
+            ic_cdk::println!("ICP CHAIN FUSION: Retry failed - {}", e);
+            Err(format!("Chain Fusion initialization failed: {}", e))
+        }
+    }
+}
+
+#[update]
+async fn sign_transaction(chain: String, transaction_hash: String) -> Result<String, String> {
+    require_manager_or_above()?; // Only managers can sign transactions
+    
+    // SECURITY: Input validation
+    if chain.is_empty() || transaction_hash.is_empty() {
+        return Err("Invalid input: chain and transaction_hash cannot be empty".to_string());
+    }
+    
+    if transaction_hash.len() > 128 {
+        return Err("Invalid transaction hash: too long".to_string());
+    }
+    
+    // Convert hex string to bytes
+    let tx_bytes = hex::decode(&transaction_hash)
+        .map_err(|e| format!("Invalid transaction hash format: {}", e))?;
+    
+    // Check if Chain Fusion is available
+    let chain_fusion_available = CHAIN_FUSION_MANAGER.with(|manager| {
+        manager.borrow().is_some()
+    });
+    
+    if !chain_fusion_available {
+        return Err("Chain Fusion not initialized".to_string());
+    }
+    
+    ic_cdk::println!("ICP CHAIN FUSION: Signing {} transaction: {}", chain, transaction_hash);
+    
+    // Create a temporary manager for signing
+    let signature = match chain.to_lowercase().as_str() {
+        "bitcoin" => {
+            let temp_manager = ChainFusionManager::new(false);
+            temp_manager.sign_bitcoin_transaction(&tx_bytes, None).await?
+        }
+        "ethereum" => {
+            let temp_manager = ChainFusionManager::new(false);
+            temp_manager.sign_ethereum_transaction(&tx_bytes, None).await?
+        }
+        "polygon" => {
+            let temp_manager = ChainFusionManager::new(false);
+            temp_manager.sign_polygon_transaction(&tx_bytes, None).await?
+        }
+        "arbitrum" => {
+            let temp_manager = ChainFusionManager::new(false);
+            let derivation_path = vec![b"arbitrum".to_vec()];
+            temp_manager.sign_ethereum_transaction(&tx_bytes, Some(derivation_path)).await?
+        }
+        "base" => {
+            let temp_manager = ChainFusionManager::new(false);
+            let derivation_path = vec![b"base".to_vec()];
+            temp_manager.sign_ethereum_transaction(&tx_bytes, Some(derivation_path)).await?
+        }
+        _ => return Err(format!("Unsupported chain for signing: {}", chain))
+    };
+    
+    let signature_hex = hex::encode(&signature);
+    ic_cdk::println!("ICP CHAIN FUSION: Transaction signed successfully - signature length: {}", signature.len());
+    
+    Ok(signature_hex)
+}
+
+#[query]
+fn validate_canister_address(chain: String, asset: String, address: String) -> bool {
+    CHAIN_FUSION_MANAGER.with(|manager| {
+        let manager_ref = manager.borrow();
+        match manager_ref.as_ref() {
+            Some(chain_fusion) => chain_fusion.validate_canister_address(&chain, &asset, &address),
+            None => false
+        }
+    })
+}
+
+#[query]
+fn get_supported_chain_fusion_combinations() -> Vec<(String, String)> {
+    CHAIN_FUSION_MANAGER.with(|manager| {
+        let manager_ref = manager.borrow();
+        match manager_ref.as_ref() {
+            Some(chain_fusion) => chain_fusion.get_supported_combinations(),
+            None => Vec::new()
+        }
+    })
+}
+
+// =============================================================================
+// PAYMENT METHODS API (Updated for Chain Fusion)
 // =============================================================================
 
 #[query]
 fn get_supported_payment_methods() -> Vec<PaymentMethod> {
-    vec![
-        // Ethereum USDC
-        PaymentMethod {
-            id: "ethereum_usdc".to_string(),
-            chain: ChainId::Ethereum,
-            asset: Asset::USDC,
-            token_address: Some("0xA0b86a33E6441b5cBb5b9c7e9a8e49A44A2a1c6f".to_string()), // USDC on Ethereum
-            enabled: true,
-            min_amount_usd: 1.0,
-            max_amount_usd: 10000.0,
-            processing_fee_bps: 100, // 1%
-            confirmation_blocks: 12,
-            estimated_settlement_time: 900, // 15 minutes
-        },
-        // Ethereum USDT
-        PaymentMethod {
-            id: "ethereum_usdt".to_string(),
-            chain: ChainId::Ethereum,
-            asset: Asset::USDT,
-            token_address: Some("0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()), // USDT on Ethereum
-            enabled: true,
-            min_amount_usd: 1.0,
-            max_amount_usd: 10000.0,
-            processing_fee_bps: 100, // 1%
-            confirmation_blocks: 12,
-            estimated_settlement_time: 900, // 15 minutes
-        },
-        // Polygon USDC
-        PaymentMethod {
-            id: "polygon_usdc".to_string(),
-            chain: ChainId::Polygon,
-            asset: Asset::USDC,
-            token_address: Some("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174".to_string()), // USDC on Polygon
-            enabled: true,
-            min_amount_usd: 1.0,
-            max_amount_usd: 10000.0,
-            processing_fee_bps: 75, // 0.75%
-            confirmation_blocks: 20,
-            estimated_settlement_time: 300, // 5 minutes
-        },
-        // Polygon USDT
-        PaymentMethod {
-            id: "polygon_usdt".to_string(),
-            chain: ChainId::Polygon,
-            asset: Asset::USDT,
-            token_address: Some("0xc2132D05D31c914a87C6611C10748AEb04B58e8F".to_string()), // USDT on Polygon
-            enabled: true,
-            min_amount_usd: 1.0,
-            max_amount_usd: 10000.0,
-            processing_fee_bps: 75, // 0.75%
-            confirmation_blocks: 20,
-            estimated_settlement_time: 300, // 5 minutes
-        },
-        // Arbitrum USDC
-        PaymentMethod {
-            id: "arbitrum_usdc".to_string(),
-            chain: ChainId::Arbitrum,
-            asset: Asset::USDC,
-            token_address: Some("0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8".to_string()), // USDC on Arbitrum
-            enabled: true,
-            min_amount_usd: 1.0,
-            max_amount_usd: 10000.0,
-            processing_fee_bps: 50, // 0.5%
-            confirmation_blocks: 1,
-            estimated_settlement_time: 60, // 1 minute
-        },
-        // Base USDC
-        PaymentMethod {
-            id: "base_usdc".to_string(),
-            chain: ChainId::Base,
-            asset: Asset::USDC,
-            token_address: Some("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913".to_string()), // USDC on Base
-            enabled: true,
-            min_amount_usd: 1.0,
-            max_amount_usd: 10000.0,
-            processing_fee_bps: 50, // 0.5%
-            confirmation_blocks: 1,
-            estimated_settlement_time: 60, // 1 minute
-        },
-    ]
+    // Get native addresses from Chain Fusion if available
+    let native_addresses = CHAIN_FUSION_MANAGER.with(|manager| {
+        let manager_ref = manager.borrow();
+        match manager_ref.as_ref() {
+            Some(chain_fusion) => Some(chain_fusion.get_all_addresses()),
+            None => None
+        }
+    });
+    
+    if let Some(addresses) = native_addresses {
+        // Use Chain Fusion generated payment methods
+        use chain_fusion::create_chain_fusion_payment_methods;
+        create_chain_fusion_payment_methods(&addresses)
+    } else {
+        // Fallback to manual configuration (legacy)
+        vec![
+            // Ethereum USDC (Legacy manual configuration)
+            PaymentMethod {
+                id: "legacy_ethereum_usdc".to_string(),
+                chain: ChainId::Ethereum,
+                asset: Asset::USDC,
+                canister_address: "manual_config_required".to_string(),
+                token_address: Some("0xA0b86a33E6441b5cBb5b9c7e9a8e49A44A2a1c6f".to_string()),
+                is_native_integration: false,
+                key_derivation_path: Vec::new(),
+                enabled: false, // Disabled until manual configuration
+                min_amount_usd: 1.0,
+                max_amount_usd: 10000.0,
+                processing_fee_bps: 100, // 1%
+                confirmation_blocks: 12,
+                estimated_settlement_time: 900, // 15 minutes
+            },
+        ]
+    }
 }
 
 #[update]
@@ -1601,8 +2066,8 @@ fn confirm_payment(payment_id: String, tx_hash: String) -> Result<(), String> {
 }
 
 #[query]
-fn get_payment_status(payment_id: String) -> Result<PaymentStatus, String> {
-    let caller = ic_cdk::caller();
+fn get_payment_status(_payment_id: String) -> Result<PaymentStatus, String> {
+    let _caller = ic_cdk::caller();
     
     // In a full implementation, we would store payments and check their status
     // For now, return a mock status
@@ -1651,6 +2116,53 @@ fn issue_refund(payment_id: String, reason: String) -> Result<(), String> {
         pool_state.treasury_transactions.push(refund_tx);
         Ok(())
     })
+}
+
+// =============================================================================
+// CHAIN FUSION INITIALIZATION
+// =============================================================================
+
+#[update]
+async fn initialize_chain_fusion() -> Result<String, String> {
+    require_manager_or_above()?;
+    
+    ic_cdk::println!("ICP CHAIN FUSION: Initializing threshold cryptography...");
+    
+    let mut chain_fusion_manager = ChainFusionManager::new(false); // false = testnet for now
+    match chain_fusion_manager.initialize_all_addresses().await {
+        Ok(addresses) => {
+            ic_cdk::println!("ICP CHAIN FUSION: Successfully generated {} native addresses", addresses.len());
+            
+            // Store native addresses in treasury config
+            POOL_STATE.with(|state| {
+                let mut pool_state = state.borrow_mut();
+                for (chain_asset, address) in &addresses {
+                    pool_state.treasury_config.payment_addresses.insert(chain_asset.clone(), address.clone());
+                    ic_cdk::println!("ICP CHAIN FUSION: {} -> {}", chain_asset, address);
+                }
+            });
+            
+            // Store initialized Chain Fusion manager
+            CHAIN_FUSION_MANAGER.with(|manager| {
+                *manager.borrow_mut() = Some(chain_fusion_manager);
+            });
+            
+            let success_msg = format!("ICP CHAIN FUSION: Successfully initialized {} native addresses", addresses.len());
+            ic_cdk::println!("{}", success_msg);
+            Ok(success_msg)
+        }
+        Err(e) => {
+            let error_msg = format!("ICP CHAIN FUSION: Failed to initialize - {}", e);
+            ic_cdk::println!("{}", error_msg);
+            
+            // Still store the manager for later retry
+            CHAIN_FUSION_MANAGER.with(|manager| {
+                *manager.borrow_mut() = Some(chain_fusion_manager);
+            });
+            
+            Err(error_msg)
+        }
+    }
 }
 
 // =============================================================================

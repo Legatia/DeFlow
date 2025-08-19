@@ -64,7 +64,7 @@ impl DevTeamBusinessManager {
             let reserve_amount = net_profit * self.distribution_reserve_ratio;
             
             // 50/50 split between developers
-            let per_dev = distributable * 0.5;
+            let _per_dev = distributable * 0.5;
             
             // Distribute earnings to all team members based on role
             let total_members = pool_state.dev_team_business.team_hierarchy.senior_managers.len() + 

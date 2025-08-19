@@ -133,8 +133,11 @@ pub struct TeamHierarchy {
     pub pending_approvals: Vec<TeamChangeRequest>,
     pub next_request_id: u64,
     
-    // SECURITY: Rate limiting
+    // SECURITY: Enhanced rate limiting with separate counters for different operations
     pub last_team_change: u64,
+    pub last_bootstrap_change: u64,
+    pub last_configuration_change: u64,
+    pub last_financial_operation: u64,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -164,19 +167,23 @@ pub struct DevTeamBusinessModel {
 
 impl Default for TeamHierarchy {
     fn default() -> Self {
-        // SECURITY: Never use anonymous principal as owner
-        // This should be properly initialized in init() function
-        let placeholder_principal = Principal::from_text("rkp4c-7iaaa-aaaah-qcpwa-cai").unwrap_or(Principal::anonymous());
+        // SECURITY: Use a safe placeholder that will fail fast if not properly initialized
+        // This ensures the canister cannot operate without proper owner initialization
+        let placeholder_principal = Principal::anonymous();
         
         TeamHierarchy {
-            owner_principal: placeholder_principal, // Will be overridden in init()
+            owner_principal: placeholder_principal, // MUST be overridden in init() or canister will fail
             senior_managers: Vec::new(),
             operations_managers: Vec::new(), 
             tech_managers: Vec::new(),
             developers: Vec::new(),
             pending_approvals: Vec::new(),
             next_request_id: 1,
+            // SECURITY: Initialize all rate limiting timestamps
             last_team_change: ic_cdk::api::time(),
+            last_bootstrap_change: ic_cdk::api::time(),
+            last_configuration_change: ic_cdk::api::time(),
+            last_financial_operation: ic_cdk::api::time(),
         }
     }
 }
@@ -320,6 +327,9 @@ pub struct TreasuryConfig {
     pub hot_wallet_limits: HashMap<String, f64>,    // chain_asset -> max_amount_usd
     pub multi_sig_thresholds: HashMap<String, f64>, // chain_asset -> threshold_usd
     pub withdrawal_approvers: Vec<Principal>,        // who can approve withdrawals
+    // SECURITY: Separate authorization lists to prevent circular dependencies
+    pub authorized_fee_depositors: Vec<Principal>,   // who can deposit fees (separate from withdrawal)
+    pub authorized_payment_processors: Vec<Principal>, // who can process payments (separate from withdrawal)
     pub auto_transfer_enabled: bool,                 // auto transfer to cold storage
     pub cold_storage_threshold: f64,                 // amount to trigger cold transfer
 }
@@ -381,7 +391,10 @@ pub struct PaymentMethod {
     pub id: String,
     pub chain: ChainId,
     pub asset: Asset,
+    pub canister_address: String,         // ICP Chain Fusion generated address
     pub token_address: Option<String>,    // ERC-20/SPL token contract address
+    pub is_native_integration: bool,      // true if using ICP Chain Fusion
+    pub key_derivation_path: Vec<Vec<u8>>, // derivation path for threshold cryptography
     pub enabled: bool,
     pub min_amount_usd: f64,
     pub max_amount_usd: f64,
@@ -533,9 +546,10 @@ pub struct StorageMetrics {
 impl Default for StorageMetrics {
     fn default() -> Self {
         StorageMetrics {
-            max_treasury_transactions: 10000,  // Max 10K transactions
-            max_withdrawal_requests: 1000,     // Max 1K withdrawal requests
-            max_payment_addresses: 100,        // Max 100 payment addresses
+            // SECURITY: Realistic storage limits to prevent DoS attacks
+            max_treasury_transactions: 1000,   // Max 1K transactions (was 10K)
+            max_withdrawal_requests: 100,      // Max 100 withdrawal requests (was 1K)
+            max_payment_addresses: 50,         // Max 50 payment addresses (was 100)
             current_memory_usage: 0,
             last_cleanup_time: ic_cdk::api::time(),
             transactions_pruned: 0,
@@ -550,6 +564,9 @@ impl Default for TreasuryConfig {
             hot_wallet_limits: HashMap::new(),
             multi_sig_thresholds: HashMap::new(),
             withdrawal_approvers: Vec::new(),
+            // SECURITY: Initialize separate authorization lists
+            authorized_fee_depositors: Vec::new(),
+            authorized_payment_processors: Vec::new(),
             auto_transfer_enabled: false,
             cold_storage_threshold: 50000.0, // $50K default
         }
