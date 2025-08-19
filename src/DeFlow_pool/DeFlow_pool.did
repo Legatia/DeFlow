@@ -126,6 +126,9 @@ service : {
   "activate_pool" : () -> (Result);
   "emergency_pause" : (text) -> (Result);
   
+  // Chain Fusion Integration
+  "initialize_chain_fusion" : () -> (Result);
+  
   // Analytics
   "get_pool_analytics" : () -> (text) query;
   "get_chain_distribution" : () -> (vec record { ChainId; float64 }) query;
