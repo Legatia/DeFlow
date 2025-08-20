@@ -1,6 +1,6 @@
-use crate::types::{Workflow, ConfigValue, ValidationError};
+use crate::types::{Workflow, ConfigValue, ValidationError, WorkflowState};
 use crate::storage;
-use ic_cdk::{api, update, query};
+use ic_cdk::{api, update, query, caller};
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
 
@@ -63,6 +63,9 @@ pub fn validate_workflow(workflow: &Workflow) -> Result<(), ValidationError> {
         }
     }
 
+    // Note: Node access validation is handled by frontend for better UX
+    // Backend allows all nodes but execution will check user tier
+
     // Validate node configurations
     for node in &workflow.nodes {
         validate_node_configuration(&node.node_type, &node.configuration)
@@ -98,6 +101,36 @@ pub fn validate_workflow(workflow: &Workflow) -> Result<(), ValidationError> {
 
     Ok(())
 }
+
+// fn validate_node_access(workflow: &Workflow) -> Result<(), ValidationError> {
+//     // Get user's allowed node types
+//     let allowed_node_types = match user_management::get_allowed_node_types() {
+//         Ok(nodes) => nodes,
+//         Err(e) => {
+//             // If user is not registered, they get Standard tier access
+//             if e.contains("User not found") {
+//                 crate::types::SubscriptionTier::Standard.allowed_node_types()
+//             } else {
+//                 return Err(ValidationError::SchemaValidationFailed(format!("Failed to check user access: {}", e)));
+//             }
+//         }
+//     };
+
+//     // Check each node in the workflow
+//     for node in &workflow.nodes {
+//         if !allowed_node_types.contains(&node.node_type) {
+//             return Err(ValidationError::SchemaValidationFailed(
+//                 format!(
+//                     "Access denied: Node type '{}' requires Premium or Pro subscription. Your current tier only allows: {}",
+//                     node.node_type,
+//                     allowed_node_types.join(", ")
+//                 )
+//             ));
+//         }
+//     }
+
+//     Ok(())
+// }
 
 fn detect_cycles(workflow: &Workflow) -> Result<(), ValidationError> {
     let mut graph = std::collections::HashMap::new();
@@ -257,6 +290,9 @@ pub struct WorkflowAnalysis {
 
 #[update]
 pub async fn create_workflow(mut workflow: Workflow) -> Result<String, String> {
+    let principal = caller();
+    let principal_id = principal.to_text();
+    
     if workflow.id.is_empty() {
         workflow.id = generate_id();
     }
@@ -264,6 +300,16 @@ pub async fn create_workflow(mut workflow: Workflow) -> Result<String, String> {
     let current_time = api::time();
     workflow.created_at = current_time;
     workflow.updated_at = current_time;
+    
+    // Set owner to current user
+    workflow.owner = Some(principal_id);
+    
+    // Workflow state is already set from frontend or defaults to Draft
+    
+    // Initialize metadata if not set
+    if workflow.metadata.is_none() {
+        workflow.metadata = Some(crate::types::WorkflowMetadata::default());
+    }
     
     // Comprehensive workflow validation
     validate_workflow(&workflow)
@@ -322,4 +368,168 @@ pub fn validate_workflow_query(workflow: Workflow) -> Result<(), String> {
 #[query]
 pub fn analyze_workflow_query(workflow: Workflow) -> WorkflowAnalysis {
     analyze_workflow(&workflow)
+}
+
+// ===== WORKFLOW STATE MANAGEMENT API =====
+
+#[query]
+pub fn get_user_workflows_by_state(state: WorkflowState) -> Vec<Workflow> {
+    let principal = caller();
+    let principal_id = principal.to_text();
+    
+    storage::WORKFLOWS.with(|workflows| {
+        workflows.borrow().iter()
+            .filter(|(_, workflow)| {
+                workflow.0.owner.as_ref() == Some(&principal_id) &&
+                workflow.0.state == state
+            })
+            .map(|(_, workflow)| workflow.0)
+            .collect()
+    })
+}
+
+#[query] 
+pub fn get_user_drafts() -> Vec<Workflow> {
+    get_user_workflows_by_state(WorkflowState::Draft)
+}
+
+#[query]
+pub fn get_user_published_workflows() -> Vec<Workflow> {
+    get_user_workflows_by_state(WorkflowState::Published)
+}
+
+#[query]
+pub fn get_user_templates() -> Vec<Workflow> {
+    get_user_workflows_by_state(WorkflowState::Template)
+}
+
+#[update]
+pub async fn publish_workflow(workflow_id: String) -> Result<(), String> {
+    let principal = caller();
+    let principal_id = principal.to_text();
+    
+    let mut workflow = storage::get_workflow(&workflow_id)
+        .ok_or_else(|| "Workflow not found".to_string())?;
+    
+    // Verify ownership
+    if workflow.owner.as_ref() != Some(&principal_id) {
+        return Err("Access denied. You can only publish your own workflows.".to_string());
+    }
+    
+    // Change state to published
+    workflow.state = WorkflowState::Published;
+    workflow.active = true;
+    workflow.updated_at = api::time();
+    
+    // Validate before publishing
+    validate_workflow(&workflow)
+        .map_err(|e| format!("Cannot publish invalid workflow: {:?}", e))?;
+    
+    storage::insert_workflow(workflow_id, workflow);
+    Ok(())
+}
+
+#[update]
+pub async fn save_as_template(workflow_id: String, template_name: String, category: String, description: String, is_public: bool) -> Result<String, String> {
+    let principal = caller();
+    let principal_id = principal.to_text();
+    
+    let source_workflow = storage::get_workflow(&workflow_id)
+        .ok_or_else(|| "Source workflow not found".to_string())?;
+    
+    // Verify ownership
+    if source_workflow.owner.as_ref() != Some(&principal_id) {
+        return Err("Access denied. You can only create templates from your own workflows.".to_string());
+    }
+    
+    let current_time = api::time();
+    let template_id = format!("template_{}_{}", principal_id, current_time);
+    
+    // Create template workflow
+    let mut template_workflow = source_workflow.clone();
+    template_workflow.id = template_id.clone();
+    template_workflow.name = template_name;
+    template_workflow.description = Some(description.clone());
+    template_workflow.state = WorkflowState::Template;
+    template_workflow.active = false; // Templates are not executable
+    template_workflow.created_at = current_time;
+    template_workflow.updated_at = current_time;
+    
+    // Set template metadata
+    template_workflow.metadata = Some(crate::types::WorkflowMetadata {
+        template_category: Some(category),
+        template_description: Some(description),
+        usage_count: Some(0),
+        is_public: Some(is_public),
+        original_workflow_id: Some(workflow_id),
+    });
+    
+    storage::insert_workflow(template_id.clone(), template_workflow);
+    Ok(template_id)
+}
+
+#[update]
+pub async fn create_from_template(template_id: String, workflow_name: String) -> Result<String, String> {
+    let principal = caller();
+    let principal_id = principal.to_text();
+    
+    let template = storage::get_workflow(&template_id)
+        .ok_or_else(|| "Template not found".to_string())?;
+    
+    // Verify it's a template
+    if !matches!(template.state, WorkflowState::Template) {
+        return Err("Specified workflow is not a template".to_string());
+    }
+    
+    // Check if template is public or owned by user
+    let can_access = template.metadata
+        .as_ref()
+        .and_then(|m| m.is_public)
+        .unwrap_or(false) || 
+        template.owner.as_ref() == Some(&principal_id);
+        
+    if !can_access {
+        return Err("Access denied. Template is private.".to_string());
+    }
+    
+    let current_time = api::time();
+    let new_workflow_id = generate_id();
+    
+    // Create new workflow from template
+    let mut new_workflow = template.clone();
+    new_workflow.id = new_workflow_id.clone();
+    new_workflow.name = workflow_name;
+    new_workflow.owner = Some(principal_id);
+    new_workflow.state = WorkflowState::Draft; // New workflows start as drafts
+    new_workflow.active = false;
+    new_workflow.created_at = current_time;
+    new_workflow.updated_at = current_time;
+    new_workflow.metadata = Some(crate::types::WorkflowMetadata::default());
+    
+    // Increment template usage count
+    if let Some(mut template_meta) = template.metadata.clone() {
+        template_meta.usage_count = Some(template_meta.usage_count.unwrap_or(0) + 1);
+        let mut updated_template = template;
+        updated_template.metadata = Some(template_meta);
+        storage::insert_workflow(template_id, updated_template);
+    }
+    
+    storage::insert_workflow(new_workflow_id.clone(), new_workflow);
+    Ok(new_workflow_id)
+}
+
+#[query]
+pub fn get_public_templates() -> Vec<Workflow> {
+    storage::WORKFLOWS.with(|workflows| {
+        workflows.borrow().iter()
+            .filter(|(_, workflow)| {
+                matches!(workflow.0.state, WorkflowState::Template) &&
+                workflow.0.metadata
+                    .as_ref()
+                    .and_then(|m| m.is_public)
+                    .unwrap_or(false)
+            })
+            .map(|(_, workflow)| workflow.0)
+            .collect()
+    })
 }

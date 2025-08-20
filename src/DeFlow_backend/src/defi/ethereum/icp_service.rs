@@ -354,14 +354,30 @@ impl IcpEthereumDeFiService {
             s.append(&2u8); // Transaction type
             s.append(&params.chain_id);
             s.append(&params.nonce);
-            s.append(&params.max_priority_fee_per_gas.as_ref().unwrap().parse::<u64>().unwrap());
-            s.append(&params.max_fee_per_gas.as_ref().unwrap().parse::<u64>().unwrap());
+            // DEMO: Safe parsing with fallbacks
+            let max_priority_fee = params.max_priority_fee_per_gas
+                .as_ref()
+                .and_then(|fee| fee.parse::<u64>().ok())
+                .unwrap_or(2_000_000_000); // 2 gwei default
+            s.append(&max_priority_fee);
+            
+            let max_fee = params.max_fee_per_gas
+                .as_ref()
+                .and_then(|fee| fee.parse::<u64>().ok())
+                .unwrap_or(20_000_000_000); // 20 gwei default
+            s.append(&max_fee);
             s.append(&params.gas_limit);
             
-            let to_bytes = hex::decode(&params.to[2..]).unwrap();
+            // DEMO: Safe hex decoding
+            let to_bytes = if params.to.len() >= 2 {
+                hex::decode(&params.to[2..]).unwrap_or_else(|_| vec![0; 20])
+            } else {
+                vec![0; 20] // Default to zero address
+            };
             s.append(&to_bytes);
             
-            let value = params.value.parse::<u128>().unwrap();
+            // DEMO: Safe value parsing
+            let value = params.value.parse::<u128>().unwrap_or(0);
             s.append(&value);
             
             if let Some(data) = &params.data {

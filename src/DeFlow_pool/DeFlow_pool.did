@@ -10,8 +10,8 @@ type ChainId = variant {
   Arbitrum;
   Optimism;
   Polygon;
+  Base;
   Solana;
-  BinanceSmartChain;
   Avalanche;
 };
 
@@ -24,7 +24,6 @@ type Asset = variant {
   SOL;
   MATIC;
   AVAX;
-  BNB;
 };
 
 type PoolPhase = variant {
@@ -126,6 +125,9 @@ service : {
   "set_bootstrap_targets" : (vec record { Asset; nat64 }) -> (Result);
   "activate_pool" : () -> (Result);
   "emergency_pause" : (text) -> (Result);
+  
+  // Chain Fusion Integration
+  "initialize_chain_fusion" : () -> (Result);
   
   // Analytics
   "get_pool_analytics" : () -> (text) query;

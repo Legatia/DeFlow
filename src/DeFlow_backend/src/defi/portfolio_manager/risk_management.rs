@@ -481,7 +481,6 @@ impl PortfolioRiskManager {
             ChainId::Polygon => 35.0,
             ChainId::Solana => 45.0,
             ChainId::Avalanche => 40.0,
-            ChainId::BSC => 38.0,
             _ => 35.0,
         };
 
@@ -490,7 +489,6 @@ impl PortfolioRiskManager {
             DeFiProtocol::Compound => 0.8,
             DeFiProtocol::Uniswap(_) => 1.2,
             DeFiProtocol::SushiSwap => 1.3,
-            DeFiProtocol::PancakeSwap => 1.4,
             _ => 1.0,
         };
 
@@ -525,7 +523,6 @@ impl PortfolioRiskManager {
             DeFiProtocol::Compound => 20.0,  // Low credit risk
             DeFiProtocol::Uniswap(_) => 10.0, // Very low credit risk (AMM)
             DeFiProtocol::SushiSwap => 25.0,  // Medium credit risk
-            DeFiProtocol::PancakeSwap => 30.0, // Medium-high credit risk
             _ => 40.0,                        // Higher risk for unknown protocols
         })
     }

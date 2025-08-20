@@ -488,6 +488,15 @@ pub fn initialize_built_in_nodes() {
         create_transform_node_definition(),
         create_http_request_node_definition(),
         create_timer_node_definition(),
+        // Social Media Integration nodes
+        create_telegram_node_definition(),
+        create_discord_node_definition(),
+        create_twitter_node_definition(),
+        create_facebook_node_definition(),
+        create_email_node_definition(),
+        create_linkedin_node_definition(),
+        create_instagram_node_definition(),
+        create_webhook_node_definition(),
         // Bitcoin DeFi nodes
         create_bitcoin_portfolio_node_definition(),
         create_bitcoin_send_node_definition(),
@@ -1546,5 +1555,432 @@ pub async fn execute_bridge_analysis_node(
             })
         },
         Err(e) => Err(format!("Failed to get bridge options: {}", e)),
+    }
+}
+
+// ================================
+// Social Media Integration Nodes
+// ================================
+
+// Telegram Node - Send messages to Telegram
+fn create_telegram_node_definition() -> NodeDefinition {
+    NodeDefinition {
+        node_type: "telegram".to_string(),
+        name: "Telegram".to_string(),
+        description: "Send messages to Telegram channels or users".to_string(),
+        category: "Social".to_string(),
+        version: "1.0.0".to_string(),
+        input_schema: vec![
+            ParameterSchema {
+                name: "message".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Message to send".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+        output_schema: vec![
+            ParameterSchema {
+                name: "message_id".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Telegram message ID".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+        configuration_schema: vec![
+            ParameterSchema {
+                name: "bot_token".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Telegram bot token".to_string()),
+                required: true,
+                default_value: None,
+            },
+            ParameterSchema {
+                name: "chat_id".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Target chat ID".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+    }
+}
+
+// Discord Node - Send messages to Discord
+fn create_discord_node_definition() -> NodeDefinition {
+    NodeDefinition {
+        node_type: "discord".to_string(),
+        name: "Discord".to_string(),
+        description: "Send messages to Discord channels".to_string(),
+        category: "Social".to_string(),
+        version: "1.0.0".to_string(),
+        input_schema: vec![
+            ParameterSchema {
+                name: "message".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Message to send".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+        output_schema: vec![
+            ParameterSchema {
+                name: "message_id".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Discord message ID".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+        configuration_schema: vec![
+            ParameterSchema {
+                name: "webhook_url".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Discord webhook URL".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+    }
+}
+
+// Twitter Node - Post tweets
+fn create_twitter_node_definition() -> NodeDefinition {
+    NodeDefinition {
+        node_type: "twitter".to_string(),
+        name: "Twitter".to_string(),
+        description: "Post tweets to Twitter".to_string(),
+        category: "Social".to_string(),
+        version: "1.0.0".to_string(),
+        input_schema: vec![
+            ParameterSchema {
+                name: "tweet_text".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Tweet content".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+        output_schema: vec![
+            ParameterSchema {
+                name: "tweet_id".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Posted tweet ID".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+        configuration_schema: vec![
+            ParameterSchema {
+                name: "api_key".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Twitter API key".to_string()),
+                required: true,
+                default_value: None,
+            },
+            ParameterSchema {
+                name: "api_secret".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Twitter API secret".to_string()),
+                required: true,
+                default_value: None,
+            },
+            ParameterSchema {
+                name: "access_token".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Twitter access token".to_string()),
+                required: true,
+                default_value: None,
+            },
+            ParameterSchema {
+                name: "access_token_secret".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Twitter access token secret".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+    }
+}
+
+// Facebook Node - Post to Facebook
+fn create_facebook_node_definition() -> NodeDefinition {
+    NodeDefinition {
+        node_type: "facebook".to_string(),
+        name: "Facebook".to_string(),
+        description: "Post to Facebook pages or profiles".to_string(),
+        category: "Social".to_string(),
+        version: "1.0.0".to_string(),
+        input_schema: vec![
+            ParameterSchema {
+                name: "message".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Post content".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+        output_schema: vec![
+            ParameterSchema {
+                name: "post_id".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Facebook post ID".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+        configuration_schema: vec![
+            ParameterSchema {
+                name: "access_token".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Facebook access token".to_string()),
+                required: true,
+                default_value: None,
+            },
+            ParameterSchema {
+                name: "page_id".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Facebook page ID".to_string()),
+                required: false,
+                default_value: None,
+            },
+        ],
+    }
+}
+
+// Email Node - Send emails
+fn create_email_node_definition() -> NodeDefinition {
+    NodeDefinition {
+        node_type: "email".to_string(),
+        name: "Email".to_string(),
+        description: "Send emails via SMTP".to_string(),
+        category: "Communication".to_string(),
+        version: "1.0.0".to_string(),
+        input_schema: vec![
+            ParameterSchema {
+                name: "subject".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Email subject".to_string()),
+                required: true,
+                default_value: None,
+            },
+            ParameterSchema {
+                name: "body".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Email body".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+        output_schema: vec![
+            ParameterSchema {
+                name: "message_id".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Email message ID".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+        configuration_schema: vec![
+            ParameterSchema {
+                name: "to_email".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Recipient email address".to_string()),
+                required: true,
+                default_value: None,
+            },
+            ParameterSchema {
+                name: "from_email".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Sender email address".to_string()),
+                required: true,
+                default_value: None,
+            },
+            ParameterSchema {
+                name: "smtp_server".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("SMTP server address".to_string()),
+                required: true,
+                default_value: None,
+            },
+            ParameterSchema {
+                name: "smtp_port".to_string(),
+                parameter_type: "number".to_string(),
+                description: Some("SMTP server port".to_string()),
+                required: false,
+                default_value: Some(ConfigValue::Number(587.0)),
+            },
+            ParameterSchema {
+                name: "username".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("SMTP username".to_string()),
+                required: true,
+                default_value: None,
+            },
+            ParameterSchema {
+                name: "password".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("SMTP password".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+    }
+}
+
+// LinkedIn Node - Post to LinkedIn
+fn create_linkedin_node_definition() -> NodeDefinition {
+    NodeDefinition {
+        node_type: "linkedin".to_string(),
+        name: "LinkedIn".to_string(),
+        description: "Post to LinkedIn profiles or company pages".to_string(),
+        category: "Social".to_string(),
+        version: "1.0.0".to_string(),
+        input_schema: vec![
+            ParameterSchema {
+                name: "message".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Post content".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+        output_schema: vec![
+            ParameterSchema {
+                name: "post_id".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("LinkedIn post ID".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+        configuration_schema: vec![
+            ParameterSchema {
+                name: "access_token".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("LinkedIn access token".to_string()),
+                required: true,
+                default_value: None,
+            },
+            ParameterSchema {
+                name: "person_id".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("LinkedIn person ID".to_string()),
+                required: false,
+                default_value: None,
+            },
+        ],
+    }
+}
+
+// Instagram Node - Post to Instagram
+fn create_instagram_node_definition() -> NodeDefinition {
+    NodeDefinition {
+        node_type: "instagram".to_string(),
+        name: "Instagram".to_string(),
+        description: "Post to Instagram via Facebook Graph API".to_string(),
+        category: "Social".to_string(),
+        version: "1.0.0".to_string(),
+        input_schema: vec![
+            ParameterSchema {
+                name: "image_url".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Image URL to post".to_string()),
+                required: true,
+                default_value: None,
+            },
+            ParameterSchema {
+                name: "caption".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Post caption".to_string()),
+                required: false,
+                default_value: None,
+            },
+        ],
+        output_schema: vec![
+            ParameterSchema {
+                name: "media_id".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Instagram media ID".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+        configuration_schema: vec![
+            ParameterSchema {
+                name: "access_token".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Instagram access token".to_string()),
+                required: true,
+                default_value: None,
+            },
+            ParameterSchema {
+                name: "instagram_account_id".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Instagram business account ID".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+    }
+}
+
+// Webhook Node - Send HTTP webhooks
+fn create_webhook_node_definition() -> NodeDefinition {
+    NodeDefinition {
+        node_type: "webhook".to_string(),
+        name: "Webhook".to_string(),
+        description: "Send HTTP webhooks to external services".to_string(),
+        category: "Integration".to_string(),
+        version: "1.0.0".to_string(),
+        input_schema: vec![
+            ParameterSchema {
+                name: "payload".to_string(),
+                parameter_type: "object".to_string(),
+                description: Some("Webhook payload data".to_string()),
+                required: true,
+                default_value: None,
+            },
+        ],
+        output_schema: vec![
+            ParameterSchema {
+                name: "response_status".to_string(),
+                parameter_type: "number".to_string(),
+                description: Some("HTTP response status code".to_string()),
+                required: true,
+                default_value: None,
+            },
+            ParameterSchema {
+                name: "response_body".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("HTTP response body".to_string()),
+                required: false,
+                default_value: None,
+            },
+        ],
+        configuration_schema: vec![
+            ParameterSchema {
+                name: "url".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Webhook URL".to_string()),
+                required: true,
+                default_value: None,
+            },
+            ParameterSchema {
+                name: "method".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("HTTP method (GET, POST, PUT, DELETE)".to_string()),
+                required: false,
+                default_value: Some(ConfigValue::String("POST".to_string())),
+            },
+            ParameterSchema {
+                name: "headers".to_string(),
+                parameter_type: "object".to_string(),
+                description: Some("HTTP headers".to_string()),
+                required: false,
+                default_value: None,
+            },
+        ],
     }
 }

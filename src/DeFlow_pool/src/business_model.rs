@@ -21,12 +21,32 @@ impl DevTeamBusinessManager {
     // =============================================================================
     
     pub fn add_transaction_fee_revenue(&mut self, pool_state: &mut PoolState, amount: f64) -> Result<(), String> {
-        pool_state.dev_team_business.monthly_transaction_fees += amount;
+        // SECURITY: Safe addition with overflow protection
+        if !amount.is_finite() || amount < 0.0 {
+            return Err("SECURITY: Invalid transaction fee amount".to_string());
+        }
+        
+        let new_total = pool_state.dev_team_business.monthly_transaction_fees + amount;
+        if !new_total.is_finite() || new_total > 1_000_000_000.0 { // $1B limit
+            return Err("SECURITY: Transaction fee total exceeds reasonable limits".to_string());
+        }
+        
+        pool_state.dev_team_business.monthly_transaction_fees = new_total;
         Ok(())
     }
     
     pub fn process_subscription_payment(&mut self, pool_state: &mut PoolState, _user: Principal, amount: f64) -> Result<(), String> {
-        pool_state.dev_team_business.monthly_subscription_revenue += amount;
+        // SECURITY: Safe addition with overflow protection
+        if !amount.is_finite() || amount < 0.0 {
+            return Err("SECURITY: Invalid subscription payment amount".to_string());
+        }
+        
+        let new_total = pool_state.dev_team_business.monthly_subscription_revenue + amount;
+        if !new_total.is_finite() || new_total > 1_000_000_000.0 { // $1B limit
+            return Err("SECURITY: Subscription revenue total exceeds reasonable limits".to_string());
+        }
+        
+        pool_state.dev_team_business.monthly_subscription_revenue = new_total;
         
         // Check for profit distribution after each payment
         self.check_and_execute_profit_distribution(pool_state)?;
@@ -35,7 +55,17 @@ impl DevTeamBusinessManager {
     }
     
     pub fn add_enterprise_revenue(&mut self, pool_state: &mut PoolState, amount: f64) -> Result<(), String> {
-        pool_state.dev_team_business.monthly_enterprise_revenue += amount;
+        // SECURITY: Safe addition with overflow protection
+        if !amount.is_finite() || amount < 0.0 {
+            return Err("SECURITY: Invalid enterprise revenue amount".to_string());
+        }
+        
+        let new_total = pool_state.dev_team_business.monthly_enterprise_revenue + amount;
+        if !new_total.is_finite() || new_total > 1_000_000_000.0 { // $1B limit
+            return Err("SECURITY: Enterprise revenue total exceeds reasonable limits".to_string());
+        }
+        
+        pool_state.dev_team_business.monthly_enterprise_revenue = new_total;
         Ok(())
     }
     
@@ -64,7 +94,7 @@ impl DevTeamBusinessManager {
             let reserve_amount = net_profit * self.distribution_reserve_ratio;
             
             // 50/50 split between developers
-            let per_dev = distributable * 0.5;
+            let _per_dev = distributable * 0.5;
             
             // Distribute earnings to all team members based on role
             let total_members = pool_state.dev_team_business.team_hierarchy.senior_managers.len() + 

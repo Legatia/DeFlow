@@ -64,13 +64,21 @@ coverage/
 
 # Environment variables and secrets
 .env
+.env.*
+!.env.example
 .env.local
+.env.development
 .env.development.local
 .env.test.local
+.env.production
 .env.production.local
 *.pem
 *.key
 *.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
 
 # Logs
 logs/
@@ -180,6 +188,31 @@ price-oracles/
 .secrets
 config/secrets/
 *.secret
+**/secrets/
+**/.secrets/
+
+# DeFlow-specific sensitive files
+src/DeFlow_admin/.env
+src/DeFlow_admin/.env.*
+src/DeFlow_frontend/.env
+src/DeFlow_frontend/.env.*
+admin-keys/
+pool-keys/
+canister-keys/
+
+# Internet Identity and NFID auth files
+.ii-identity
+.nfid-keys
+identity.pem
+identity-seed.txt
+
+# Chain Fusion private keys and certificates
+chain-fusion-keys/
+*.threshold-key
+*.ecdsa-key
+bitcoin-keys/
+ethereum-keys/
+solana-keys/
 
 # Local development certificates
 localhost.pem
@@ -302,3 +335,39 @@ local.properties
 # Additional Rust-specific
 rust-project.json
 .rustfmt_cache/
+
+# Security audit and testing files
+security-audit/
+penetration-test-results/
+vulnerability-scans/
+*.security-log
+security-reports/
+audit-logs/
+
+# Mainnet deployment files (sensitive)
+deploy-mainnet.sh
+mainnet-config.json
+production-keys/
+mainnet-identity.pem
+
+# Backup and recovery files
+recovery-phrase.txt
+seed-backup.txt
+wallet-backup.json
+canister-backup/
+
+# Temporary development files
+.tmp/
+.temp/
+dev-notes.md
+test-wallets/
+development-seeds/
+
+# Discord integration guide (contains policy-violating content)
+src/DeFlow_frontend/DISCORD_INTEGRATION_GUIDE.md
+DISCORD_INTEGRATION_GUIDE.md
+
+# Documentation with sensitive information
+DEPLOYMENT_SECRETS.md
+MAINNET_KEYS.md
+ADMIN_PASSWORDS.md

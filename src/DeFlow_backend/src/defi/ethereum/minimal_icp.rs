@@ -38,8 +38,6 @@ impl MinimalIcpEthereumService {
                 EvmChain::Polygon,
                 EvmChain::Base,
                 EvmChain::Avalanche,
-                EvmChain::Sonic,
-                EvmChain::BnbSmartChain,
             ],
         }
     }
@@ -239,8 +237,6 @@ impl MinimalIcpEthereumContext {
                 EvmChain::Polygon,
                 EvmChain::Base,
                 EvmChain::Avalanche,
-                EvmChain::Sonic,
-                EvmChain::BnbSmartChain,
             ],
         }
     }
@@ -264,8 +260,6 @@ mod tests {
         assert!(service.supported_chains.contains(&EvmChain::Polygon));
         assert!(service.supported_chains.contains(&EvmChain::Base));
         assert!(service.supported_chains.contains(&EvmChain::Avalanche));
-        assert!(service.supported_chains.contains(&EvmChain::Sonic));
-        assert!(service.supported_chains.contains(&EvmChain::BnbSmartChain));
     }
 
     #[test]

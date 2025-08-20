@@ -1,0 +1,284 @@
+// Example workflow using the email service
+import emailService, { EmailMessage, EmailTemplates } from '../services/emailService'
+
+// Example: Portfolio alert workflow
+export const portfolioAlertWorkflow = async (
+  providerName: string,
+  userEmail: string,
+  portfolioData: {
+    strategy: string
+    currentValue: number
+    change: number
+    threshold: number
+  }
+) => {
+  try {
+    // Check if change exceeds threshold
+    if (Math.abs(portfolioData.change) >= portfolioData.threshold) {
+      // Generate email content using template
+      const emailContent = EmailTemplates.defiAlert(
+        portfolioData.strategy,
+        portfolioData.currentValue,
+        portfolioData.change
+      )
+
+      // Send alert email
+      const message: EmailMessage = {
+        to: userEmail,
+        subject: emailContent.subject,
+        body_html: emailContent.body_html,
+        body_text: emailContent.body_text
+      }
+
+      const result = await emailService.sendEmail(providerName, message)
+      
+      if (result.success) {
+        console.log('Portfolio alert sent successfully:', result.message_id)
+        return { success: true, messageId: result.message_id }
+      } else {
+        console.error('Failed to send portfolio alert:', result.error)
+        return { success: false, error: result.error }
+      }
+    }
+
+    return { success: true, skipped: true, reason: 'Threshold not exceeded' }
+  } catch (error) {
+    console.error('Portfolio alert workflow error:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
+}
+
+// Example: Workflow completion notification
+export const workflowCompletionNotification = async (
+  providerName: string,
+  userEmail: string,
+  workflowData: {
+    name: string
+    duration: number
+    status: 'success' | 'error'
+    error?: string
+  }
+) => {
+  try {
+    let emailContent
+
+    if (workflowData.status === 'success') {
+      emailContent = EmailTemplates.workflowComplete(
+        workflowData.name,
+        workflowData.duration
+      )
+    } else {
+      emailContent = EmailTemplates.errorAlert(
+        workflowData.name,
+        workflowData.error || 'Unknown error occurred'
+      )
+    }
+
+    const message: EmailMessage = {
+      to: userEmail,
+      subject: emailContent.subject,
+      body_html: emailContent.body_html,
+      body_text: emailContent.body_text
+    }
+
+    const result = await emailService.sendEmail(providerName, message)
+    
+    if (result.success) {
+      console.log('Workflow notification sent:', result.message_id)
+      return { success: true, messageId: result.message_id }
+    } else {
+      console.error('Failed to send workflow notification:', result.error)
+      return { success: false, error: result.error }
+    }
+  } catch (error) {
+    console.error('Workflow notification error:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
+}
+
+// Example: Daily portfolio summary
+export const dailyPortfolioSummary = async (
+  providerName: string,
+  userEmail: string,
+  summaryData: {
+    totalValue: number
+    dailyChange: number
+    activeStrategies: number
+    topPerformer: { name: string; return: number }
+    totalReturn: number
+  }
+) => {
+  try {
+    const message: EmailMessage = {
+      to: userEmail,
+      subject: `📊 Daily Portfolio Summary - ${new Date().toLocaleDateString()}`,
+      body_html: `
+        <h2>📊 Daily Portfolio Summary</h2>
+        <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+        
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 16px 0;">
+          <h3>Portfolio Overview</h3>
+          <p><strong>Total Value:</strong> $${summaryData.totalValue.toFixed(2)}</p>
+          <p><strong>Daily Change:</strong> 
+            <span style="color: ${summaryData.dailyChange >= 0 ? '#16a34a' : '#dc2626'}">
+              ${summaryData.dailyChange >= 0 ? '+' : ''}${summaryData.dailyChange.toFixed(2)}%
+            </span>
+          </p>
+          <p><strong>Active Strategies:</strong> ${summaryData.activeStrategies}</p>
+          <p><strong>Total Return:</strong> 
+            <span style="color: ${summaryData.totalReturn >= 0 ? '#16a34a' : '#dc2626'}">
+              ${summaryData.totalReturn >= 0 ? '+' : ''}$${summaryData.totalReturn.toFixed(2)}
+            </span>
+          </p>
+        </div>
+
+        <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 16px 0;">
+          <h3>🏆 Top Performer</h3>
+          <p><strong>Strategy:</strong> ${summaryData.topPerformer.name}</p>
+          <p><strong>Return:</strong> 
+            <span style="color: ${summaryData.topPerformer.return >= 0 ? '#16a34a' : '#dc2626'}">
+              ${summaryData.topPerformer.return >= 0 ? '+' : ''}${summaryData.topPerformer.return.toFixed(2)}%
+            </span>
+          </p>
+        </div>
+
+        <p style="color: #6b7280; font-size: 14px;">
+          This summary was automatically generated by your DeFlow automation.
+        </p>
+      `,
+      body_text: `Daily Portfolio Summary - ${new Date().toLocaleDateString()}
+
+Portfolio Overview:
+- Total Value: $${summaryData.totalValue.toFixed(2)}
+- Daily Change: ${summaryData.dailyChange >= 0 ? '+' : ''}${summaryData.dailyChange.toFixed(2)}%
+- Active Strategies: ${summaryData.activeStrategies}
+- Total Return: ${summaryData.totalReturn >= 0 ? '+' : ''}$${summaryData.totalReturn.toFixed(2)}
+
+Top Performer:
+- Strategy: ${summaryData.topPerformer.name}
+- Return: ${summaryData.topPerformer.return >= 0 ? '+' : ''}${summaryData.topPerformer.return.toFixed(2)}%
+
+This summary was automatically generated by your DeFlow automation.`
+    }
+
+    const result = await emailService.sendEmail(providerName, message)
+    
+    if (result.success) {
+      console.log('Daily summary sent:', result.message_id)
+      return { success: true, messageId: result.message_id }
+    } else {
+      console.error('Failed to send daily summary:', result.error)
+      return { success: false, error: result.error }
+    }
+  } catch (error) {
+    console.error('Daily summary error:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
+}
+
+// Example: Custom email with attachments
+export const sendCustomEmailWithAttachment = async (
+  providerName: string,
+  emailData: {
+    to: string
+    subject: string
+    body: string
+    attachmentData?: {
+      filename: string
+      content: string // base64
+      content_type: string
+    }
+  }
+) => {
+  try {
+    const message: EmailMessage = {
+      to: emailData.to,
+      subject: emailData.subject,
+      body_html: emailData.body,
+      body_text: emailData.body.replace(/<[^>]*>/g, ''), // Strip HTML for text version
+      attachments: emailData.attachmentData ? [emailData.attachmentData] : undefined
+    }
+
+    const result = await emailService.sendEmail(providerName, message)
+    
+    if (result.success) {
+      console.log('Custom email sent:', result.message_id)
+      return { success: true, messageId: result.message_id }
+    } else {
+      console.error('Failed to send custom email:', result.error)
+      return { success: false, error: result.error }
+    }
+  } catch (error) {
+    console.error('Custom email error:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
+}
+
+// Helper function to generate CSV attachment from data
+export const generateCSVAttachment = (data: any[], filename: string): { filename: string; content: string; content_type: string } => {
+  if (data.length === 0) {
+    throw new Error('No data provided for CSV generation')
+  }
+
+  // Generate CSV content
+  const headers = Object.keys(data[0])
+  const csvContent = [
+    headers.join(','),
+    ...data.map(row => 
+      headers.map(header => {
+        const value = row[header]
+        // Escape quotes and wrap in quotes if contains comma
+        if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+          return `"${value.replace(/"/g, '""')}"`
+        }
+        return value
+      }).join(',')
+    )
+  ].join('\n')
+
+  // Convert to base64
+  const base64Content = btoa(csvContent)
+
+  return {
+    filename: filename.endsWith('.csv') ? filename : `${filename}.csv`,
+    content: base64Content,
+    content_type: 'text/csv'
+  }
+}
+
+// Example usage in a workflow
+export const exampleUsage = async () => {
+  // Setup email provider first
+  emailService.addProvider('main-alerts', {
+    provider: 'sendgrid',
+    credentials: {
+      api_key: 'SG.your-api-key-here'
+    },
+    from_email: 'alerts@yourapp.com',
+    from_name: 'DeFlow Alerts'
+  })
+
+  // Example 1: Portfolio alert
+  await portfolioAlertWorkflow('main-alerts', 'user@example.com', {
+    strategy: 'DeFi Yield Farming',
+    currentValue: 15000,
+    change: 8.5,
+    threshold: 5 // 5% threshold
+  })
+
+  // Example 2: Workflow completion
+  await workflowCompletionNotification('main-alerts', 'user@example.com', {
+    name: 'Daily Portfolio Rebalance',
+    duration: 45,
+    status: 'success'
+  })
+
+  // Example 3: Daily summary
+  await dailyPortfolioSummary('main-alerts', 'user@example.com', {
+    totalValue: 45000,
+    dailyChange: 2.3,
+    activeStrategies: 5,
+    topPerformer: { name: 'Liquidity Pool Strategy', return: 12.5 },
+    totalReturn: 8500
+  })
+}

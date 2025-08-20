@@ -94,6 +94,7 @@ class AuthService {
   private refreshTokens: Map<string, string> = new Map()
 
   constructor() {
+    // SECURITY: Initialize demo users with proper password hashing
     this.initializeDemoUsers()
     this.loadSessionFromStorage()
   }

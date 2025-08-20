@@ -17,8 +17,6 @@ pub enum ChainId {
     Polygon,
     Base,
     Avalanche,
-    Sonic,
-    BSC,
     Solana,
 }
 
@@ -32,8 +30,6 @@ impl ChainId {
             ChainId::Polygon => "Polygon",
             ChainId::Base => "Base",
             ChainId::Avalanche => "Avalanche",
-            ChainId::Sonic => "Sonic",
-            ChainId::BSC => "Binance Smart Chain",
             ChainId::Solana => "Solana",
         }
     }
@@ -41,8 +37,7 @@ impl ChainId {
     pub fn is_ethereum_ecosystem(&self) -> bool {
         matches!(self, 
             ChainId::Ethereum | ChainId::Arbitrum | ChainId::Optimism | 
-            ChainId::Polygon | ChainId::Base | ChainId::Avalanche | 
-            ChainId::Sonic | ChainId::BSC
+            ChainId::Polygon | ChainId::Base | ChainId::Avalanche
         )
     }
 }
@@ -62,7 +57,6 @@ pub enum DeFiProtocol {
     // Layer 2 Specific
     QuickSwap,      // Polygon
     SushiSwap,      // Multi-chain
-    PancakeSwap,    // BSC
     SpookySwap,     // Fantom
     TraderJoe,      // Avalanche
     
@@ -91,7 +85,6 @@ impl fmt::Display for DeFiProtocol {
             DeFiProtocol::Yearn => write!(f, "Yearn"),
             DeFiProtocol::QuickSwap => write!(f, "QuickSwap"),
             DeFiProtocol::SushiSwap => write!(f, "SushiSwap"),
-            DeFiProtocol::PancakeSwap => write!(f, "PancakeSwap"),
             DeFiProtocol::SpookySwap => write!(f, "SpookySwap"),
             DeFiProtocol::TraderJoe => write!(f, "TraderJoe"),
             DeFiProtocol::Raydium => write!(f, "Raydium"),
@@ -381,8 +374,10 @@ impl YieldOptimizer {
             })
             .collect();
 
-        // Sort by score (highest first)
-        scored_strategies.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        // Sort by score (highest first) - DEMO: Safe comparison
+        scored_strategies.sort_by(|a, b| {
+            b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         // Allocate capital using greedy approach with constraints
         let mut allocations = Vec::new();
@@ -493,7 +488,7 @@ impl YieldOptimizer {
                     ChainId::Ethereum => 50.0,      // High gas costs
                     ChainId::Bitcoin => 10.0,       // Lower fees
                     ChainId::Arbitrum | ChainId::Optimism => 5.0, // L2 efficiency
-                    ChainId::Polygon | ChainId::BSC => 1.0,       // Very low costs
+                    ChainId::Polygon => 1.0,       // Very low costs
                     ChainId::Solana => 0.01,        // Extremely low costs
                     _ => 20.0,                      // Default estimate
                 }

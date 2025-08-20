@@ -5,6 +5,12 @@ import { ReactNode, useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import MultiChainWalletComponent from './MultiChainWallet'
 import multiChainWalletService, { MultiChainWallet, SUPPORTED_CHAINS } from '../services/multiChainWalletService'
+import { useEnhancedAuth } from '../contexts/EnhancedAuthContext'
+import { AuthDropdown } from './AuthDropdown'
+import { NotificationDropdown } from './NotificationDropdown'
+import localCacheService from '../services/localCacheService'
+import SubscriptionService, { UserSubscription } from '../services/subscriptionService'
+import { useNavigate } from 'react-router-dom'
 
 interface LayoutProps {
   children: ReactNode
@@ -12,28 +18,57 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation()
+  const navigate = useNavigate()
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
   const [wallet, setWallet] = useState<MultiChainWallet>(multiChainWalletService.getWallet())
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
+  const [subscription, setSubscription] = useState<UserSubscription>(SubscriptionService.getCurrentSubscription())
+  const auth = useEnhancedAuth()
 
   useEffect(() => {
     const handleWalletUpdate = (updatedWallet: MultiChainWallet) => {
       setWallet(updatedWallet)
     }
 
+    const handleSubscriptionUpdate = (updatedSubscription: UserSubscription) => {
+      setSubscription(updatedSubscription)
+    }
+
     multiChainWalletService.addListener(handleWalletUpdate)
+    SubscriptionService.addSubscriptionListener(handleSubscriptionUpdate)
 
     return () => {
       multiChainWalletService.removeListener(handleWalletUpdate)
+      SubscriptionService.removeSubscriptionListener(handleSubscriptionUpdate)
     }
   }, [])
+
+  // Update notification count
+  useEffect(() => {
+    const updateNotificationCount = () => {
+      setUnreadNotifications(localCacheService.getUnreadNotificationCount())
+    }
+    
+    // Initial count
+    updateNotificationCount()
+    
+    // Update every 5 seconds
+    const interval = setInterval(updateNotificationCount, 5000)
+    
+    return () => clearInterval(interval)
+  }, [])
+
+  // Handle subscribe now logic
+  const handleSubscribeNow = () => {
+    navigate('/premium')
+  }
 
   const isActive = (path: string) => {
     return location.pathname === path || (path !== '/' && location.pathname.startsWith(path))
   }
 
   const navItems = [
-    { path: '/', label: 'DeFi Strategies', icon: '💰' },
-    { path: '/dashboard', label: 'General Dashboard', icon: '📊' },
+    { path: '/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/workflows', label: 'Custom Workflows', icon: '⚡' },
     { path: '/executions', label: 'Executions', icon: '📋' },
     { path: '/settings', label: 'Settings', icon: '⚙️' }
@@ -76,7 +111,43 @@ const Layout = ({ children }: LayoutProps) => {
             </h2>
             
             <div className="flex items-center space-x-4">
-              {/* Wallet Status */}
+              {/* User Plan Indicator */}
+              <div className="flex items-center space-x-2">
+                <div className={`w-3 h-3 rounded-full ${SubscriptionService.getSubscriptionColor()}`}></div>
+                <span className="text-sm font-medium text-gray-700">
+                  {SubscriptionService.getSubscriptionDisplayText()}
+                </span>
+                {SubscriptionService.isExpiringSoon() && (
+                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                    {SubscriptionService.getDaysRemaining()} days left
+                  </span>
+                )}
+              </div>
+
+              {/* Notifications */}
+              <NotificationDropdown 
+                unreadCount={unreadNotifications} 
+                onMarkAllRead={() => setUnreadNotifications(0)}
+              />
+
+              {/* Authentication Status */}
+              {auth.isAuthenticated && (
+                <div className="flex items-center space-x-2">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs text-white border-2 border-white ${
+                    auth.authMethod === 'nfid' ? 'bg-purple-600' : 'bg-blue-600'
+                  }`}>
+                    {auth.authMethod === 'nfid' ? 'G' : '∞'}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    <div>
+                      {auth.authMethod === 'nfid' ? 'Google' : 'Internet ID'}: {auth.principal?.toString().slice(0, 8)}...
+                    </div>
+                    <div className="text-xs text-gray-500">Cross-device sync enabled</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Multi-Chain Wallet Status */}
               {wallet.addresses.length > 0 && (
                 <div className="flex items-center space-x-2">
                   <div className="flex -space-x-1">
@@ -100,17 +171,46 @@ const Layout = ({ children }: LayoutProps) => {
                     )}
                   </div>
                   <span className="text-sm text-gray-600">
-                    {wallet.addresses.length} chain{wallet.addresses.length !== 1 ? 's' : ''}
+                    {wallet.addresses.length} chain{wallet.addresses.length !== 1 ? 's' : ''} connected
                   </span>
                 </div>
               )}
 
+              {/* Authentication Actions */}
+              {!auth.isAuthenticated ? (
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={handleSubscribeNow}
+                    className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors flex items-center space-x-2"
+                  >
+                    <span>Subscribe Now</span>
+                  </button>
+                  <AuthDropdown />
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={() => navigate('/premium')}
+                    className="px-3 py-2 text-sm bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors flex items-center space-x-2"
+                  >
+                    <span>⭐</span>
+                    <span>Manage Subscription</span>
+                  </button>
+                  <button 
+                    onClick={() => auth.logout()}
+                    className="px-3 py-2 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
+                  >
+                    <span>Switch to Guest</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Multi-Chain Wallet Management */}
               <button 
                 onClick={() => setIsWalletModalOpen(true)}
                 className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
               >
-                <span>🔗</span>
-                <span>{wallet.addresses.length > 0 ? 'Manage Wallets' : 'Connect Wallet'}</span>
+                <span>{wallet.addresses.length > 0 ? 'Manage Wallets' : 'Connect Wallets'}</span>
               </button>
             </div>
           </div>

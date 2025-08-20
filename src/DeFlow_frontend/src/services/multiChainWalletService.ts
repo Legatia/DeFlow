@@ -29,7 +29,6 @@ export type ChainType =
   | 'Base' 
   | 'Avalanche' 
   | 'Solana' 
-  | 'BSC'
   | 'ICP'
 
 export type WalletType = 
@@ -134,16 +133,6 @@ export const SUPPORTED_CHAINS: Record<ChainType, ChainConfig> = {
     icon: '◉',
     color: '#9945ff',
     supportedWallets: ['Phantom', 'Coinbase']
-  },
-  BSC: {
-    name: 'BNB Smart Chain',
-    chainId: 56,
-    symbol: 'BNB',
-    rpcUrl: 'https://bsc-dataseed.binance.org',
-    explorerUrl: 'https://bscscan.com',
-    icon: '🟡',
-    color: '#f3ba2f',
-    supportedWallets: ['MetaMask', 'WalletConnect', 'Trust']
   },
   ICP: {
     name: 'Internet Computer',
@@ -461,7 +450,6 @@ class MultiChainWalletService {
       case 'Polygon':
       case 'Base':
       case 'Avalanche':
-      case 'BSC':
         return /^0x[a-fA-F0-9]{40}$/.test(address)
       case 'Solana':
         return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)
@@ -484,7 +472,6 @@ class MultiChainWalletService {
       Base: '0.34',
       Avalanche: '12.5',
       Solana: '45.2',
-      BSC: '0.78',
       ICP: '12.5'
     }
     

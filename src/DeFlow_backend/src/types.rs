@@ -13,6 +13,112 @@ pub struct Workflow {
     pub created_at: u64,
     pub updated_at: u64,
     pub active: bool,
+    pub state: WorkflowState,
+    pub owner: Option<String>, // Principal ID of the owner
+    pub tags: Option<Vec<String>>,
+    pub version: Option<String>,
+    pub metadata: Option<WorkflowMetadata>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
+pub enum WorkflowState {
+    Draft,
+    Published,
+    Template,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct WorkflowMetadata {
+    pub template_category: Option<String>,
+    pub template_description: Option<String>,
+    pub usage_count: Option<u64>,
+    pub is_public: Option<bool>,
+    pub original_workflow_id: Option<String>, // For templates created from existing workflows
+}
+
+impl Default for WorkflowState {
+    fn default() -> Self {
+        WorkflowState::Draft
+    }
+}
+
+impl std::fmt::Display for WorkflowState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WorkflowState::Draft => write!(f, "draft"),
+            WorkflowState::Published => write!(f, "published"),
+            WorkflowState::Template => write!(f, "template"),
+        }
+    }
+}
+
+impl Default for WorkflowMetadata {
+    fn default() -> Self {
+        Self {
+            template_category: None,
+            template_description: None,
+            usage_count: None,
+            is_public: Some(false),
+            original_workflow_id: None,
+        }
+    }
+}
+
+impl Default for Workflow {
+    fn default() -> Self {
+        Self {
+            id: "default".to_string(),
+            name: "Default Workflow".to_string(),
+            description: None,
+            nodes: Vec::new(),
+            connections: Vec::new(),
+            triggers: Vec::new(),
+            created_at: 0,
+            updated_at: 0,
+            active: false,
+            state: WorkflowState::default(),
+            owner: None,
+            tags: None,
+            version: None,
+            metadata: None,
+        }
+    }
+}
+
+impl Default for WorkflowNode {
+    fn default() -> Self {
+        Self {
+            id: "default".to_string(),
+            node_type: "default".to_string(),
+            position: NodePosition::default(),
+            configuration: NodeConfiguration::default(),
+            metadata: NodeMetadata::default(),
+        }
+    }
+}
+
+impl Default for NodePosition {
+    fn default() -> Self {
+        Self { x: 0.0, y: 0.0 }
+    }
+}
+
+impl Default for NodeConfiguration {
+    fn default() -> Self {
+        Self {
+            parameters: HashMap::new(),
+        }
+    }
+}
+
+impl Default for NodeMetadata {
+    fn default() -> Self {
+        Self {
+            label: "Default Node".to_string(),
+            description: None,
+            version: "1.0.0".to_string(),
+        }
+    }
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -323,7 +429,7 @@ pub struct ExecutionGraph {
 
 // Zero-downtime architecture types
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
-pub struct WorkflowState {
+pub struct InternalWorkflowState {
     pub active_workflows: Vec<(String, WorkflowExecution)>, // (workflow_id, execution)
     pub scheduled_executions: Vec<(u64, String)>, // (timestamp, workflow_id)
     pub user_balances: Vec<(String, PortfolioState)>, // (principal, portfolio)
@@ -383,7 +489,7 @@ pub struct SystemHealth {
     pub cpu_usage_percent: f64,
 }
 
-impl Default for WorkflowState {
+impl Default for InternalWorkflowState {
     fn default() -> Self {
         Self {
             active_workflows: Vec::new(),
@@ -453,5 +559,371 @@ impl Default for WorkflowRecovery {
                 }
             ],
         }
+    }
+}
+
+// User Management and Subscription System
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct User {
+    pub principal_id: String,
+    pub subscription_tier: SubscriptionTier,
+    pub created_at: u64,
+    pub updated_at: u64,
+    pub monthly_volume: f64,
+    pub total_volume: f64,
+    pub active: bool,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
+pub enum SubscriptionTier {
+    Standard,  // $0/month - Telegram & Discord only
+    Premium,   // $19/month - All integrations
+    Pro,       // $149/month - All integrations + advanced features
+}
+
+impl SubscriptionTier {
+    pub fn allowed_node_types(&self) -> Vec<String> {
+        match self {
+            SubscriptionTier::Standard => vec![
+                "telegram".to_string(),
+                "discord".to_string(),
+                // Core workflow nodes always available
+                "delay".to_string(),
+                "condition".to_string(),
+                "transform".to_string(),
+                "timer".to_string(),
+            ],
+            SubscriptionTier::Premium | SubscriptionTier::Pro => vec![
+                "telegram".to_string(),
+                "discord".to_string(),
+                "twitter".to_string(),
+                "facebook".to_string(),
+                "email".to_string(),
+                "linkedin".to_string(),
+                "instagram".to_string(),
+                "webhook".to_string(),
+                "http_request".to_string(),
+                // Core workflow nodes
+                "delay".to_string(),
+                "condition".to_string(),
+                "transform".to_string(),
+                "timer".to_string(),
+                // DeFi nodes
+                "bitcoin_portfolio".to_string(),
+                "bitcoin_send".to_string(),
+                "bitcoin_address".to_string(),
+                "bitcoin_balance".to_string(),
+                "ethereum_portfolio".to_string(),
+                "ethereum_send".to_string(),
+                "ethereum_address".to_string(),
+                "ethereum_gas_estimate".to_string(),
+                "l2_optimization".to_string(),
+                "bridge_analysis".to_string(),
+            ],
+        }
+    }
+    
+    pub fn monthly_fee(&self) -> f64 {
+        match self {
+            SubscriptionTier::Standard => 0.0,
+            SubscriptionTier::Premium => 19.0,
+            SubscriptionTier::Pro => 149.0,
+        }
+    }
+    
+    pub fn transaction_fee_rate(&self) -> f64 {
+        match self {
+            SubscriptionTier::Standard => 0.0085, // 0.85%
+            SubscriptionTier::Premium => 0.0025,  // 0.25%
+            SubscriptionTier::Pro => 0.001,       // 0.1%
+        }
+    }
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct UserSubscriptionInfo {
+    pub user: User,
+    pub payment_history: Vec<PaymentRecord>,
+    pub usage_stats: UsageStats,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct PaymentRecord {
+    pub id: String,
+    pub amount: f64,
+    pub currency: String,
+    pub payment_date: u64,
+    pub subscription_tier: SubscriptionTier,
+    pub status: PaymentStatus,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum PaymentStatus {
+    Pending,
+    Completed,
+    Failed,
+    Refunded,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct UsageStats {
+    pub total_workflows_created: u32,
+    pub total_executions: u32,
+    pub monthly_executions: u32,
+    pub last_activity: u64,
+    pub preferred_node_types: Vec<String>,
+}
+
+// User struct is already defined above at line 510 - removed duplicate
+
+// User preferences and settings
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct UserPreferences {
+    pub timezone: String,
+    pub language: String,
+    pub default_currency: String,
+    pub auto_save_interval: u64, // seconds
+    pub execution_notifications: bool,
+    pub error_notifications: bool,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct NotificationSettings {
+    pub email_enabled: bool,
+    pub discord_enabled: bool,
+    pub telegram_enabled: bool,
+    pub push_notifications: bool,
+    pub workflow_completion: bool,
+    pub workflow_errors: bool,
+    pub subscription_updates: bool,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct UISettings {
+    pub theme: String,           // "light", "dark", "auto"
+    pub node_palette_position: String, // "left", "right"
+    pub default_view: String,    // "workflows", "templates", "history"
+    pub grid_snap: bool,
+    pub auto_arrange: bool,
+}
+
+// Integration credentials storage
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct IntegrationCredentials {
+    pub user_principal: String,
+    pub integration_type: String, // "twitter", "discord", "telegram", etc.
+    pub credentials: EncryptedCredentials,
+    pub created_at: u64,
+    pub last_used: u64,
+    pub active: bool,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct EncryptedCredentials {
+    pub encrypted_data: Vec<u8>, // Encrypted JSON of actual credentials
+    pub key_id: String,          // Reference to encryption key
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct OAuthToken {
+    pub user_principal: String,
+    pub platform: String,
+    pub access_token: String,    // Should be encrypted
+    pub refresh_token: Option<String>, // Should be encrypted
+    pub expires_at: u64,
+    pub scopes: Vec<String>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct APIConnection {
+    pub user_principal: String,
+    pub connection_id: String,
+    pub connection_name: String,
+    pub api_type: String,        // "rest", "webhook", "custom"
+    pub configuration: String,   // Encrypted JSON configuration
+    pub created_at: u64,
+    pub last_tested: u64,
+    pub status: String,          // "active", "inactive", "error"
+}
+
+// Template system
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct WorkflowTemplate {
+    pub template_id: String,
+    pub creator_principal: String,
+    pub name: String,
+    pub description: String,
+    pub category: String,
+    pub workflow_data: String,   // Serialized workflow definition
+    pub usage_count: u64,
+    pub rating: f64,
+    pub created_at: u64,
+    pub updated_at: u64,
+    pub is_public: bool,
+    pub tags: Vec<String>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct UserSettings {
+    pub user_principal: String,
+    pub preferences: UserPreferences,
+    pub notification_settings: NotificationSettings,
+    pub ui_settings: UISettings,
+    pub created_at: u64,
+    pub updated_at: u64,
+}
+
+// Default implementations
+impl Default for UserPreferences {
+    fn default() -> Self {
+        Self {
+            timezone: "UTC".to_string(),
+            language: "en".to_string(),
+            default_currency: "USD".to_string(),
+            auto_save_interval: 30,
+            execution_notifications: true,
+            error_notifications: true,
+        }
+    }
+}
+
+impl Default for NotificationSettings {
+    fn default() -> Self {
+        Self {
+            email_enabled: true,
+            discord_enabled: false,
+            telegram_enabled: false,
+            push_notifications: true,
+            workflow_completion: true,
+            workflow_errors: true,
+            subscription_updates: true,
+        }
+    }
+}
+
+impl Default for UISettings {
+    fn default() -> Self {
+        Self {
+            theme: "auto".to_string(),
+            node_palette_position: "left".to_string(),
+            default_view: "workflows".to_string(),
+            grid_snap: true,
+            auto_arrange: false,
+        }
+    }
+}
+
+// Additional Default implementations for storage compatibility
+
+impl Default for WorkflowExecution {
+    fn default() -> Self {
+        Self {
+            id: "default".to_string(),
+            workflow_id: "default".to_string(),
+            status: ExecutionStatus::default(),
+            started_at: 0,
+            completed_at: None,
+            trigger_data: None,
+            node_executions: Vec::new(),
+            error_message: None,
+        }
+    }
+}
+
+impl Default for ExecutionStatus {
+    fn default() -> Self {
+        ExecutionStatus::Pending
+    }
+}
+
+impl Default for NodeExecution {
+    fn default() -> Self {
+        Self {
+            node_id: "default".to_string(),
+            status: ExecutionStatus::default(),
+            started_at: None,
+            completed_at: None,
+            input_data: None,
+            output_data: None,
+            error_message: None,
+            retry_count: 0,
+        }
+    }
+}
+
+impl Default for NodeDefinition {
+    fn default() -> Self {
+        Self {
+            node_type: "default".to_string(),
+            name: "Default Node".to_string(),
+            description: "Default node description".to_string(),
+            category: "default".to_string(),
+            version: "1.0.0".to_string(),
+            input_schema: Vec::new(),
+            output_schema: Vec::new(),
+            configuration_schema: Vec::new(),
+        }
+    }
+}
+
+impl Default for ParameterSchema {
+    fn default() -> Self {
+        Self {
+            name: "default".to_string(),
+            parameter_type: "string".to_string(),
+            required: false,
+            description: None,
+            default_value: None,
+        }
+    }
+}
+
+impl Default for ScheduledWorkflow {
+    fn default() -> Self {
+        Self {
+            id: "default".to_string(),
+            workflow_id: "default".to_string(),
+            cron_expression: "0 0 * * *".to_string(),
+            next_execution: 0,
+            active: false,
+            timer_id: None,
+        }
+    }
+}
+
+impl Default for ScheduledExecution {
+    fn default() -> Self {
+        Self {
+            workflow_id: "default".to_string(),
+            next_execution: 0,
+            interval: None,
+            timer_id: None,
+            schedule_type: ScheduleType::default(),
+            metadata: HashMap::new(),
+        }
+    }
+}
+
+impl Default for ScheduleType {
+    fn default() -> Self {
+        ScheduleType::Once
+    }
+}
+
+impl Default for NodeConnection {
+    fn default() -> Self {
+        Self {
+            id: "default".to_string(),
+            source_node_id: "default".to_string(),
+            source_output: "output".to_string(),
+            target_node_id: "default".to_string(),
+            target_input: "input".to_string(),
+        }
+    }
+}
+
+impl Default for WorkflowTrigger {
+    fn default() -> Self {
+        WorkflowTrigger::Manual
     }
 }

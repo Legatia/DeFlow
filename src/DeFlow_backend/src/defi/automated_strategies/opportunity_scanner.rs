@@ -450,8 +450,6 @@ impl OpportunityScanner {
             crate::defi::types::ChainId::Polygon => ChainId::Polygon,
             crate::defi::types::ChainId::Base => ChainId::Base,
             crate::defi::types::ChainId::Avalanche => ChainId::Avalanche,
-            crate::defi::types::ChainId::Custom(name) if name == "Sonic" => ChainId::Sonic,
-            crate::defi::types::ChainId::Custom(name) if name == "BSC" => ChainId::BSC,
             crate::defi::types::ChainId::Custom(_) => ChainId::Ethereum, // Default fallback
             crate::defi::types::ChainId::Solana => ChainId::Solana,
         }
@@ -614,7 +612,6 @@ impl ArbitrageOpportunityScanner {
         self.monitored_dexes = vec![
             "Uniswap".to_string(),
             "SushiSwap".to_string(),
-            "PancakeSwap".to_string(),
             "QuickSwap".to_string(),
         ];
         
@@ -631,7 +628,7 @@ impl ArbitrageOpportunityScanner {
         let current_time = self.get_current_time();
 
         // Scan each chain for arbitrage opportunities
-        for chain in &[ChainId::Ethereum, ChainId::Arbitrum, ChainId::BSC, ChainId::Polygon] {
+        for chain in &[ChainId::Ethereum, ChainId::Arbitrum, ChainId::Polygon] {
             for token_pair in &self.token_pairs {
                 let arb_opportunities = self.scan_token_pair_arbitrage(chain, token_pair).await?;
                 opportunities.extend(arb_opportunities);

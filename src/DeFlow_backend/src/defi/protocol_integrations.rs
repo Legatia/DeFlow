@@ -18,7 +18,6 @@ pub struct DeFiProtocolIntegrations {
     pub aave_integration: AaveIntegration,
     pub compound_integration: CompoundIntegration,
     pub curve_integration: CurveIntegration,
-    pub pancakeswap_integration: PancakeSwapIntegration,
     pub raydium_integration: RaydiumIntegration,
     pub jupiter_integration: JupiterIntegration,
     pub price_oracle: CrossChainPriceOracle,
@@ -35,7 +34,6 @@ impl DeFiProtocolIntegrations {
             aave_integration: AaveIntegration::new(),
             compound_integration: CompoundIntegration::new(),
             curve_integration: CurveIntegration::new(),
-            pancakeswap_integration: PancakeSwapIntegration::new(),
             raydium_integration: RaydiumIntegration::new(),
             jupiter_integration: JupiterIntegration::new(),
             price_oracle: CrossChainPriceOracle::new(),
@@ -59,7 +57,6 @@ impl DeFiProtocolIntegrations {
         self.aave_integration.initialize().await?;
         self.compound_integration.initialize().await?;
         self.curve_integration.initialize().await?;
-        self.pancakeswap_integration.initialize().await?;
         self.raydium_integration.initialize().await?;
         self.jupiter_integration.initialize().await?;
         self.gas_tracker.initialize().await?;
@@ -152,24 +149,6 @@ impl DeFiProtocolIntegrations {
             last_updated: time(),
         }));
 
-        // PancakeSwap opportunities (BSC)
-        let pancake_opportunities = self.pancakeswap_integration.get_farming_opportunities().await?;
-        all_opportunities.extend(pancake_opportunities.into_iter().map(|opp| LiveYieldOpportunity {
-            id: format!("pancakeswap_{}", opp.farm_id),
-            protocol: DeFiProtocol::PancakeSwap,
-            chain: ChainId::Custom("BSC".to_string()),
-            opportunity_type: YieldOpportunityType::YieldFarming,
-            apy: opp.farm_apy,
-            tokens: opp.lp_tokens,
-            pool_address: opp.lp_address,
-            total_liquidity_usd: opp.tvl,
-            min_deposit_usd: 5.0,
-            max_deposit_usd: f64::MAX,
-            risk_factors: opp.risk_score,
-            impermanent_loss_estimate: Some(opp.il_estimate),
-            gas_cost_estimate_usd: 0.5, // BSC has low gas costs
-            last_updated: time(),
-        }));
 
         // Raydium opportunities (Solana)
         let raydium_opportunities = self.raydium_integration.get_yield_opportunities().await?;
@@ -229,7 +208,6 @@ impl DeFiProtocolIntegrations {
             ("aave", "Aave"),
             ("compound", "Compound"),  
             ("curve", "Curve"),
-            ("pancakeswap", "PancakeSwap"),
             ("raydium", "Raydium"),
             ("jupiter", "Jupiter"),
         ];
@@ -242,7 +220,6 @@ impl DeFiProtocolIntegrations {
                 "aave" => self.aave_integration.update_data().await,
                 "compound" => self.compound_integration.update_data().await,
                 "curve" => self.curve_integration.update_data().await,
-                "pancakeswap" => self.pancakeswap_integration.update_data().await,
                 "raydium" => self.raydium_integration.update_data().await,
                 "jupiter" => self.jupiter_integration.update_data().await,
                 _ => Ok(()),
@@ -280,7 +257,6 @@ impl DeFiProtocolIntegrations {
         protocol_health.insert("Aave".to_string(), self.aave_integration.get_health_status());
         protocol_health.insert("Compound".to_string(), self.compound_integration.get_health_status());
         protocol_health.insert("Curve".to_string(), self.curve_integration.get_health_status());
-        protocol_health.insert("PancakeSwap".to_string(), self.pancakeswap_integration.get_health_status());
         protocol_health.insert("Raydium".to_string(), self.raydium_integration.get_health_status());
         protocol_health.insert("Jupiter".to_string(), self.jupiter_integration.get_health_status());
 
@@ -702,23 +678,6 @@ impl CurveIntegration {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct PancakeSwapIntegration;
-
-impl PancakeSwapIntegration {
-    pub fn new() -> Self { Self }
-    pub async fn initialize(&mut self) -> Result<(), IntegrationError> { Ok(()) }
-    pub async fn get_farming_opportunities(&self) -> Result<Vec<PancakeSwapFarmOpportunity>, IntegrationError> { Ok(vec![]) }
-    pub async fn update_data(&mut self) -> Result<(), IntegrationError> { Ok(()) }
-    pub fn get_health_status(&self) -> ProtocolHealthStatus {
-        ProtocolHealthStatus {
-            is_healthy: true,
-            last_successful_update: Some(time()),
-            error_rate_percentage: 2.8,
-            api_response_time_ms: 180,
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct RaydiumIntegration;
@@ -957,16 +916,6 @@ pub struct CurveYieldOpportunity {
     pub risk_factors: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
-pub struct PancakeSwapFarmOpportunity {
-    pub farm_id: String,
-    pub lp_address: String,
-    pub lp_tokens: Vec<String>,
-    pub farm_apy: f64,
-    pub tvl: f64,
-    pub il_estimate: f64,
-    pub risk_score: Vec<String>,
-}
 
 #[derive(Debug, Clone)]
 pub struct RaydiumYieldOpportunity {

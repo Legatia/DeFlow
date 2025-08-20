@@ -433,12 +433,6 @@ pub async fn initialize_demo_strategies() -> Result<String, String> {
          YieldStrategyType::Lending { asset: "DAI".to_string(), variable_rate: false }, 
          6.2, 4, 8_000_000, 200),
         
-        ("pancake_bsc_bnb", DeFiProtocol::PancakeSwap, ChainId::BSC,
-         YieldStrategyType::YieldFarming { 
-             lp_token: "CAKE-BNB-LP".to_string(), 
-             reward_tokens: vec!["CAKE".to_string()] 
-         }, 
-         25.1, 8, 3_000_000, 25),
     ];
     
     for (id, protocol, chain, strategy_type, apy, risk, liquidity, min_deposit) in demo_strategies {
@@ -616,7 +610,7 @@ fn create_mock_arbitrage_opportunities(
     // Create 3 mock opportunities with different chains and profit margins
     let opportunities = vec![
         (ChainId::Ethereum, ChainId::Arbitrum, 0.8, 1.5), // ETH -> ARB
-        (ChainId::Polygon, ChainId::BSC, 1.2, 2.1),       // POLY -> BSC  
+        (ChainId::Polygon, ChainId::Avalanche, 1.2, 2.1), // POLY -> AVAX  
         (ChainId::Solana, ChainId::Avalanche, 0.7, 1.8),  // SOL -> AVAX
     ];
 
@@ -674,7 +668,6 @@ fn is_layerzero_supported(from_chain: &ChainId, to_chain: &ChainId) -> bool {
         ChainId::Arbitrum,
         ChainId::Optimism,
         ChainId::Polygon,
-        ChainId::BSC,
         ChainId::Avalanche,
     ];
     

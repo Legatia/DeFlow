@@ -45,23 +45,24 @@ pub struct DynamicSubscriptionModel {
 
 ```rust
 pub enum BaseSubscriptionTier {
-    Free {
+    Standard {
         monthly_fee: 0.0,
         transaction_fee: 0.0085,       // 0.85% (highest tier for strong subscription incentive)
         features: vec![
-            "Basic workflow automation",
+            "Basic workflow automation (Telegram & Discord nodes only)",
             "Community support",
             "Standard execution speed",
         ],
         volume_limit: None,            // No limits - pay per transaction
-        target_users: "New users, light traders, trial usage",
+        target_users: "New users, light traders, trial usage (limited to Telegram & Discord integrations)",
     },
     
-    Starter {
+    Premium {
         monthly_fee: 19.0,             // $19/month
         transaction_fee: 0.0025,       // 0.25% (70% fee savings vs 0.85% free tier)
         features: vec![
-            "All Free features",
+            "All Standard features",
+            "Full node access (Twitter, Facebook, Email, LinkedIn, etc.)",
             "Priority execution queue",
             "Email support (24h response)",
             "Basic analytics dashboard",
@@ -71,26 +72,15 @@ pub enum BaseSubscriptionTier {
         target_users: "Active DeFi users, moderate volume traders",
     },
     
-    Premium {
-        monthly_fee: 49.0,             // $49/month
-        transaction_fee: 0.001,        // 0.1% (88% fee savings vs 0.85% free tier)
-        features: vec![
-            "All Starter features",
-            "Advanced analytics & insights",
-            "24/7 chat support",
-            "Custom notification settings",
-            "Strategy backtesting",
-        ],
-        volume_limit: None,            // No limits - unlimited usage
-        break_even_volume: 6_533.0,    // Break even at $6,533 monthly
-        target_users: "Serious traders, small funds, high-volume users",
-    },
-    
     Pro {
         monthly_fee: 149.0,            // $149/month
-        transaction_fee: 0.001,        // 0.1% (same as Premium - differentiated by features)
+        transaction_fee: 0.001,        // 0.1% (differentiated by advanced features)
         features: vec![
             "All Premium features",
+            "Advanced analytics & insights",
+            "24/7 chat support", 
+            "Custom notification settings",
+            "Strategy backtesting",
             "Full API access",
             "Custom strategy development",
             "Portfolio insurance options",
@@ -304,7 +294,7 @@ pub struct SmallTraderAnalysis {
     
     tier_comparison: vec![
         TierCost {
-            tier_name: "Free",
+            tier_name: "Standard",
             subscription_cost: 0.0,
             transaction_cost: 42.50,    // $5K × 0.85% = $42.50
             total_monthly_cost: 42.50,
@@ -312,27 +302,27 @@ pub struct SmallTraderAnalysis {
             recommendation: "Expensive - strongly consider upgrading",
         },
         TierCost {
-            tier_name: "Starter",
+            tier_name: "Standard",
             subscription_cost: 19.0,
             transaction_cost: 12.50,    // $5K × 0.25% = $12.50
-            total_monthly_cost: 31.50,  // $11 savings vs Free
+            total_monthly_cost: 31.50,  // $11 savings vs Standard
             effective_fee_rate: 0.0063, // 0.63%
-            recommendation: "Good value - saves $11/month vs Free",
+            recommendation: "Good value - saves $11/month vs Standard",
         },
         TierCost {
             tier_name: "Premium",
             subscription_cost: 49.0,
             transaction_cost: 5.0,      // $5K × 0.1% = $5
-            total_monthly_cost: 54.0,   // More expensive than Starter at low volume
+            total_monthly_cost: 54.0,   // More expensive than Standard at low volume
             effective_fee_rate: 0.0108, // 1.08%
             recommendation: "Wait until $6.5K+ volume for break-even, but no volume limits!",
         },
     ],
     
     growth_projection: GrowthProjection {
-        if_volume_doubles: "At $10K volume, Starter saves $41/month, Premium saves $36/month vs Free",
-        upgrade_trigger: "Consider Starter at $3,167+ volume, Premium at $6,533+ volume",
-        notification_threshold: 3_000.0, // Notify when approaching Starter break-even
+        if_volume_doubles: "At $10K volume, Standard saves $41/month, Premium saves $36/month vs Standard",
+        upgrade_trigger: "Consider Standard at $3,167+ volume, Premium at $6,533+ volume",
+        notification_threshold: 3_000.0, // Notify when approaching Standard break-even
         premium_notification: 6_000.0,   // Notify when approaching Premium break-even
     },
 }
@@ -350,25 +340,25 @@ pub struct ActiveTraderAnalysis {
     
     tier_comparison: vec![
         TierCost {
-            tier_name: "Free",
+            tier_name: "Standard",
             subscription_cost: 0.0,
             transaction_cost: 212.50,   // $25K × 0.85% = $212.50
             total_monthly_cost: 212.50,
             effective_fee_rate: 0.0085, // 0.85%
         },
         TierCost {
-            tier_name: "Starter",
+            tier_name: "Standard",
             subscription_cost: 19.0,
             transaction_cost: 62.50,    // $25K × 0.25% = $62.50
-            total_monthly_cost: 81.50,  // $131 savings vs Free!
+            total_monthly_cost: 81.50,  // $131 savings vs Standard!
             effective_fee_rate: 0.00326, // 0.326%
-            recommendation: "Great value - massive savings vs Free tier",
+            recommendation: "Great value - massive savings vs Standard tier",
         },
         TierCost {
             tier_name: "Premium",
             subscription_cost: 49.0,
             transaction_cost: 25.0,     // $25K × 0.1% = $25
-            total_monthly_cost: 74.0,   // $138.50 savings vs Free, best value!
+            total_monthly_cost: 74.0,   // $138.50 savings vs Standard, best value!
             effective_fee_rate: 0.00296, // 0.296%
             recommendation: "Optimal - best savings and features",
         },
@@ -376,8 +366,8 @@ pub struct ActiveTraderAnalysis {
     
     recommendation_engine_output: {
         primary_recommendation: "Premium tier",
-        reasoning: "Saves $138.50/month vs Free, only $7.50 more than Starter for much better features",
-        upgrade_consideration: "Premium provides 88% fee savings vs Free and advanced features",
+        reasoning: "Saves $138.50/month vs Standard, only $7.50 more than Standard for much better features",
+        upgrade_consideration: "Premium provides 88% fee savings vs Standard and advanced features",
         user_choice: "Premium is optimal - best savings and feature set",
     },
 }
@@ -395,7 +385,7 @@ pub struct HighVolumeTraderAnalysis {
     
     tier_comparison_with_discounts: vec![
         TierCost {
-            tier_name: "Free",
+            tier_name: "Standard",
             subscription_cost: 0.0,
             transaction_cost: 1700.0,   // $200K × 0.85% = $1,700
             total_monthly_cost: 1700.0,
@@ -403,18 +393,18 @@ pub struct HighVolumeTraderAnalysis {
             recommendation: "Prohibitively expensive - upgrade immediately",
         },
         TierCost {
-            tier_name: "Starter",
+            tier_name: "Standard",
             subscription_cost: 17.10,   // $19 × 0.9 (10% volume discount)
             transaction_cost: 480.0,    // $200K × 0.25% - 0.01% reduction = 0.24%
-            total_monthly_cost: 497.10, // $1,203 savings vs Free!
+            total_monthly_cost: 497.10, // $1,203 savings vs Standard!
             effective_fee_rate: 0.002486, // 0.2486%
-            recommendation: "Massive savings vs Free tier",
+            recommendation: "Massive savings vs Standard tier",
         },
         TierCost {
             tier_name: "Premium",
             subscription_cost: 44.10,   // $49 × 0.9 (10% volume discount)
             transaction_cost: 180.0,    // $200K × 0.1% - 0.01% reduction = 0.09%
-            total_monthly_cost: 224.10, // $1,476 savings vs Free! Best value
+            total_monthly_cost: 224.10, // $1,476 savings vs Standard! Best value
             effective_fee_rate: 0.001121, // 0.1121%
             recommendation: "Optimal - massive savings with premium features",
         },
@@ -422,7 +412,7 @@ pub struct HighVolumeTraderAnalysis {
             tier_name: "Pro",
             subscription_cost: 134.10,  // $149 × 0.9 (10% volume discount)
             transaction_cost: 180.0,    // $200K × 0.1% - 0.01% reduction = 0.09%
-            total_monthly_cost: 314.10, // $1,386 savings vs Free, premium features
+            total_monthly_cost: 314.10, // $1,386 savings vs Standard, premium features
             effective_fee_rate: 0.001571, // 0.1571%
             recommendation: "Excellent savings with advanced features",
         },
@@ -449,7 +439,7 @@ pub struct WhaleTraderAnalysis {
     
     tier_comparison_with_max_discounts: vec![
         TierCost {
-            tier_name: "Free",
+            tier_name: "Standard",
             subscription_cost: 0.0,
             transaction_cost: 17_000.0, // $2M × 0.85% = $17,000
             total_monthly_cost: 17_000.0,
@@ -460,15 +450,15 @@ pub struct WhaleTraderAnalysis {
             tier_name: "Premium",
             subscription_cost: 24.50,   // $49 × 0.5 (50% volume discount at $1M+)
             transaction_cost: 1_800.0,  // $2M × (0.1% - 0.01% total reductions) = 0.09%
-            total_monthly_cost: 1_824.50, // $15,176 savings vs Free!
+            total_monthly_cost: 1_824.50, // $15,176 savings vs Standard!
             effective_fee_rate: 0.000912, // 0.0912%
-            recommendation: "Massive savings vs Free tier",
+            recommendation: "Massive savings vs Standard tier",
         },
         TierCost {
             tier_name: "Pro",
             subscription_cost: 74.50,   // $149 × 0.5 (50% volume discount)
             transaction_cost: 1_800.0,  // $2M × (0.1% - 0.01% total reductions) = 0.09%
-            total_monthly_cost: 1_874.50, // $15,126 savings vs Free
+            total_monthly_cost: 1_874.50, // $15,126 savings vs Standard
             effective_fee_rate: 0.000937, // 0.0937%
             recommendation: "Premium features with massive savings",
         },
@@ -476,7 +466,7 @@ pub struct WhaleTraderAnalysis {
             tier_name: "Enterprise",
             subscription_cost: 1_000.0, // Negotiated custom pricing example
             transaction_cost: 1_000.0,  // $2M × 0.05% = 0.05%
-            total_monthly_cost: 2_000.0, // $15,000 savings vs Free!
+            total_monthly_cost: 2_000.0, // $15,000 savings vs Standard!
             effective_fee_rate: 0.001,  // 0.1%
             additional_benefits: vec![
                 "Dedicated account manager",
@@ -576,8 +566,8 @@ pub struct FlexiblePaymentOptions {
             starter_tier_cost: 56.50, // $19 + ($15K × 0.25%) = $56.50
             premium_tier_cost: 64.0,  // $49 + ($15K × 0.1%) = $64
             free_tier_cost: 127.50,   // $15K × 0.85% = $127.50
-            savings_vs_free: 52.50,  // $52.50 savings vs Free tier
-            note: "Balanced middle ground between Free (0.85%) and subscribed tiers",
+            savings_vs_free: 52.50,  // $52.50 savings vs Standard tier
+            note: "Balanced middle ground between Standard (0.85%) and subscribed tiers",
         },
     },
     
@@ -758,7 +748,7 @@ pub struct UserSubscriptionAnalytics {
 - **Upgrade/Downgrade Rates**: Natural tier progression patterns
 
 ### **Optimization Metrics**
-- **Savings Realization**: How much users save vs Free tier
+- **Savings Realization**: How much users save vs Standard tier
 - **Break-even Achievement**: % of users reaching tier break-even points
 - **Volume Growth Correlation**: Subscription tier impact on trading volume growth
 - **Recommendation Accuracy**: How often tier recommendations prove optimal
@@ -827,14 +817,14 @@ DeFlow's high-threshold subscription design maximizes both user value and platfo
 ✅ **User Trust**: No surprise blocks or forced upgrades due to success  
 
 ### **🔄 Dynamic Optimization Benefits**:
-✅ **Much Lower Break-even Points**: Starter tier pays for itself at just $3.2K volume  
+✅ **Much Lower Break-even Points**: Standard tier pays for itself at just $3.2K volume  
 ✅ **Automatic Recommendations**: Platform suggests optimal tier (usually any subscription!)  
 ✅ **Volume Rewards**: Discounts and fee reductions for high volume  
-✅ **Massive Free Tier Avoidance**: $1000s saved monthly by any subscription  
+✅ **Massive Standard Tier Avoidance**: $1000s saved monthly by any subscription  
 ✅ **Strong Conversion Incentives**: 4x savings (0.8% → 0.2%) drives upgrades  
 
 ### **💡 Business Model Advantages with No-Limits Structure**:
-✅ **70% Higher Free User Revenue**: 0.85% vs 0.5% dramatically increases pool funds  
+✅ **70% Higher Standard User Revenue**: 0.85% vs 0.5% dramatically increases pool funds  
 ✅ **Unlimited Revenue Potential**: No caps mean high-volume users pay proportionally more  
 ✅ **Feature-Driven Conversions**: Users upgrade for capabilities, not forced by limits  
 ✅ **2.8x Pool Growth Rate**: Unlimited usage + higher fees accelerate liquidity growth  

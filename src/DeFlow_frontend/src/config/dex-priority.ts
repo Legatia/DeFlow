@@ -162,22 +162,6 @@ export const DEX_PRIORITIES: Record<string, DexInfo[]> = {
     }
   ],
   
-  'BSC': [
-    {
-      name: 'PancakeSwap',
-      priority: 1,
-      website: 'https://pancakeswap.finance',
-      fee: '0.25%',
-      features: ['Native to BSC', 'CAKE Rewards', 'High Volume']
-    },
-    {
-      name: 'Venus',
-      priority: 2,
-      website: 'https://app.venus.io',
-      fee: 'Variable',
-      features: ['Money Market', 'Lending/Borrowing', 'XVS Token']
-    }
-  ],
   
   'ICP': [
     {
@@ -194,13 +178,6 @@ export const DEX_PRIORITIES: Record<string, DexInfo[]> = {
       fee: '0.3%',
       features: ['Chain Fusion', 'Multi-chain', 'Zero Gas', 'Bridgeless']
     },
-    {
-      name: 'Sonic',
-      priority: 3,
-      website: 'https://sonic.ooo',
-      fee: '0.3%',
-      features: ['Native ICP', 'DeFi Suite', 'SONIC Token']
-    }
   ]
 }
 

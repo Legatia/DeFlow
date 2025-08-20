@@ -19,6 +19,24 @@
         "src/DeFlow_frontend/dist"
       ],
       "type": "assets"
+    },
+    "DeFlow_admin": {
+      "dependencies": [
+        "DeFlow_pool"
+      ],
+      "source": [
+        "src/DeFlow_admin/dist"
+      ],
+      "type": "assets"
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8080",
+      "type": "ephemeral",
+      "replica": {
+        "subnet_type": "application"
+      }
     }
   },
   "defaults": {

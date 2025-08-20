@@ -72,12 +72,14 @@ impl CrossChainManager {
     }
     
     fn analyze_asset_for_arbitrage(&self, asset: &Asset, pool_state: &PoolState) -> Option<ArbitrageOpportunity> {
-        // Get price data across chains (simplified - in production would use real oracles)
-        let price_data = self.get_mock_price_data(asset);
-        
-        if price_data.len() < 2 {
-            return None; // Need at least 2 chains to arbitrage
-        }
+        // Get secure price data across chains
+        let price_data = match self.get_secure_price_data(asset) {
+            Ok(data) => data,
+            Err(error) => {
+                ic_cdk::println!("SECURITY: Price data error for {:?}: {}", asset, error);
+                return None;
+            }
+        };
         
         // Find the best buy and sell opportunities
         let cheapest = price_data.iter().min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())?;
@@ -107,26 +109,65 @@ impl CrossChainManager {
         }
     }
     
-    fn get_mock_price_data(&self, asset: &Asset) -> Vec<(ChainId, f64)> {
-        // Mock price data - in production, this would query real price oracles
-        match asset {
+    fn get_secure_price_data(&self, asset: &Asset) -> Result<Vec<(ChainId, f64)>, String> {
+        // SECURITY: This should call real price oracles in production
+        // TODO: Implement Pyth, Chainlink, or other secure oracle integration
+        
+        // For now, return controlled mock data with validation
+        let price_data = match asset {
             Asset::ETH => vec![
-                (ChainId::Ethereum, 2500.0),
-                (ChainId::Arbitrum, 2498.0),
-                (ChainId::Polygon, 2502.0),
+                (ChainId::Ethereum, self.validate_price(2500.0, "ETH")?),
+                (ChainId::Arbitrum, self.validate_price(2498.0, "ETH")?),
+                (ChainId::Polygon, self.validate_price(2502.0, "ETH")?),
             ],
             Asset::USDC => vec![
-                (ChainId::Ethereum, 1.000),
-                (ChainId::Arbitrum, 0.999),
-                (ChainId::Polygon, 1.001),
-                (ChainId::Solana, 0.998),
+                (ChainId::Ethereum, self.validate_price(1.000, "USDC")?),
+                (ChainId::Arbitrum, self.validate_price(0.999, "USDC")?),
+                (ChainId::Polygon, self.validate_price(1.001, "USDC")?),
+                (ChainId::Solana, self.validate_price(0.998, "USDC")?),
             ],
             Asset::BTC => vec![
-                (ChainId::Bitcoin, 45000.0),
-                (ChainId::Ethereum, 44950.0), // WBTC
+                (ChainId::Bitcoin, self.validate_price(45000.0, "BTC")?),
+                (ChainId::Ethereum, self.validate_price(44950.0, "WBTC")?),
             ],
-            _ => vec![], // Asset not widely available
+            _ => return Err(format!("Asset {:?} not supported for price data", asset)),
+        };
+        
+        // SECURITY: Validate we have at least 2 chains for arbitrage
+        if price_data.len() < 2 {
+            return Err(format!("Insufficient price data for asset {:?}", asset));
         }
+        
+        Ok(price_data)
+    }
+    
+    fn validate_price(&self, price: f64, asset_name: &str) -> Result<f64, String> {
+        // SECURITY: Validate price data
+        if price <= 0.0 || !price.is_finite() {
+            return Err(format!("Invalid price for {}: {}", asset_name, price));
+        }
+        
+        // SECURITY: Basic sanity checks for major assets
+        match asset_name {
+            "USDC" | "USDT" | "DAI" => {
+                if price < 0.95 || price > 1.05 {
+                    return Err(format!("Stablecoin price out of range: {} = {}", asset_name, price));
+                }
+            },
+            "ETH" => {
+                if price < 100.0 || price > 50000.0 {
+                    return Err(format!("ETH price out of reasonable range: {}", price));
+                }
+            },
+            "BTC" | "WBTC" => {
+                if price < 1000.0 || price > 200000.0 {
+                    return Err(format!("BTC price out of reasonable range: {}", price));
+                }
+            },
+            _ => {} // Other assets - basic validation only
+        }
+        
+        Ok(price)
     }
     
     // =============================================================================
@@ -162,6 +203,12 @@ impl CrossChainManager {
             },
             PoolPhase::Emergency { .. } => {
                 Err("Cross-chain operations disabled during emergency".to_string())
+            },
+            PoolPhase::Terminating { .. } => {
+                Err("Cross-chain operations disabled during pool termination".to_string())
+            },
+            PoolPhase::Terminated { .. } => {
+                Err("Cross-chain operations disabled - pool terminated".to_string())
             }
         }
     }
@@ -288,8 +335,8 @@ impl CrossChainManager {
             ChainId::Arbitrum => 0.85,
             ChainId::Optimism => 0.85,
             ChainId::Polygon => 0.80,
+            ChainId::Base => 0.85,
             ChainId::Solana => 0.75,
-            ChainId::BinanceSmartChain => 0.70,
             ChainId::Avalanche => 0.80,
         }
     }

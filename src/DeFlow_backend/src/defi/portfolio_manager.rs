@@ -285,7 +285,6 @@ impl AdvancedPortfolioManager {
             ChainId::Polygon => 0.5,       // Very low
             ChainId::Base => 2.0,          // Base L2
             ChainId::Avalanche => 2.5,     // Avalanche
-            ChainId::BSC => 1.0,           // BSC
             ChainId::Solana => 0.01,       // Extremely low
             _ => 5.0,                      // Default
         }
