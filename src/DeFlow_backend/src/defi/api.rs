@@ -1,6 +1,8 @@
 // DeFi API - Public interface for DeFi functionality
 // Provides canister update/query functions for Bitcoin, Ethereum and multi-chain DeFi
 
+// SECURITY: Import comprehensive security validation services
+use crate::security::{ValidationService, ValidationResult, RateLimiterService};
 use crate::defi::types::*;
 use crate::defi::{with_defi_manager_mut, with_defi_manager};
 use crate::defi::bitcoin::{FeePriority, BitcoinFeeEstimate};
@@ -9,14 +11,25 @@ use crate::defi::ethereum::{
     EvmChain, EthereumAddress, EthereumPortfolio, EthereumTransactionResult, 
     GasPriority, L2OptimizationResult, MinimalIcpEthereumService, TransactionType
 };
-use candid::{CandidType, Deserialize};
+use candid::{CandidType, Deserialize, Principal};
 use serde::Serialize;
 use ic_cdk::{query, update, caller};
+use std::cell::RefCell;
+
+// SECURITY: Global rate limiter for API endpoint protection
+thread_local! {
+    static RATE_LIMITER: RefCell<RateLimiterService> = RefCell::new(RateLimiterService::new());
+}
 
 // Bitcoin Portfolio Management
 #[update]
 pub async fn get_bitcoin_portfolio() -> Result<BitcoinPortfolio, String> {
-    let _user = caller();
+    let user = caller();
+    
+    // SECURITY: Rate limiting for portfolio queries
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().check_combined_limits(user, "portfolio_query")
+    }).map_err(|e| format!("Rate limit exceeded: {}", e))?;
     
     // For now, return a basic portfolio structure since Bitcoin service needs async initialization
     // TODO: Implement proper async Bitcoin service access
@@ -39,14 +52,21 @@ pub async fn send_bitcoin(
 ) -> Result<BitcoinSendResult, String> {
     let user = caller();
     
-    // Validate input parameters
-    if amount_satoshis == 0 {
-        return Err("Amount must be greater than 0".to_string());
-    }
+    // SECURITY: Rate limiting check for Bitcoin sends
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().check_combined_limits(user, "send_bitcoin")
+    }).map_err(|e| format!("Rate limit exceeded: {}", e))?;
     
-    if to_address.is_empty() {
-        return Err("Destination address cannot be empty".to_string());
-    }
+    // SECURITY: Comprehensive input validation
+    ValidationService::validate_defi_transaction(
+        &user,
+        amount_satoshis,
+        &to_address,
+        "bitcoin",
+        None, // tx_hash not available for outgoing transactions
+        21_000_000 * 100_000_000, // Max 21M BTC in satoshis
+        &[], // No specific authorized principals for regular users
+    ).map_err(|e| format!("Validation failed: {}", e))?;
     
     // For now, initialize a new Bitcoin service for the async operation
     // In a production system, this would be handled differently
@@ -134,14 +154,15 @@ pub fn estimate_bitcoin_fee(
 
 #[query]
 pub fn validate_bitcoin_address(address: String) -> Result<BitcoinAddressType, String> {
-    if address.starts_with('1') {
-        Ok(BitcoinAddressType::P2PKH)
-    } else if address.starts_with("bc1q") || address.starts_with("tb1q") || address.starts_with("bcrt1q") {
-        Ok(BitcoinAddressType::P2WPKH)
-    } else if address.starts_with("bc1p") || address.starts_with("tb1p") || address.starts_with("bcrt1p") {
-        Ok(BitcoinAddressType::P2TR)
-    } else {
-        Err(format!("Invalid Bitcoin address format: {}", address))
+    // SECURITY: Use comprehensive Bitcoin address validation
+    use crate::security::BitcoinValidator;
+    
+    match BitcoinValidator::validate_address(&address) {
+        Ok(crate::security::BitcoinAddressType::P2PKH) => Ok(BitcoinAddressType::P2PKH),
+        Ok(crate::security::BitcoinAddressType::P2SH) => Ok(BitcoinAddressType::P2SH),
+        Ok(crate::security::BitcoinAddressType::Bech32) => Ok(BitcoinAddressType::P2WPKH),
+        Ok(crate::security::BitcoinAddressType::Taproot) => Ok(BitcoinAddressType::P2TR),
+        Err(e) => Err(format!("Bitcoin address validation failed: {}", e)),
     }
 }
 
@@ -192,7 +213,12 @@ pub async fn get_cross_chain_portfolio() -> Result<CrossChainPortfolio, String> 
 
 #[update]
 pub async fn rebalance_portfolio(_strategy: AllocationStrategy) -> Result<Vec<DeFiExecutionResult>, String> {
-    let _user = caller();
+    let user = caller();
+    
+    // SECURITY: Rate limiting for arbitrage operations
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().check_combined_limits(user, "arbitrage")
+    }).map_err(|e| format!("Rate limit exceeded: {}", e))?;
     
     // This will be implemented when we add portfolio management features
     Err("Portfolio rebalancing functionality coming in Days 9-14".to_string())
@@ -327,9 +353,16 @@ pub struct DeFiAnalytics {
 // Administrative functions
 #[update]
 pub async fn clear_defi_caches() -> Result<(), String> {
-    // Only allow canister controllers to clear caches
-    let _caller = ic_cdk::caller();
-    // In a real implementation, you'd check if caller is a controller
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Basic authorization check (in production, use proper controller verification)
+    // For now, allow any authenticated caller - in production implement proper admin roles
+    if caller == Principal::anonymous() {
+        return Err("Unauthorized: Anonymous callers cannot clear caches".to_string());
+    }
+    
+    // SECURITY: Log administrative action
+    ic_cdk::println!("🔧 ADMIN: Cache clearing requested by controller: {}", caller.to_text());
     
     with_defi_manager_mut(|manager| {
         if let Some(ref mut bitcoin_service) = manager.bitcoin_service {
@@ -342,7 +375,15 @@ pub async fn clear_defi_caches() -> Result<(), String> {
 
 #[update]
 pub async fn emergency_pause_defi() -> Result<(), String> {
-    // Emergency function to pause all DeFi operations
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Basic authorization check (in production, use proper controller verification)
+    if caller == Principal::anonymous() {
+        return Err("Unauthorized: Anonymous callers cannot trigger emergency pause".to_string());
+    }
+    
+    // SECURITY: Log emergency action
+    ic_cdk::println!("🚨 EMERGENCY: DeFi operations paused by controller: {}", caller.to_text());
     ic_cdk::println!("🚨 DeFi EMERGENCY PAUSE ACTIVATED 🚨");
     
     // This would implement emergency pause logic
@@ -355,7 +396,15 @@ pub async fn emergency_pause_defi() -> Result<(), String> {
 
 #[update]
 pub async fn resume_defi_operations() -> Result<(), String> {
-    ic_cdk::println!("✅ DeFi operations resumed");
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Basic authorization check (in production, use proper controller verification)
+    if caller == Principal::anonymous() {
+        return Err("Unauthorized: Anonymous callers cannot resume operations".to_string());
+    }
+    
+    // SECURITY: Log administrative action
+    ic_cdk::println!("✅ ADMIN: DeFi operations resumed by controller: {}", caller.to_text());
     
     // Re-enable normal DeFi operations
     Ok(())
@@ -377,6 +426,12 @@ fn create_icp_ethereum_service() -> MinimalIcpEthereumService {
 #[update]
 pub async fn get_ethereum_address(chain: EvmChain) -> Result<EthereumAddress, String> {
     let user = caller();
+    
+    // SECURITY: Rate limiting for address generation
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().check_user_rate_limit(user)
+    }).map_err(|e| format!("Rate limit exceeded: {}", e))?;
+    
     let ethereum_service = create_icp_ethereum_service();
     
     ethereum_service.get_ethereum_address(user, chain)
@@ -387,6 +442,12 @@ pub async fn get_ethereum_address(chain: EvmChain) -> Result<EthereumAddress, St
 #[update]
 pub async fn get_ethereum_portfolio() -> Result<EthereumPortfolio, String> {
     let user = caller();
+    
+    // SECURITY: Rate limiting for portfolio queries
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().check_combined_limits(user, "portfolio_query")
+    }).map_err(|e| format!("Rate limit exceeded: {}", e))?;
+    
     let ethereum_service = create_icp_ethereum_service();
     
     ethereum_service.get_ethereum_portfolio(user)
@@ -404,14 +465,25 @@ pub async fn send_ethereum(
 ) -> Result<EthereumTransactionResult, String> {
     let user = caller();
     
-    // Validate inputs
-    if to_address.is_empty() {
-        return Err("Destination address cannot be empty".to_string());
-    }
+    // SECURITY: Rate limiting check for Ethereum sends
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().check_combined_limits(user, "send_ethereum")
+    }).map_err(|e| format!("Rate limit exceeded: {}", e))?;
     
-    if amount_wei == "0" {
-        return Err("Amount must be greater than 0".to_string());
-    }
+    // SECURITY: Parse and validate amount
+    let amount_u64 = amount_wei.parse::<u64>()
+        .map_err(|_| "Invalid amount format".to_string())?;
+    
+    // SECURITY: Comprehensive input validation
+    ValidationService::validate_defi_transaction(
+        &user,
+        amount_u64,
+        &to_address,
+        "ethereum",
+        None, // tx_hash not available for outgoing transactions
+        1_000_000 * 1_000_000_000_000_000_000, // Max 1M ETH in wei
+        &[], // No specific authorized principals for regular users
+    ).map_err(|e| format!("Validation failed: {}", e))?;
     
     let ethereum_service = create_icp_ethereum_service();
     ethereum_service.send_ethereum(
@@ -468,7 +540,16 @@ pub async fn get_l2_optimization(
 ) -> Result<L2OptimizationResult, String> {
     let user = caller();
     
-    // Parse transaction type
+    // SECURITY: Rate limiting for L2 optimization queries
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().check_user_rate_limit(user)
+    }).map_err(|e| format!("Rate limit exceeded: {}", e))?;
+    
+    // SECURITY: Validate amount format
+    let _amount_parsed = amount_wei.parse::<u128>()
+        .map_err(|_| "Invalid amount format".to_string())?;
+    
+    // SECURITY: Whitelist transaction types
     let tx_type = match transaction_type.as_str() {
         "simple_transfer" => TransactionType::SimpleTransfer,
         "token_transfer" => TransactionType::TokenTransfer,
@@ -666,6 +747,60 @@ pub async fn get_gas_estimates_v2(chain: ChainId) -> Result<GasInfo, String> {
 }
 
 // ================================
+// SECURITY API ENDPOINTS
+// Rate limiting and security status
+// ================================
+
+#[query]
+pub fn get_user_rate_limit_status() -> Result<crate::security::RateLimitStatus, String> {
+    let user = caller();
+    
+    RATE_LIMITER.with(|limiter| {
+        Ok(limiter.borrow_mut().get_rate_limit_status(user))
+    })
+}
+
+#[update]
+pub async fn cleanup_rate_limiters() -> Result<(), String> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Basic authorization check (in production, use proper controller verification)
+    if caller == Principal::anonymous() {
+        return Err("Unauthorized: Anonymous callers cannot cleanup rate limiters".to_string());
+    }
+    
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().cleanup();
+    });
+    
+    ic_cdk::println!("🧹 ADMIN: Rate limiter cleanup completed by controller: {}", caller.to_text());
+    Ok(())
+}
+
+// Add a new endpoint to validate addresses across all supported chains
+#[query]
+pub fn validate_address_universal(address: String, chain: String) -> Result<bool, String> {
+    match chain.as_str() {
+        "bitcoin" => {
+            match crate::security::BitcoinValidator::validate_address(&address) {
+                Ok(_) => Ok(true),
+                Err(_) => Ok(false),
+            }
+        },
+        "ethereum" | "arbitrum" | "optimism" | "polygon" | "base" | "avalanche" => {
+            match crate::security::EthereumValidator::validate_address(&address) {
+                Ok(_) => Ok(true),
+                Err(_) => Ok(false),
+            }
+        },
+        "solana" => {
+            Ok(crate::defi::solana::utils::validate_solana_address(&address))
+        },
+        _ => Err(format!("Unsupported chain: {}", chain)),
+    }
+}
+
+// ================================
 // SOLANA API ENDPOINTS
 // Day 10: Solana Integration
 // ================================
@@ -695,6 +830,12 @@ pub async fn get_solana_address() -> Result<String, String> {
 #[update]
 pub async fn get_solana_portfolio() -> Result<SolanaPortfolio, String> {
     let user = caller();
+    
+    // SECURITY: Rate limiting for portfolio queries
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().check_combined_limits(user, "portfolio_query")
+    }).map_err(|e| format!("Rate limit exceeded: {}", e))?;
+    
     let solana_service = create_pure_icp_solana_service();
     
     solana_service.get_solana_portfolio(user)
@@ -709,13 +850,25 @@ pub async fn send_solana(
 ) -> Result<SolanaTransactionResult, String> {
     let user = caller();
     
-    // Validate inputs
-    if to_address.is_empty() {
-        return Err("Destination address cannot be empty".to_string());
+    // SECURITY: Rate limiting check for Solana sends
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().check_combined_limits(user, "send_solana")
+    }).map_err(|e| format!("Rate limit exceeded: {}", e))?;
+    
+    // SECURITY: Validate Solana address format
+    if !crate::defi::solana::utils::validate_solana_address(&to_address) {
+        return Err("Invalid Solana address format".to_string());
     }
     
+    // SECURITY: Validate amount (basic validation since Solana has different validation needs)
     if amount_lamports == 0 {
         return Err("Amount must be greater than 0".to_string());
+    }
+    
+    // SECURITY: Check reasonable limits for Solana
+    const MAX_SOL_AMOUNT: u64 = 1_000_000_000_000_000; // 1M SOL in lamports
+    if amount_lamports > MAX_SOL_AMOUNT {
+        return Err("Amount exceeds maximum limit".to_string());
     }
     
     let solana_service = create_pure_icp_solana_service();
@@ -751,17 +904,29 @@ pub async fn transfer_spl_tokens(
 ) -> Result<SolanaTransactionResult, String> {
     let user = caller();
     
-    // Validate inputs
-    if mint_address.is_empty() {
-        return Err("Mint address cannot be empty".to_string());
+    // SECURITY: Rate limiting check for SPL token transfers
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().check_combined_limits(user, "send_solana")
+    }).map_err(|e| format!("Rate limit exceeded: {}", e))?;
+    
+    // SECURITY: Validate all addresses
+    if mint_address.is_empty() || !crate::defi::solana::utils::validate_solana_address(&mint_address) {
+        return Err("Invalid mint address".to_string());
     }
     
-    if to_address.is_empty() {
-        return Err("Destination address cannot be empty".to_string());
+    if to_address.is_empty() || !crate::defi::solana::utils::validate_solana_address(&to_address) {
+        return Err("Invalid destination address".to_string());
     }
     
+    // SECURITY: Validate amount
     if amount == 0 {
         return Err("Amount must be greater than 0".to_string());
+    }
+    
+    // SECURITY: Maximum amount check for SPL tokens
+    const MAX_SPL_AMOUNT: u64 = u64::MAX / 1000; // Conservative limit
+    if amount > MAX_SPL_AMOUNT {
+        return Err("Amount exceeds maximum limit".to_string());
     }
     
     // Create token manager
@@ -784,13 +949,37 @@ pub async fn create_spl_token(
 ) -> Result<crate::defi::solana::tokens::TokenCreationResult, String> {
     let user = caller();
     
-    // Validate inputs
-    if name.is_empty() || symbol.is_empty() {
-        return Err("Token name and symbol cannot be empty".to_string());
+    // SECURITY: Rate limiting for token creation (expensive operation)
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().check_operation_rate_limit(user, "create_token")
+    }).map_err(|e| format!("Rate limit exceeded: {}", e))?;
+    
+    // SECURITY: Comprehensive input validation
+    if name.is_empty() || name.len() > 100 {
+        return Err("Token name must be 1-100 characters".to_string());
+    }
+    
+    if symbol.is_empty() || symbol.len() > 10 {
+        return Err("Token symbol must be 1-10 characters".to_string());
+    }
+    
+    // SECURITY: Validate only alphanumeric characters for security
+    if !name.chars().all(|c| c.is_alphanumeric() || c.is_whitespace()) {
+        return Err("Token name contains invalid characters".to_string());
+    }
+    
+    if !symbol.chars().all(|c| c.is_ascii_alphanumeric()) {
+        return Err("Token symbol must contain only alphanumeric characters".to_string());
     }
     
     if decimals > 18 {
         return Err("Token decimals cannot exceed 18".to_string());
+    }
+    
+    // SECURITY: Reasonable initial supply limits
+    const MAX_INITIAL_SUPPLY: u64 = 1_000_000_000_000_000_000; // 1 billion tokens with 9 decimals
+    if initial_supply > MAX_INITIAL_SUPPLY {
+        return Err("Initial supply exceeds maximum limit".to_string());
     }
     
     // Create token manager

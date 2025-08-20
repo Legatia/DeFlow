@@ -8,6 +8,7 @@ mod events;
 mod http_client;
 mod defi;
 mod user_management;
+mod security;
 
 // Re-export types for external use
 pub use types::*;

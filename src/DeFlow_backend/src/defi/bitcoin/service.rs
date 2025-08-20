@@ -234,6 +234,11 @@ impl BitcoinDeFiService {
             BitcoinAddressType::P2PKH => {
                 self.address_manager.get_p2pkh_address(user).await
             },
+            BitcoinAddressType::P2SH => {
+                // For now, return P2PKH address for P2SH requests
+                // In production, implement proper P2SH address generation
+                self.address_manager.get_p2pkh_address(user).await
+            },
             BitcoinAddressType::P2WPKH => {
                 self.address_manager.get_p2wpkh_address(user).await
             },

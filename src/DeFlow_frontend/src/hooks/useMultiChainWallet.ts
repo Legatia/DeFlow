@@ -20,7 +20,7 @@ export interface UseMultiChainWalletReturn {
 }
 
 export const useMultiChainWallet = (): UseMultiChainWalletReturn => {
-  const [wallet, setWallet] = useState<MultiChainWallet>(multiChainWalletService.getWallet())
+  const [wallet, setWallet] = useState<MultiChainWallet>({ addresses: [], lastSyncAt: 0 })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -31,10 +31,22 @@ export const useMultiChainWallet = (): UseMultiChainWalletReturn => {
 
     multiChainWalletService.addListener(handleWalletUpdate)
 
-    // Initial load
-    multiChainWalletService.updateAllBalances().catch(err => {
-      console.error('Failed to load initial balances:', err)
-    })
+    // Initialize wallet asynchronously
+    const initializeWallet = async () => {
+      try {
+        const currentWallet = await multiChainWalletService.getWallet()
+        setWallet(currentWallet)
+        
+        // Initial balance update
+        multiChainWalletService.updateAllBalances().catch(err => {
+          console.error('Failed to load initial balances:', err)
+        })
+      } catch (error) {
+        console.error('Failed to initialize wallet in useMultiChainWallet:', error)
+      }
+    }
+    
+    initializeWallet()
 
     return () => {
       multiChainWalletService.removeListener(handleWalletUpdate)
@@ -119,7 +131,7 @@ export const useMultiChainWallet = (): UseMultiChainWalletReturn => {
   }
 
   const getAddressForChain = (chain: ChainType): string | undefined => {
-    const address = multiChainWalletService.getAddressForChain(chain)
+    const address = wallet.addresses.find(addr => addr.chain === chain)
     return address?.address
   }
 
@@ -128,7 +140,9 @@ export const useMultiChainWallet = (): UseMultiChainWalletReturn => {
   }
 
 
-  const connectedChains = multiChainWalletService.getConnectedChains()
+  const connectedChains = wallet.addresses
+    .filter(addr => addr.isConnected)
+    .map(addr => addr.chain)
   const isConnected = wallet.addresses.length > 0
   const totalConnectedChains = wallet.addresses.length
 

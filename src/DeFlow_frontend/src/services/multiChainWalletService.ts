@@ -3,6 +3,8 @@
 
 // Import BigInt polyfill FIRST to prevent conversion errors
 import '../utils/bigint-polyfill'
+import secureStorageService from './secureStorageService'
+import performanceService from './performanceOptimizationService'
 
 export interface WalletAddress {
   chain: ChainType
@@ -153,9 +155,52 @@ class MultiChainWalletService {
   }
 
   private listeners: Array<(wallet: MultiChainWallet) => void> = []
+  private initialized = false
+  private initializationPromise: Promise<void> | null = null
 
   constructor() {
-    this.loadWalletFromStorage()
+    // Start initialization but don't block constructor
+    this.initializationPromise = this.initialize()
+    
+    // PERFORMANCE: Setup cleanup on page unload
+    if (typeof window !== 'undefined') {
+      const cleanup = performanceService.addEventListenerSafely(
+        window,
+        'beforeunload',
+        () => {
+          this.cleanup()
+        }
+      )
+      
+      // Store cleanup function for manual cleanup
+      ;(this as any)._cleanup = cleanup
+    }
+  }
+
+  // SECURITY: Async initialization with secure storage
+  private async initialize(): Promise<void> {
+    if (this.initialized) return
+    
+    try {
+      await this.loadWalletFromStorage()
+      this.initialized = true
+      console.log('🔒 MultiChainWalletService initialized securely')
+    } catch (error) {
+      console.error('❌ Failed to initialize MultiChainWalletService:', error)
+      // Continue with empty wallet for security
+      this.wallet = {
+        addresses: [],
+        lastSyncAt: Date.now()
+      }
+      this.initialized = true
+    }
+  }
+
+  // SECURITY: Ensure initialization before any wallet operations
+  async ensureInitialized(): Promise<void> {
+    if (!this.initialized && this.initializationPromise) {
+      await this.initializationPromise
+    }
   }
 
   // Event listeners
@@ -167,20 +212,35 @@ class MultiChainWalletService {
     this.listeners = this.listeners.filter(l => l !== callback)
   }
 
+  // PERFORMANCE: Optimized listener notification with error handling
   private notifyListeners() {
-    this.listeners.forEach(callback => callback(this.wallet))
+    // PERFORMANCE: Use requestAnimationFrame for DOM updates
+    performanceService.batchDomOperations([
+      () => {
+        this.listeners.forEach(callback => {
+          try {
+            callback(this.wallet)
+          } catch (error) {
+            console.error('Wallet listener callback failed:', error)
+          }
+        })
+      }
+    ])
   }
 
   // Get current wallet state
-  getWallet(): MultiChainWallet {
+  async getWallet(): Promise<MultiChainWallet> {
+    await this.ensureInitialized()
     return { ...this.wallet }
   }
 
-  getAddressForChain(chain: ChainType): WalletAddress | undefined {
+  async getAddressForChain(chain: ChainType): Promise<WalletAddress | undefined> {
+    await this.ensureInitialized()
     return this.wallet.addresses.find(addr => addr.chain === chain)
   }
 
-  getConnectedChains(): ChainType[] {
+  async getConnectedChains(): Promise<ChainType[]> {
+    await this.ensureInitialized()
     return this.wallet.addresses
       .filter(addr => addr.isConnected)
       .map(addr => addr.chain)
@@ -188,6 +248,7 @@ class MultiChainWalletService {
 
   // Add or update wallet address
   async addWalletAddress(address: WalletAddress): Promise<void> {
+    await this.ensureInitialized()
     const existingIndex = this.wallet.addresses.findIndex(
       addr => addr.chain === address.chain
     )
@@ -314,15 +375,30 @@ class MultiChainWalletService {
     this.notifyListeners()
   }
 
-  // Update balance for a specific chain
+  // PERFORMANCE: Optimized balance updates with caching
   async updateBalance(chain: ChainType): Promise<void> {
-    const walletAddress = this.getAddressForChain(chain)
+    const walletAddress = await this.getAddressForChain(chain)
     if (!walletAddress) return
 
+    // PERFORMANCE: Check cache first to avoid unnecessary API calls
+    const cacheKey = `balance_${chain}_${walletAddress.address}`
+    const cachedBalance = performanceService.getCache<string>(cacheKey)
+    
+    if (cachedBalance && Date.now() - walletAddress.lastUpdated < 30000) {
+      // Use cached balance if less than 30 seconds old
+      walletAddress.balance = cachedBalance
+      this.notifyListeners()
+      return
+    }
+
     try {
+      performanceService.trackApiCall()
       const balance = await this.fetchBalance(chain, walletAddress.address)
+      
+      // Update balance and cache
       walletAddress.balance = balance
       walletAddress.lastUpdated = Date.now()
+      performanceService.setCache(cacheKey, balance, 60000) // Cache for 1 minute
 
       await this.saveWalletToStorage()
       this.notifyListeners()
@@ -331,12 +407,32 @@ class MultiChainWalletService {
     }
   }
 
-  // Update all balances
+  // PERFORMANCE: Batch balance updates with rate limiting
   async updateAllBalances(): Promise<void> {
-    const promises = this.wallet.addresses.map(addr => 
-      this.updateBalance(addr.chain)
-    )
-    await Promise.all(promises)
+    if (this.wallet.addresses.length === 0) return
+    
+    // PERFORMANCE: Limit concurrent API calls to prevent rate limiting
+    const batchSize = 3
+    const batches: ChainType[][] = []
+    
+    for (let i = 0; i < this.wallet.addresses.length; i += batchSize) {
+      const batch = this.wallet.addresses
+        .slice(i, i + batchSize)
+        .map(addr => addr.chain)
+      batches.push(batch)
+    }
+    
+    // Process batches sequentially with delay
+    for (const batch of batches) {
+      const promises = batch.map(chain => this.updateBalance(chain))
+      await Promise.all(promises)
+      
+      // Small delay between batches to prevent overwhelming APIs
+      if (batch !== batches[batches.length - 1]) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+    }
+    
     this.wallet.lastSyncAt = Date.now()
   }
 
@@ -478,24 +574,132 @@ class MultiChainWalletService {
     return mockBalances[chain] || '0.00'
   }
 
-  // Storage methods
-  private loadWalletFromStorage(): void {
+  // SECURITY: Secure storage methods using encryption
+  private async loadWalletFromStorage(): Promise<void> {
     try {
-      const stored = localStorage.getItem('deflow_multichain_wallet')
+      // Ensure secure storage is initialized
+      if (!secureStorageService.isEncryptionReady()) {
+        // Try to load existing key first
+        const keyLoaded = await secureStorageService.loadExistingKey()
+        if (!keyLoaded) {
+          // Initialize with anonymous encryption
+          await secureStorageService.initializeEncryption()
+        }
+      }
+
+      // Load encrypted wallet data
+      const stored = await secureStorageService.getSecureItem<MultiChainWallet>('multichain_wallet')
       if (stored) {
-        this.wallet = JSON.parse(stored)
+        this.wallet = stored
+        console.log('🔒 Wallet loaded securely from encrypted storage')
+      } else {
+        // Check for old unencrypted data and migrate
+        await this.migrateFromUnencryptedStorage()
       }
     } catch (error) {
-      console.error('Failed to load wallet from storage:', error)
+      console.error('❌ Failed to load wallet from secure storage:', error)
+      // Fallback to empty wallet for security
+      this.wallet = {
+        addresses: [],
+        lastSyncAt: Date.now()
+      }
     }
   }
 
   private async saveWalletToStorage(): Promise<void> {
     try {
-      localStorage.setItem('deflow_multichain_wallet', JSON.stringify(this.wallet))
+      // Ensure secure storage is initialized
+      if (!secureStorageService.isEncryptionReady()) {
+        await secureStorageService.initializeEncryption()
+      }
+
+      // Save encrypted wallet data
+      const success = await secureStorageService.setSecureItem('multichain_wallet', this.wallet)
+      if (success) {
+        console.log('🔒 Wallet saved securely to encrypted storage')
+      } else {
+        throw new Error('Failed to save wallet to secure storage')
+      }
     } catch (error) {
-      console.error('Failed to save wallet to storage:', error)
+      console.error('❌ Failed to save wallet to secure storage:', error)
+      throw error // Re-throw to handle upstream
     }
+  }
+
+  // SECURITY: Migrate old unencrypted data to secure storage
+  private async migrateFromUnencryptedStorage(): Promise<void> {
+    try {
+      const oldData = localStorage.getItem('deflow_multichain_wallet')
+      if (oldData) {
+        console.log('🔄 Migrating wallet data to secure storage...')
+        
+        // Parse old unencrypted data
+        const oldWallet = JSON.parse(oldData) as MultiChainWallet
+        
+        // Save to secure storage
+        const success = await secureStorageService.setSecureItem('multichain_wallet', oldWallet)
+        
+        if (success) {
+          // Remove old unencrypted data
+          localStorage.removeItem('deflow_multichain_wallet')
+          this.wallet = oldWallet
+          console.log('✅ Wallet migration to secure storage completed')
+        } else {
+          console.error('❌ Failed to migrate wallet data')
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error during wallet migration:', error)
+      // Remove potentially corrupted old data
+      localStorage.removeItem('deflow_multichain_wallet')
+    }
+  }
+
+  // SECURITY: Clear all wallet data securely with performance cleanup
+  async clearWalletData(): Promise<void> {
+    try {
+      // Clear secure storage
+      secureStorageService.removeSecureItem('multichain_wallet')
+      
+      // Clear any remaining unencrypted data
+      localStorage.removeItem('deflow_multichain_wallet')
+      
+      // PERFORMANCE: Clear cached balance data
+      this.wallet.addresses.forEach(addr => {
+        const cacheKey = `balance_${addr.chain}_${addr.address}`
+        performanceService.setCache(cacheKey, null, 0) // Expire cache immediately
+      })
+      
+      // Reset wallet state
+      this.wallet = {
+        addresses: [],
+        lastSyncAt: Date.now()
+      }
+      
+      console.log('🧹 Wallet data cleared securely')
+    } catch (error) {
+      console.error('❌ Failed to clear wallet data:', error)
+      throw error
+    }
+  }
+  
+  // PERFORMANCE: Manual cleanup method
+  cleanup(): void {
+    // Clear any cached data
+    this.wallet.addresses.forEach(addr => {
+      const cacheKey = `balance_${addr.chain}_${addr.address}`
+      performanceService.setCache(cacheKey, null, 0)
+    })
+    
+    // Clear listeners
+    this.listeners.length = 0
+    
+    // Call window cleanup if available
+    if ((this as any)._cleanup) {
+      (this as any)._cleanup()
+    }
+    
+    console.log('🧹 MultiChainWalletService cleanup completed')
   }
 }
 

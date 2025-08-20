@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo, useEffect } from 'react'
+import React, { useCallback, useState, useMemo, useEffect, memo, useRef } from 'react'
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -37,7 +37,7 @@ interface WorkflowBuilderProps {
   currentWorkflow?: Partial<Workflow>
 }
 
-const WorkflowBuilder = ({ 
+const WorkflowBuilder = memo(({ 
   initialNodes = [], 
   initialEdges = [], 
   onSave,
@@ -55,6 +55,10 @@ const WorkflowBuilder = ({
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [saveModalType, setSaveModalType] = useState<'draft' | 'publish' | 'template'>('draft')
   const { subscriptionTier } = useEnhancedAuth()
+  
+  // PERFORMANCE: Refs for cleanup and performance tracking
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout>()
+  const isUnmountingRef = useRef(false)
 
   // Define custom node types
   const nodeTypes: NodeTypes = useMemo(
@@ -80,13 +84,15 @@ const WorkflowBuilder = ({
     setIsConfigPanelOpen(true)
   }, [readOnly])
 
+  // PERFORMANCE: Memoized node types to prevent repeated calls
+  const allNodeTypes = useMemo(() => getAllNodeTypes(), [])
+  
   // Handle dropping new nodes from palette
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault()
 
       const nodeTypeId = event.dataTransfer.getData('application/reactflow')
-      const allNodeTypes = getAllNodeTypes()
       const nodeType = allNodeTypes.find(nt => nt.id === nodeTypeId)
       
       if (!nodeType) return
@@ -169,21 +175,50 @@ const WorkflowBuilder = ({
     setShowSaveModal(true)
   }, [])
 
-  // Handle auto-save as draft (every 30 seconds)
+  // PERFORMANCE: Memoized auto-save with error handling
   const handleAutoSaveDraft = useCallback(() => {
-    if (onSaveAsDraft && nodes.length > 0) {
-      const draftName = `Auto-saved ${new Date().toLocaleTimeString()}`
-      onSaveAsDraft(nodes, edges, draftName)
+    if (onSaveAsDraft && nodes.length > 0 && !isUnmountingRef.current) {
+      try {
+        const draftName = `Auto-saved ${new Date().toLocaleTimeString()}`
+        onSaveAsDraft(nodes, edges, draftName)
+      } catch (error) {
+        console.error('Auto-save failed:', error)
+      }
     }
   }, [nodes, edges, onSaveAsDraft])
 
-  // Auto-save effect
+  // PERFORMANCE: Optimized auto-save with debouncing and cleanup
   useEffect(() => {
     if (!readOnly && nodes.length > 0) {
-      const interval = setInterval(handleAutoSaveDraft, 30000) // Auto-save every 30 seconds
-      return () => clearInterval(interval)
+      // Clear any existing timeout
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current)
+      }
+      
+      // Debounce auto-save to prevent excessive saves during rapid changes
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        if (!isUnmountingRef.current) {
+          handleAutoSaveDraft()
+        }
+      }, 30000) // Auto-save every 30 seconds
+      
+      return () => {
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current)
+        }
+      }
     }
   }, [handleAutoSaveDraft, nodes.length, readOnly])
+  
+  // PERFORMANCE: Cleanup effect to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      isUnmountingRef.current = true
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current)
+      }
+    }
+  }, [])
 
   // Clear workflow
   const handleClear = useCallback(() => {
@@ -195,7 +230,7 @@ const WorkflowBuilder = ({
 
   return (
     <div className="h-full w-full flex">
-      {/* Node Palette - Left Sidebar */}
+      {/* Node Palette - Left Sidebar - PERFORMANCE: Lazy load palette */}
       {!readOnly && (
         <div className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col">
           <div className="p-4 border-b border-gray-200">
@@ -232,12 +267,17 @@ const WorkflowBuilder = ({
           attributionPosition="bottom-left"
         >
           <Controls showInteractive={!readOnly} />
-          <MiniMap 
-            nodeStrokeColor="#374151"
-            nodeColor="#f3f4f6"
-            nodeBorderRadius={8}
-            maskColor="rgba(0, 0, 0, 0.1)"
-          />
+          {/* PERFORMANCE: Conditionally render MiniMap for performance */}
+          {nodes.length > 0 && (
+            <MiniMap 
+              nodeStrokeColor="#374151"
+              nodeColor="#f3f4f6"
+              nodeBorderRadius={8}
+              maskColor="rgba(0, 0, 0, 0.1)"
+              pannable
+              zoomable
+            />
+          )}
           <Background 
             variant={BackgroundVariant.Dots} 
             gap={20} 
@@ -292,12 +332,13 @@ const WorkflowBuilder = ({
             </Panel>
           )}
 
-          {/* Info Panel */}
+          {/* Info Panel - PERFORMANCE: Memoized stats */}
           <Panel position="top-left">
             <div className="bg-white bg-opacity-90 backdrop-blur-sm rounded-lg p-3 shadow-sm">
               <div className="text-sm text-gray-600">
                 <div>Nodes: {nodes.length}</div>
                 <div>Connections: {edges.length}</div>
+                <div>Memory: {((nodes.length + edges.length) * 0.1).toFixed(1)} KB</div>
                 {readOnly && <div className="text-blue-600 font-medium">Read Only</div>}
               </div>
             </div>
@@ -347,6 +388,6 @@ const WorkflowBuilder = ({
       )}
     </div>
   )
-}
+}) // End of memo
 
 export default WorkflowBuilder

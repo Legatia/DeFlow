@@ -20,10 +20,24 @@ const Layout = ({ children }: LayoutProps) => {
   const location = useLocation()
   const navigate = useNavigate()
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
-  const [wallet, setWallet] = useState<MultiChainWallet>(multiChainWalletService.getWallet())
+  const [wallet, setWallet] = useState<MultiChainWallet>({ addresses: [], lastSyncAt: 0 })
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [subscription, setSubscription] = useState<UserSubscription>(SubscriptionService.getCurrentSubscription())
   const auth = useEnhancedAuth()
+
+  // Initialize wallet asynchronously
+  useEffect(() => {
+    const initializeWallet = async () => {
+      try {
+        const currentWallet = await multiChainWalletService.getWallet()
+        setWallet(currentWallet)
+      } catch (error) {
+        console.error('Failed to initialize wallet in Layout:', error)
+      }
+    }
+    
+    initializeWallet()
+  }, [])
 
   useEffect(() => {
     const handleWalletUpdate = (updatedWallet: MultiChainWallet) => {
