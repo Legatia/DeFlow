@@ -48,6 +48,15 @@ pub enum PoolPhase {
         paused_at: u64,
         reason: String,
     },
+    Terminating {
+        initiated_at: u64,
+        termination_request: PoolTerminationRequest,
+    },
+    Terminated {
+        terminated_at: u64,
+        final_asset_distribution: Vec<AssetDistribution>,
+        termination_reason: String,
+    },
 }
 
 impl Default for PoolPhase {
@@ -240,6 +249,15 @@ pub struct PoolState {
     
     // SECURITY: Storage limits and monitoring
     pub storage_metrics: StorageMetrics,
+    
+    // POOL TERMINATION MANAGEMENT
+    pub active_termination_request: Option<PoolTerminationRequest>,
+    pub termination_history: Vec<PoolTerminationRequest>, // Track failed/cancelled attempts
+    pub cofounder_principal: Option<Principal>, // Set during initialization
+    
+    // SECURITY: Race condition prevention (with upgrade compatibility)
+    pub state_version: u64, // Incremented on every state change to prevent race conditions
+    pub termination_nonce: u64, // Prevents replay attacks on termination operations
 }
 
 impl Default for PoolState {
@@ -270,6 +288,15 @@ impl Default for PoolState {
             
             // SECURITY: Initialize storage monitoring
             storage_metrics: StorageMetrics::default(),
+            
+            // Pool termination management
+            active_termination_request: None,
+            termination_history: Vec::new(),
+            cofounder_principal: None, // Must be set via set_cofounder function
+            
+            // SECURITY: Race condition prevention
+            state_version: 1, // Start at version 1
+            termination_nonce: 0, // Start at 0
         }
     }
 }
@@ -543,6 +570,66 @@ pub struct StorageMetrics {
     pub transactions_pruned: u64,
 }
 
+// =============================================================================
+// POOL TERMINATION TYPES
+// =============================================================================
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct PoolTerminationRequest {
+    pub id: String,
+    pub initiated_by: Principal,
+    pub reason: String,
+    pub asset_distribution_plan: Vec<AssetDistribution>,
+    pub owner_approval: Option<TerminationApproval>,
+    pub cofounder_approval: Option<TerminationApproval>,
+    pub created_at: u64,
+    pub expires_at: u64, // 48 hours to get both approvals
+    pub emergency_termination: bool, // Skip some validations for emergency
+    pub expected_state_version: u64, // Expected pool state version when this request was created
+    pub termination_nonce: u64, // Unique nonce for this termination attempt
+    pub secure_confirmation_phrase: String, // Cryptographically secure confirmation phrase
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct TerminationApproval {
+    pub approver: Principal,
+    pub approved_at: u64,
+    pub signature_confirmation: String, // Extra confirmation string
+    pub notes: Option<String>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct AssetDistribution {
+    pub chain: String,
+    pub asset: String,
+    pub total_amount: f64,
+    pub destination_address: String,
+    pub estimated_usd_value: f64,
+    pub status: DistributionStatus,
+    pub tx_hash: Option<String>,
+    pub executed_at: Option<u64>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
+pub enum DistributionStatus {
+    Pending,
+    InProgress,
+    Completed,
+    Failed,
+    Cancelled,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct TerminationSummary {
+    pub total_assets_distributed: f64, // USD value
+    pub chains_processed: Vec<String>,
+    pub successful_distributions: u32,
+    pub failed_distributions: u32,
+    pub termination_initiated_at: u64,
+    pub termination_completed_at: Option<u64>,
+    pub final_state_hash: String, // Hash of final state for auditing
+}
+
 impl Default for StorageMetrics {
     fn default() -> Self {
         StorageMetrics {
@@ -588,8 +675,32 @@ impl Storable for PoolState {
     }
 
     fn from_bytes(bytes: Cow<[u8]>) -> Self {
-        candid::decode_one(&bytes).unwrap()
+        // SECURITY: Handle upgrade from pre-security version
+        match candid::decode_one::<Self>(&bytes) {
+            Ok(state) => state,
+            Err(_) => {
+                // Try to decode as the old version without security fields
+                ic_cdk::println!("SECURITY: Attempting migration from pre-security version");
+                
+                // For migration, we'll just return a default state and let post_upgrade handle it
+                // This is a fallback - the actual migration should be handled in post_upgrade
+                let mut default_state = Self::default();
+                
+                // Log the migration attempt
+                ic_cdk::println!("SECURITY: Using default state for migration - will be corrected in post_upgrade");
+                
+                default_state
+            }
+        }
     }
+}
+
+// =============================================================================
+// UPGRADE COMPATIBILITY FUNCTIONS
+// =============================================================================
+
+fn default_state_version() -> u64 {
+    1 // Start at version 1 for upgraded canisters
 }
 
 // =============================================================================

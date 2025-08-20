@@ -8,6 +8,7 @@
     "dev": "vite --port 3000",
     "start": "vite --port 3000",
     "build": "tsc --project tsconfig.prod.json && vite build",
+    "build:mainnet": "NODE_ENV=production tsc --project tsconfig.prod.json && vite build --mode production",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",

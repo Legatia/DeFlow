@@ -1,5 +1,8 @@
 // Admin Pool Service for managing DeFlow pool assets
 // This service provides owner-level access to pool canister treasury functions
+import { Actor, HttpAgent } from '@dfinity/agent';
+import { AuthClient } from '@dfinity/auth-client';
+import { idlFactory as poolIdlFactory } from 'declarations/DeFlow_pool';
 
 interface TreasuryBalance {
   chain: string;
@@ -81,39 +84,119 @@ interface SystemHealthData {
   };
 }
 
+interface PoolTerminationRequest {
+  id: string;
+  initiated_by: string;
+  reason: string;
+  asset_distribution_plan: AssetDistribution[];
+  owner_approval: TerminationApproval | null;
+  cofounder_approval: TerminationApproval | null;
+  created_at: bigint;
+  expires_at: bigint;
+  emergency_termination: boolean;
+}
+
+interface AssetDistribution {
+  chain: string;
+  asset: string;
+  total_amount: number;
+  destination_address: string;
+  estimated_usd_value: number;
+  status: string;
+  tx_hash: string | null;
+  executed_at: bigint | null;
+}
+
+interface TerminationApproval {
+  approver: string;
+  approved_at: bigint;
+  signature_confirmation: string;
+  notes: string | null;
+}
+
+interface TerminationSummary {
+  total_assets_distributed: number;
+  chains_processed: string[];
+  successful_distributions: number;
+  failed_distributions: number;
+  termination_initiated_at: bigint;
+  termination_completed_at: bigint | null;
+  final_state_hash: string;
+}
+
 export class AdminPoolService {
   private static poolCanisterId = process.env.VITE_CANISTER_ID_DEFLOW_POOL;
+
+  private static async getPoolActor() {
+    if (!this.poolCanisterId) {
+      throw new Error('SECURITY: Pool canister ID not configured. Set VITE_CANISTER_ID_DEFLOW_POOL environment variable.');
+    }
+
+    const authClient = await AuthClient.create();
+    const identity = authClient.getIdentity();
+    
+    const agent = new HttpAgent({
+      identity,
+      host: process.env.DFX_NETWORK === "local" ? "http://127.0.0.1:8080" : "https://ic0.app",
+    });
+
+    // SECURITY: Only fetch root key for local development
+    if (process.env.DFX_NETWORK === "local") {
+      await agent.fetchRootKey();
+    }
+    
+    // SECURITY: Additional validation for production
+    if (process.env.DFX_NETWORK === "ic" && !this.poolCanisterId?.includes(".ic0.app")) {
+      // For mainnet, ensure we have proper canister ID format
+      console.log('PRODUCTION: Using mainnet canister ID:', this.poolCanisterId);
+    }
+
+    return Actor.createActor(poolIdlFactory, {
+      agent,
+      canisterId: this.poolCanisterId,
+    });
+  }
 
   /**
    * Get treasury health report (owner-only)
    */
   static async getTreasuryHealthReport(): Promise<TreasuryHealthReport> {
     try {
-      // Mock implementation for development
-      console.log('Getting treasury health report for admin dashboard');
+      const actor = await this.getPoolActor();
       
+      // Call actual canister methods
+      const poolState = await actor.get_pool_state() as any;
+      const financialOverview = await actor.get_financial_overview() as any;
+      
+      if ('Err' in poolState || 'Err' in financialOverview) {
+        throw new Error('Failed to get pool data from canister');
+      }
+
+      // Extract real data from canister responses
+      const state = poolState.Ok;
+      const overview = financialOverview.Ok;
+
       return {
-        total_usd_value: 48000,
-        total_assets: 5,
-        balances_over_limit: [],
+        total_usd_value: overview.total_liquidity,
+        total_assets: Object.keys(state.reserves).length,
+        balances_over_limit: [], // TODO: Implement based on actual limits
         last_payment_timestamp: BigInt(Date.now() * 1000000),
-        pending_withdrawals: 0,
-        hot_wallet_utilization: 35.5,
-        largest_single_balance: 25000,
-        diversification_score: 0.78,
+        pending_withdrawals: 0, // TODO: Get from canister
+        hot_wallet_utilization: 0, // TODO: Calculate from actual data
+        largest_single_balance: overview.total_liquidity * 0.5, // Estimate
+        diversification_score: 0.78, // TODO: Calculate from actual reserves
         security_alerts: [
-          '✅ All wallets below security thresholds',
-          '✅ Multi-sig configuration active', 
-          '✅ 7:3 fee split (70% pool, 30% treasury) active',
-          '🕐 Last balance check: 5 minutes ago',
-          '💰 $127 in transaction fees collected today',
-          '📊 Pool health: Excellent (78% diversification)',
-          '🔒 Treasury security: High (3/5 approvers required)'
+          `💰 Total Liquidity: $${overview.total_liquidity.toLocaleString()}`,
+          `📊 Pool Phase: ${typeof state.phase === 'object' ? Object.keys(state.phase)[0] : 'Unknown'}`,
+          `📈 Bootstrap Progress: ${(overview.bootstrap_progress * 100).toFixed(1)}%`,
+          `💵 Monthly Revenue: $${overview.monthly_revenue.toLocaleString()}`,
+          `🔒 Pool Health: ${overview.pool_health}`,
+          `⚡ Business Health: ${overview.business_health}`
         ]
       };
     } catch (error) {
       console.error('Failed to get treasury health report:', error);
-      throw new Error('Failed to get treasury health report');
+      throw new Error(`Failed to get treasury health report: ${error}`);
     }
   }
 
@@ -122,34 +205,42 @@ export class AdminPoolService {
    */
   static async getAllTreasuryBalances(): Promise<TreasuryBalance[]> {
     try {
-      // Mock implementation for development
-      console.log('Getting all treasury balances for admin dashboard');
+      const actor = await this.getPoolActor();
       
-      return [
-        {
-          chain: 'icp',
-          asset: 'icp',
-          amount: 2500,
-          amount_usd: 25000,
+      // Get chain distribution from canister
+      const chainDistribution = await actor.get_chain_distribution() as any;
+      const poolState = await actor.get_pool_state() as any;
+      
+      if ('Err' in poolState) {
+        throw new Error('Failed to get pool state from canister');
+      }
+
+      const state = poolState.Ok;
+      const balances: TreasuryBalance[] = [];
+
+      // Convert canister data to treasury balances
+      for (const [chainName, percentage] of chainDistribution) {
+        const chainId = chainName; // Assuming string format
+        const totalLiquidityForChain = state.total_liquidity_usd * percentage;
+        
+        // For now, assume single asset per chain (can be expanded)
+        const assetName = chainId === 'Bitcoin' ? 'btc' : 
+                         chainId === 'Ethereum' ? 'eth' : 
+                         chainId === 'Polygon' ? 'matic' : 'unknown';
+
+        balances.push({
+          chain: chainId.toLowerCase(),
+          asset: assetName,
+          amount: totalLiquidityForChain / 1000, // Convert to asset units (mock conversion)
+          amount_usd: totalLiquidityForChain,
           last_updated: BigInt(Date.now() * 1000000)
-        },
-        {
-          chain: 'polygon',
-          asset: 'usdc',
-          amount: 15000,
-          amount_usd: 15000,
-          last_updated: BigInt(Date.now() * 1000000)
-        },
-        {
-          chain: 'ethereum',
-          asset: 'usdc',
-          amount: 8000,
-          amount_usd: 8000,
-          last_updated: BigInt((Date.now() - 3600000) * 1000000) // 1 hour ago
-        }
-      ];
+        });
+      }
+
+      return balances;
     } catch (error) {
       console.error('Failed to get treasury balances:', error);
+      // Return empty array instead of mock data for security
       return [];
     }
   }
@@ -159,86 +250,13 @@ export class AdminPoolService {
    */
   static async getTreasuryTransactions(limit: number = 50): Promise<TreasuryTransaction[]> {
     try {
-      // Mock implementation for development
-      console.log(`Getting treasury transactions (limit: ${limit}) for admin dashboard`);
+      const actor = await this.getPoolActor();
       
-      return [
-        {
-          id: 'tx_admin_001',
-          transaction_type: 'SubscriptionPayment',
-          chain: 'polygon',
-          asset: 'usdc',
-          amount: 19,
-          amount_usd: 19,
-          from_address: '0x1234...5678',
-          to_address: '0x742e3B7e6a7a5e3f7bF4d3E6BaA8A5e3F7B4F3d6',
-          tx_hash: '0xabc123...def456',
-          status: 'Confirmed',
-          timestamp: BigInt(Date.now() * 1000000),
-          initiated_by: 'user_premium_123',
-          notes: 'Premium subscription payment - auto-processed'
-        },
-        {
-          id: 'fee_admin_001',
-          transaction_type: 'TransactionFeeRevenue',
-          chain: 'icp',
-          asset: 'icp',
-          amount: 0.45,
-          amount_usd: 45.0,
-          from_address: 'pool',
-          to_address: 'treasury',
-          tx_hash: '0xfee789...abc123',
-          status: 'Confirmed',
-          timestamp: BigInt((Date.now() - 1800000) * 1000000), // 30 min ago
-          initiated_by: 'system',
-          notes: '30% of platform transaction fees (7:3 split) - DeFi arbitrage fees'
-        },
-        {
-          id: 'fee_admin_002',
-          transaction_type: 'TransactionFeeRevenue',
-          chain: 'icp',
-          asset: 'icp',
-          amount: 0.23,
-          amount_usd: 23.0,
-          from_address: 'pool',
-          to_address: 'treasury',
-          tx_hash: '0xfee456...def789',
-          status: 'Confirmed',
-          timestamp: BigInt((Date.now() - 3600000) * 1000000), // 1 hour ago
-          initiated_by: 'system',
-          notes: '30% of platform transaction fees (7:3 split) - Yield farming fees'
-        },
-        {
-          id: 'fee_admin_003',
-          transaction_type: 'TransactionFeeRevenue',
-          chain: 'icp',
-          asset: 'icp',
-          amount: 0.18,
-          amount_usd: 18.0,
-          from_address: 'pool',
-          to_address: 'treasury',
-          tx_hash: '0xfee321...ghi456',
-          status: 'Confirmed',
-          timestamp: BigInt((Date.now() - 5400000) * 1000000), // 1.5 hours ago
-          initiated_by: 'system',
-          notes: '30% of platform transaction fees (7:3 split) - Cross-chain swap fees'
-        },
-        {
-          id: 'withdraw_admin_001',
-          transaction_type: 'WithdrawalToTeam',
-          chain: 'icp',
-          asset: 'icp',
-          amount: 150,
-          amount_usd: 1500,
-          from_address: 'treasury',
-          to_address: '0xteam...wallet',
-          tx_hash: '0xwith789...def123',
-          status: 'Confirmed',
-          timestamp: BigInt((Date.now() - 86400000) * 1000000), // 1 day ago
-          initiated_by: 'owner',
-          notes: 'Monthly team distribution - Q4 2024'
-        }
-      ];
+      // TODO: Implement get_treasury_transactions method in pool canister
+      console.warn('Treasury transactions not yet implemented in pool canister');
+      
+      // For now, return empty array instead of mock data
+      return [];
     } catch (error) {
       console.error('Failed to get treasury transactions:', error);
       return [];
@@ -250,24 +268,33 @@ export class AdminPoolService {
    */
   static async getPoolState(): Promise<PoolState> {
     try {
-      // Mock implementation for development
-      console.log('Getting pool state for admin dashboard');
+      const actor = await this.getPoolActor();
       
+      const poolStateResult = await actor.get_pool_state() as any;
+      const financialOverview = await actor.get_financial_overview() as any;
+      
+      if ('Err' in poolStateResult || 'Err' in financialOverview) {
+        throw new Error('Failed to get pool state from canister');
+      }
+
+      const state = poolStateResult.Ok;
+      const overview = financialOverview.Ok;
+
       return {
-        phase: 'Active',
-        total_liquidity_usd: 125000,
-        monthly_volume: 450000,
-        fee_collection_rate: 0.004, // 0.4%
+        phase: typeof state.phase === 'object' ? Object.keys(state.phase)[0] : 'Unknown',
+        total_liquidity_usd: state.total_liquidity_usd,
+        monthly_volume: state.monthly_volume,
+        fee_collection_rate: state.fee_collection_rate,
         team_earnings: {
-          'total_distributed': 12500,
-          'pending_distribution': 3200,
-          'monthly_average': 4800
+          'dev_1_pending': overview.dev_1_pending,
+          'dev_2_pending': overview.dev_2_pending,
+          'emergency_fund': overview.emergency_fund
         },
-        bootstrap_progress: 0.85 // 85% complete
+        bootstrap_progress: overview.bootstrap_progress
       };
     } catch (error) {
       console.error('Failed to get pool state:', error);
-      throw new Error('Failed to get pool state');
+      throw new Error(`Failed to get pool state: ${error}`);
     }
   }
 
@@ -282,21 +309,17 @@ export class AdminPoolService {
     maxBalanceUsd?: number
   ): Promise<void> {
     try {
-      // Mock implementation for development
-      console.log('Configuring payment address:', {
-        chain,
-        asset,
-        address,
-        addressType,
-        maxBalanceUsd
-      });
+      const actor = await this.getPoolActor();
       
-      // In production, this would call the pool canister
-      // await poolCanister.configure_payment_address(chain, asset, address, addressType, maxBalanceUsd);
+      // TODO: Implement configure_payment_address method in pool canister
+      console.warn('Payment address configuration not yet implemented in pool canister');
+      
+      // SECURITY: Do not silently succeed - throw error to indicate missing functionality
+      throw new Error('Payment address configuration not yet implemented');
       
     } catch (error) {
       console.error('Failed to configure payment address:', error);
-      throw new Error('Failed to configure payment address');
+      throw new Error(`Failed to configure payment address: ${error}`);
     }
   }
 
@@ -311,21 +334,24 @@ export class AdminPoolService {
     reason: string
   ): Promise<string> {
     try {
-      // Mock implementation for development
-      console.log('Initiating team withdrawal:', {
-        chain,
-        asset,
-        amount,
-        destinationAddress,
-        reason
-      });
+      const actor = await this.getPoolActor();
       
-      // Return mock withdrawal request ID
-      return 'withdrawal_' + Date.now();
+      // Call the actual withdraw_dev_earnings method
+      const result = await actor.withdraw_dev_earnings() as any;
+      
+      if ('Err' in result) {
+        throw new Error(`Withdrawal failed: ${result.Err}`);
+      }
+      
+      const withdrawnAmount = result.Ok;
+      console.log(`Successfully withdrew ${withdrawnAmount} for ${reason}`);
+      
+      // Return a simple confirmation ID
+      return `withdrawal_${Date.now()}_${withdrawnAmount}`;
       
     } catch (error) {
       console.error('Failed to initiate team withdrawal:', error);
-      throw new Error('Failed to initiate team withdrawal');
+      throw new Error(`Failed to initiate team withdrawal: ${error}`);
     }
   }
 
@@ -334,102 +360,207 @@ export class AdminPoolService {
    */
   static async getSystemHealth(): Promise<SystemHealthData> {
     try {
-      // Mock implementation for development
-      console.log('Getting comprehensive system health for admin dashboard');
+      // TODO: Implement system health monitoring in canisters
+      console.warn('System health monitoring not yet fully implemented');
       
-      // Mock canister health data
-      const canisters: CanisterHealth[] = [
-        {
-          canister_id: process.env.VITE_CANISTER_ID_DEFLOW_POOL || 'uzt4z-lp777-77774-qaabq-cai',
-          name: 'DeFlow Pool',
-          status: 'Running',
-          memory_usage: 45.2,
-          cycles_balance: 15_000_000_000_000, // 15T cycles
-          last_upgrade: BigInt((Date.now() - 604800000) * 1000000), // 1 week ago
-          error_rate: 0.001,
-          avg_response_time: 180,
-          heap_memory_size: 2_100_000, // 2.1MB
-          stable_memory_size: 8_500_000, // 8.5MB
-          is_healthy: true,
-          warnings: []
-        },
-        {
-          canister_id: process.env.VITE_CANISTER_ID_DEFLOW_BACKEND || 'uxrrr-q7777-77774-qaaaq-cai',
-          name: 'DeFlow Backend',
-          status: 'Running',
-          memory_usage: 38.7,
-          cycles_balance: 22_000_000_000_000, // 22T cycles
-          last_upgrade: BigInt((Date.now() - 432000000) * 1000000), // 5 days ago
-          error_rate: 0.0005,
-          avg_response_time: 95,
-          heap_memory_size: 1_800_000, // 1.8MB
-          stable_memory_size: 12_300_000, // 12.3MB
-          is_healthy: true,
-          warnings: []
-        },
-        {
-          canister_id: process.env.VITE_CANISTER_ID_DEFLOW_FRONTEND || 'u6s2n-gx777-77774-qaaba-cai',
-          name: 'DeFlow Frontend',
-          status: 'Running',
-          memory_usage: 15.3,
-          cycles_balance: 8_500_000_000_000, // 8.5T cycles
-          last_upgrade: BigInt((Date.now() - 86400000) * 1000000), // 1 day ago
-          error_rate: 0.0002,
-          avg_response_time: 45,
-          heap_memory_size: 580_000, // 580KB
-          stable_memory_size: 0, // Asset canister
-          is_healthy: true,
-          warnings: []
-        },
-        {
-          canister_id: process.env.VITE_CANISTER_ID_DEFLOW_ADMIN || 'ulvla-h7777-77774-qaacq-cai',
-          name: 'DeFlow Admin',
-          status: 'Running',
-          memory_usage: 12.8,
-          cycles_balance: 5_200_000_000_000, // 5.2T cycles
-          last_upgrade: BigInt((Date.now() - 3600000) * 1000000), // 1 hour ago
-          error_rate: 0.0001,
-          avg_response_time: 38,
-          heap_memory_size: 420_000, // 420KB
-          stable_memory_size: 0, // Asset canister
-          is_healthy: true,
-          warnings: []
-        }
-      ];
-
-      // Calculate overall health
-      const totalCycles = canisters.reduce((sum, c) => sum + c.cycles_balance, 0);
-      const avgErrorRate = canisters.reduce((sum, c) => sum + c.error_rate, 0) / canisters.length;
-      const unhealthyCanisters = canisters.filter(c => !c.is_healthy);
-      
-      let overallStatus: 'Healthy' | 'Warning' | 'Critical' = 'Healthy';
-      if (unhealthyCanisters.length > 0) {
-        overallStatus = 'Critical';
-      } else if (avgErrorRate > 0.005 || totalCycles < 30_000_000_000_000) {
-        overallStatus = 'Warning';
-      }
-
+      // For now, return minimal health data
       return {
-        overall_status: overallStatus,
-        total_cycles: totalCycles,
-        canisters,
+        overall_status: 'Warning', // Conservative status until proper monitoring is implemented
+        total_cycles: 0, // TODO: Get from canister status
+        canisters: [],
         platform_metrics: {
-          total_users: 1247,
-          active_users_24h: 127,
-          total_workflows: 3456,
-          workflows_executed_24h: 89,
-          total_transactions_24h: 1543,
-          total_volume_24h_usd: 45230
+          total_users: 0,
+          active_users_24h: 0,
+          total_workflows: 0,
+          workflows_executed_24h: 0,
+          total_transactions_24h: 0,
+          total_volume_24h_usd: 0
         },
         network_info: {
-          ic_network: 'Local Development',
-          subnet_id: 'local-subnet-1',
-          replica_version: 'dfx-0.22.0'
+          ic_network: process.env.DFX_NETWORK || 'unknown',
+          subnet_id: 'unknown',
+          replica_version: 'unknown'
         }
       };
     } catch (error) {
       console.error('Failed to get system health:', error);
-      throw new Error('Failed to get system health');
+      throw new Error(`Failed to get system health: ${error}`);
+    }
+  }
+
+  // =============================================================================
+  // POOL TERMINATION METHODS
+  // =============================================================================
+
+  /**
+   * Set cofounder principal (owner-only, one-time only)
+   */
+  static async setCofounder(cofounderPrincipal: string): Promise<string> {
+    try {
+      const actor = await this.getPoolActor();
+      
+      const result = await actor.set_cofounder(cofounderPrincipal) as any;
+      
+      if ('Err' in result) {
+        throw new Error(`Failed to set cofounder: ${result.Err}`);
+      }
+      
+      return result.Ok;
+    } catch (error) {
+      console.error('Failed to set cofounder:', error);
+      throw new Error(`Failed to set cofounder: ${error}`);
+    }
+  }
+
+  /**
+   * Get cofounder principal (owner/cofounder only)
+   */
+  static async getCofounder(): Promise<string | null> {
+    try {
+      const actor = await this.getPoolActor();
+      
+      const result = await actor.get_cofounder() as any;
+      
+      if (result && result.length > 0) {
+        return result[0]; // Optional<Principal> returns as array
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Failed to get cofounder:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Initiate pool termination (owner/cofounder only)
+   */
+  static async initiatePoolTermination(
+    reason: string,
+    assetDistributionAddresses: Array<[string, string, string]>, // [chain, asset, address]
+    emergency: boolean = false
+  ): Promise<string> {
+    try {
+      const actor = await this.getPoolActor();
+      
+      const result = await actor.initiate_pool_termination(
+        reason,
+        assetDistributionAddresses,
+        emergency
+      ) as any;
+      
+      if ('Err' in result) {
+        throw new Error(`Failed to initiate termination: ${result.Err}`);
+      }
+      
+      return result.Ok;
+    } catch (error) {
+      console.error('Failed to initiate pool termination:', error);
+      throw new Error(`Failed to initiate pool termination: ${error}`);
+    }
+  }
+
+  /**
+   * Approve pool termination (owner/cofounder only)
+   */
+  static async approvePoolTermination(
+    terminationId: string,
+    confirmationPhrase: string,
+    approvalNotes?: string
+  ): Promise<string> {
+    try {
+      const actor = await this.getPoolActor();
+      
+      const result = await actor.approve_pool_termination(
+        terminationId,
+        confirmationPhrase,
+        approvalNotes ? [approvalNotes] : []
+      ) as any;
+      
+      if ('Err' in result) {
+        throw new Error(`Failed to approve termination: ${result.Err}`);
+      }
+      
+      return result.Ok;
+    } catch (error) {
+      console.error('Failed to approve pool termination:', error);
+      throw new Error(`Failed to approve pool termination: ${error}`);
+    }
+  }
+
+  /**
+   * Execute pool termination (owner only)
+   */
+  static async executePoolTermination(terminationId: string): Promise<TerminationSummary> {
+    try {
+      const actor = await this.getPoolActor();
+      
+      const result = await actor.execute_pool_termination(terminationId) as any;
+      
+      if ('Err' in result) {
+        throw new Error(`Failed to execute termination: ${result.Err}`);
+      }
+      
+      return result.Ok;
+    } catch (error) {
+      console.error('Failed to execute pool termination:', error);
+      throw new Error(`Failed to execute pool termination: ${error}`);
+    }
+  }
+
+  /**
+   * Cancel pool termination (owner only)
+   */
+  static async cancelPoolTermination(terminationId: string, reason: string): Promise<string> {
+    try {
+      const actor = await this.getPoolActor();
+      
+      const result = await actor.cancel_pool_termination(terminationId, reason) as any;
+      
+      if ('Err' in result) {
+        throw new Error(`Failed to cancel termination: ${result.Err}`);
+      }
+      
+      return result.Ok;
+    } catch (error) {
+      console.error('Failed to cancel pool termination:', error);
+      throw new Error(`Failed to cancel pool termination: ${error}`);
+    }
+  }
+
+  /**
+   * Get active termination request (owner/cofounder only)
+   */
+  static async getActiveTerminationRequest(): Promise<PoolTerminationRequest | null> {
+    try {
+      const actor = await this.getPoolActor();
+      
+      const result = await actor.get_active_termination_request() as any;
+      
+      if (result && result.length > 0) {
+        return result[0]; // Optional<PoolTerminationRequest> returns as array
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Failed to get active termination request:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get termination history (owner/cofounder only)
+   */
+  static async getTerminationHistory(): Promise<PoolTerminationRequest[]> {
+    try {
+      const actor = await this.getPoolActor();
+      
+      const result = await actor.get_termination_history() as any;
+      
+      return result || [];
+    } catch (error) {
+      console.error('Failed to get termination history:', error);
+      return [];
     }
   }
 }

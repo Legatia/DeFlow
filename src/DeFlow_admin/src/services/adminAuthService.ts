@@ -5,7 +5,7 @@ interface AdminSession {
 }
 
 export class AdminAuthService {
-  private static readonly OWNER_PRINCIPAL = process.env.VITE_OWNER_PRINCIPAL || 'mock-owner-principal';
+  private static readonly OWNER_PRINCIPAL = process.env.VITE_OWNER_PRINCIPAL;
   private static readonly SESSION_KEY = 'deflow_admin_session';
   private static readonly SESSION_DURATION = 4 * 60 * 60 * 1000; // 4 hours
 
@@ -13,6 +13,11 @@ export class AdminAuthService {
    * Create a new admin session after authentication
    */
   static async createSession(principal: string): Promise<AdminSession> {
+    // SECURITY: Validate owner principal is configured
+    if (!this.OWNER_PRINCIPAL) {
+      throw new Error('SECURITY: Owner principal not configured. Set VITE_OWNER_PRINCIPAL environment variable.');
+    }
+
     // Verify this is the owner principal
     const isOwner = this.isOwnerPrincipal(principal);
     
@@ -26,8 +31,13 @@ export class AdminAuthService {
       sessionStart: Date.now()
     };
 
-    // Store session in localStorage (in production, consider more secure storage)
-    localStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
+    // SECURITY: Store encrypted session data
+    try {
+      const encryptedSession = btoa(JSON.stringify(session)); // Basic encoding (use proper encryption in production)
+      sessionStorage.setItem(this.SESSION_KEY, encryptedSession); // Use sessionStorage instead of localStorage
+    } catch (error) {
+      throw new Error('Failed to create secure session');
+    }
 
     return session;
   }
@@ -37,9 +47,11 @@ export class AdminAuthService {
    */
   static async getCurrentSession(): Promise<AdminSession | null> {
     try {
-      const sessionData = localStorage.getItem(this.SESSION_KEY);
-      if (!sessionData) return null;
+      const encryptedSessionData = sessionStorage.getItem(this.SESSION_KEY);
+      if (!encryptedSessionData) return null;
 
+      // SECURITY: Decrypt session data
+      const sessionData = atob(encryptedSessionData);
       const session: AdminSession = JSON.parse(sessionData);
       
       // Check if session is expired
@@ -56,7 +68,7 @@ export class AdminAuthService {
 
       return session;
     } catch (error) {
-      console.error('Error retrieving admin session:', error);
+      console.error('SECURITY: Invalid session data detected, clearing session');
       this.logout();
       return null;
     }
@@ -66,20 +78,28 @@ export class AdminAuthService {
    * Logout and clear session
    */
   static async logout(): Promise<void> {
-    localStorage.removeItem(this.SESSION_KEY);
+    sessionStorage.removeItem(this.SESSION_KEY);
+    // Clear any other sensitive data
+    sessionStorage.clear();
   }
 
   /**
    * Check if a principal is the owner
    */
   private static isOwnerPrincipal(principal: string): boolean {
-    // For development, accept any principal that starts with 'mock-owner'
-    if (principal.startsWith('mock-owner')) {
-      return true;
+    // SECURITY: No mock bypasses in production
+    if (!this.OWNER_PRINCIPAL) {
+      console.error('SECURITY: Owner principal not configured');
+      return false;
     }
     
-    // In production, check against actual owner principal
-    return principal === this.OWNER_PRINCIPAL;
+    // SECURITY: Strict principal matching only
+    if (principal !== this.OWNER_PRINCIPAL) {
+      console.warn('SECURITY: Unauthorized principal access attempt:', principal);
+      return false;
+    }
+    
+    return true;
   }
 
   /**

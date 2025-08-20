@@ -52,7 +52,15 @@ Create these main sections in GitBook:
 
 ## Developer Guide
 * [Architecture](developer-guide/architecture/README.md)
+  * [System Architecture](developer-guide/architecture/system-design.md)
+  * [Security Architecture](developer-guide/architecture/security.md) ⭐ **NEW**
 * [API Documentation](developer-guide/api/README.md)
+  * [Backend APIs](developer-guide/api/backend.md)
+  * [Secure Pool APIs](developer-guide/api/secure-pool.md) ⭐ **NEW**
+* [Security Guide](developer-guide/security/README.md) ⭐ **NEW SECTION**
+  * [Security Overview](developer-guide/security/overview.md)
+  * [Vulnerability Assessment](developer-guide/security/vulnerabilities.md)
+  * [Secure Development](developer-guide/security/development.md)
 * [Testing Guide](developer-guide/testing/README.md)
 
 ## Business & Operations
@@ -158,6 +166,12 @@ Technical details and endpoints
    - System overview
    - Data flow
    - Component relationships
+   - Security architecture ⭐ **NEW**
+
+3. **Security Diagrams** ⭐ **NEW**
+   - Security validation flow
+   - Atomic state transitions
+   - Multi-signature termination process
 
 3. **Integration Flows**
    - OAuth setup flows

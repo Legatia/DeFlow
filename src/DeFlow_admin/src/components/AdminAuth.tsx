@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AuthClient } from '@dfinity/auth-client';
 
 interface AdminAuthProps {
   onLogin: (principal: string) => Promise<void>;
@@ -13,11 +14,63 @@ const AdminAuth: React.FC<AdminAuthProps> = ({ onLogin }) => {
       setIsLoading(true);
       setError(null);
 
-      // Mock Internet Identity integration for development
-      // TODO: Replace with actual Internet Identity integration
-      const mockPrincipal = 'mock-owner-principal-' + Date.now();
-      
-      await onLogin(mockPrincipal);
+      // DEVELOPMENT: Only allow development bypass for local network
+      if (process.env.DFX_NETWORK === "local" && !process.env.VITE_INTERNET_IDENTITY_CANISTER_ID) {
+        console.warn('DEVELOPMENT: Using development principal for local testing');
+        const devPrincipal = process.env.VITE_OWNER_PRINCIPAL || prompt('Enter your owner principal for development testing:');
+        if (devPrincipal && devPrincipal.length > 20) {
+          await onLogin(devPrincipal);
+          return;
+        } else {
+          throw new Error('Invalid development principal provided');
+        }
+      }
+
+      // PRODUCTION: Ensure Internet Identity is properly configured
+      if (process.env.DFX_NETWORK === "ic" && !process.env.VITE_INTERNET_IDENTITY_CANISTER_ID) {
+        throw new Error('PRODUCTION: Internet Identity canister ID not configured for mainnet deployment');
+      }
+
+      // SECURITY: Real Internet Identity authentication for production
+      const authClient = await AuthClient.create({
+        idleOptions: {
+          disableIdle: true,
+          disableDefaultIdleCallback: true
+        }
+      });
+
+      // Check if already authenticated
+      if (await authClient.isAuthenticated()) {
+        const identity = authClient.getIdentity();
+        const principal = identity.getPrincipal().toString();
+        await onLogin(principal);
+        return;
+      }
+
+      // Start Internet Identity login flow
+      await authClient.login({
+        identityProvider: process.env.DFX_NETWORK === "local" 
+          ? `http://localhost:4943/?canisterId=${process.env.VITE_INTERNET_IDENTITY_CANISTER_ID}`
+          : `https://identity.ic0.app`,
+        maxTimeToLive: BigInt(7 * 24 * 60 * 60 * 1000 * 1000 * 1000), // 7 days in nanoseconds
+        onSuccess: async () => {
+          const identity = authClient.getIdentity();
+          const principal = identity.getPrincipal().toString();
+          
+          // SECURITY: Validate principal before login
+          if (principal === '2vxsx-fae' || principal.length < 20) {
+            throw new Error('SECURITY: Invalid principal detected');
+          }
+          
+          await onLogin(principal);
+        },
+        onError: (error) => {
+          if (error === 'UserInterrupt') {
+            throw new Error('Login was canceled. Please try again.');
+          }
+          throw new Error(`Internet Identity authentication failed: ${error}`);
+        }
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
     } finally {

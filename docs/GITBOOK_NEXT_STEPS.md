@@ -35,11 +35,13 @@ Your GitBook documentation structure is now ready! Here's what's been created:
 3. **💰 Subscription Overview** - Detailed tier and pricing information
 4. **🐦 Twitter Integration** - Complete setup and usage guide
 5. **🚀 Quick Start Guide** - Step-by-step first workflow tutorial
+6. **🔒 Security Documentation** - Comprehensive security update ⭐ **NEW**
 
 ### ✅ **Content Sources Mapped**
 - ✅ SUBSCRIPTION_DESIGN.md → User Guide/Subscription
 - ✅ TWITTER_X_API_GUIDE.md → Social Media Nodes
 - ✅ Workflow state system → Quick Start Guide
+- ✅ GITBOOK_SECURITY_UPDATE.md → Developer Guide/Security ⭐ **NEW**
 - 📋 Ready to map: 15+ additional .md files
 
 ## 🎯 Immediate Next Steps (1-2 Hours)
@@ -125,6 +127,14 @@ Integrations:
 # Time: 2 hours
 ```
 
+#### 🔒 Security Architecture ⭐ **HIGH PRIORITY**
+```markdown
+# Source: GITBOOK_SECURITY_UPDATE.md (COMPLETED)
+# Target: developer-guide/security/overview.md
+# Content: Security enhancements, vulnerability fixes, atomic operations
+# Time: 30 minutes (content ready, just needs formatting)
+```
+
 ### **Phase 2: User Features (Day 2)**
 
 #### 🔄 Workflow Management
@@ -143,12 +153,12 @@ Integrations:
 # Time: 2 hours
 ```
 
-#### 🔐 Authentication Guide
+#### 🔐 Authentication & Security Guide
 ```markdown
-# Source: IDENTITYKIT_INTEGRATION_COMPLETE.md + EXTERNAL_AUTH_GUIDE.md
-# Target: developer-guide/architecture/identity.md
-# Content: Internet Identity, NFID, OAuth setup
-# Time: 2 hours
+# Source: IDENTITYKIT_INTEGRATION_COMPLETE.md + EXTERNAL_AUTH_GUIDE.md + Security Updates
+# Target: developer-guide/architecture/identity.md + developer-guide/security/
+# Content: Internet Identity, NFID, OAuth setup, Security best practices
+# Time: 2.5 hours (includes security integration)
 ```
 
 ### **Phase 3: Integrations (Day 3)**
@@ -163,10 +173,10 @@ Integrations:
 
 #### ⛓️ DeFi & Blockchain Nodes
 ```markdown
-# Sources: Bitcoin/Ethereum integration docs + backend code
-# Targets: user-guide/nodes/defi/bitcoin.md, ethereum.md, multi-chain.md
-# Content: Wallet setup, transaction monitoring, portfolio management
-# Time: 4 hours
+# Sources: Bitcoin/Ethereum integration docs + backend code + Security Updates
+# Targets: user-guide/nodes/defi/bitcoin.md, ethereum.md, multi-chain.md, secure-operations.md
+# Content: Wallet setup, transaction monitoring, portfolio management, Security features
+# Time: 5 hours (includes security documentation)
 ```
 
 ## 🎨 Visual Content Plan (Ongoing)
@@ -177,17 +187,21 @@ Integrations:
 3. **Node Configuration** - Settings panels, forms
 4. **Subscription Tiers** - Pricing comparison visual
 5. **Integration Setup** - OAuth flows, API configuration
+6. **Security Features** - Termination flows, confirmation dialogs ⭐ **NEW**
 
 ### **Diagrams Needed**
 1. **System Architecture** - High-level component overview
 2. **Workflow Execution Flow** - How triggers → nodes → outputs work
 3. **Data Flow** - Information passing between components
 4. **Chain Fusion Diagram** - ICP integration visualization
+5. **Security Architecture** - Security layers and validation flows ⭐ **NEW**
+6. **Atomic State Transitions** - Race condition prevention visualization ⭐ **NEW**
 
 ### **Video Content (Optional)**
 1. **Quick Start Walkthrough** - 5-minute getting started
 2. **Integration Tutorials** - Platform-specific setups
 3. **Advanced Workflows** - Complex automation examples
+4. **Security Features Demo** - Pool termination and security features ⭐ **NEW**
 
 ## 🔧 Technical Setup
 

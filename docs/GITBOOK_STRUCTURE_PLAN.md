@@ -66,14 +66,22 @@
 
 ### **Architecture & Technical Design**
 - **System Architecture** (`DEFI_ARCHITECTURE_DESIGN.md`)
+- **Security Architecture** (`GITBOOK_SECURITY_UPDATE.md`) ⭐ **NEW**
 - **Chain Fusion Guide** (`icp-chain-fusion-guide.md`)
 - **Identity Management** (`IDENTITYKIT_INTEGRATION_COMPLETE.md`)
 - **BigInt Handling** (`BIGINT_DOCUMENTATION_INDEX.md` + related files)
 
 ### **API Documentation**
 - **Backend APIs** (`API_DOCUMENTATION.md`)
+- **Secure Pool Management APIs** (Enhanced with security features) ⭐ **UPDATED**
 - **Custom Strategy APIs** (`CUSTOM_STRATEGY_COMPONENTS.md`)
 - **DeFi Integration APIs** (Extract from backend code)
+
+### **Security Documentation** ⭐ **NEW SECTION**
+- **Security Overview** - Comprehensive security features and protections
+- **Vulnerability Assessment** - Audit results and remediation status
+- **Secure Development Guide** - Best practices for secure integration
+- **Security Testing** - Testing procedures for security features
 
 ### **Testing & Development**
 - **Testing Guide** (`TESTING.md` + `E2E_TESTING_GUIDE.md`)
@@ -97,13 +105,16 @@
 ### **DeFi Strategies**
 - **Automated Strategies** (Extract from automated_strategies code)
 - **Custom Strategy Builder** (Extract from components)
+- **Secure Pool Operations** - Enhanced security for DeFi operations ⭐ **NEW**
 - **KongSwap Integration** (`KONGSWAP_INTEGRATION.md`)
 - **Ramp Network Integration** (`RAMP_NETWORK_INTEGRATION.md`)
 
 ### **Enterprise Features**
 - **Advanced Portfolio Management** (Extract from portfolio_manager code)
 - **Risk Management** (Extract from risk management code)
+- **Security & Compliance** - Enterprise-grade security features ⭐ **NEW**
 - **Analytics & Monitoring** (Extract from analytics code)
+- **Audit Trail & Reporting** - Enhanced logging and monitoring ⭐ **NEW**
 
 ## 6. **Troubleshooting & Support**
 
@@ -111,10 +122,12 @@
 - **BigInt Compatibility** (`BIGINT_AVOIDANCE_GUIDE.md` + `BIGINT_CHECKLIST.md`)
 - **Authentication Issues** (Extract from auth guides)
 - **API Connection Problems** (Extract from various API guides)
+- **Security-Related Issues** - Troubleshooting security validations ⭐ **NEW**
 
 ### **Technical References**
 - **BigInt Technical Reference** (`BIGINT_TECHNICAL_REFERENCE.md`)
 - **Testing Reports** (`TESTING_REPORT.md`)
+- **Security Audit Report** - Comprehensive security assessment ⭐ **NEW**
 - **Development Sprint Plans** (`3_week_sprint_plan.md` + other sprint docs)
 
 ---
@@ -148,6 +161,7 @@
 - ✅ `TWITTER_X_API_GUIDE.md` → User Guide/Social Media Nodes
 - ✅ `TELEGRAM_BOT_API_GUIDE.md` → User Guide/Social Media Nodes
 - ✅ `DEFI_ARCHITECTURE_DESIGN.md` → Developer Guide/Architecture
+- ✅ `GITBOOK_SECURITY_UPDATE.md` → Developer Guide/Security Documentation ⭐ **NEW**
 - ✅ `API_DOCUMENTATION.md` → Developer Guide/API Documentation
 - ✅ `TESTING.md` → Developer Guide/Testing & Development
 

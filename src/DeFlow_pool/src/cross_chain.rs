@@ -203,6 +203,12 @@ impl CrossChainManager {
             },
             PoolPhase::Emergency { .. } => {
                 Err("Cross-chain operations disabled during emergency".to_string())
+            },
+            PoolPhase::Terminating { .. } => {
+                Err("Cross-chain operations disabled during pool termination".to_string())
+            },
+            PoolPhase::Terminated { .. } => {
+                Err("Cross-chain operations disabled - pool terminated".to_string())
             }
         }
     }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminAuth from './components/AdminAuth';
 import AdminDashboard from './pages/AdminDashboard';
+import SecurityGuard from './components/SecurityGuard';
 import { AdminAuthService } from './services/adminAuthService';
 
 interface AdminSession {
@@ -70,10 +71,12 @@ const App: React.FC = () => {
   }
 
   return (
-    <AdminDashboard 
-      adminSession={adminSession!} 
-      onLogout={handleLogout}
-    />
+    <SecurityGuard>
+      <AdminDashboard 
+        adminSession={adminSession!} 
+        onLogout={handleLogout}
+      />
+    </SecurityGuard>
   );
 };
 

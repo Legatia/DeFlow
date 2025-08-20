@@ -31,9 +31,26 @@ impl PoolManager {
         // Get or create asset reserve
         let asset_reserve = chain_reserves.entry(asset.clone()).or_insert_with(LiquidityReserve::default);
         
-        // Update reserve
-        asset_reserve.total_amount += amount;
-        asset_reserve.fee_contributed_amount += amount;
+        // SECURITY: Update reserve with safe arithmetic to prevent overflow
+        asset_reserve.total_amount = match asset_reserve.total_amount.checked_add(amount) {
+            Some(new_total) => new_total,
+            None => {
+                ic_cdk::println!("SECURITY: Integer overflow in fee deposit - current: {}, adding: {}", 
+                               asset_reserve.total_amount, amount);
+                return Err("SECURITY: Integer overflow in reserve calculation".to_string());
+            }
+        };
+        
+        asset_reserve.fee_contributed_amount = match asset_reserve.fee_contributed_amount.checked_add(amount) {
+            Some(new_fee_total) => new_fee_total,
+            None => {
+                ic_cdk::println!("SECURITY: Integer overflow in fee contribution - current: {}, adding: {}", 
+                               asset_reserve.fee_contributed_amount, amount);
+                // Rollback the total_amount change
+                asset_reserve.total_amount = asset_reserve.total_amount.saturating_sub(amount);
+                return Err("SECURITY: Integer overflow in fee contribution calculation".to_string());
+            }
+        };
         asset_reserve.last_updated = time();
         
         // Update daily growth rate
@@ -52,8 +69,15 @@ impl PoolManager {
         // Get or create asset reserve
         let asset_reserve = chain_reserves.entry(asset.clone()).or_insert_with(LiquidityReserve::default);
         
-        // Update reserve (external liquidity addition, not from fees)
-        asset_reserve.total_amount += amount;
+        // SECURITY: Update reserve (external liquidity addition, not from fees) with safe arithmetic
+        asset_reserve.total_amount = match asset_reserve.total_amount.checked_add(amount) {
+            Some(new_total) => new_total,
+            None => {
+                ic_cdk::println!("SECURITY: Integer overflow in liquidity addition - current: {}, adding: {}", 
+                               asset_reserve.total_amount, amount);
+                return Err("SECURITY: Integer overflow in liquidity calculation".to_string());
+            }
+        };
         asset_reserve.last_updated = time();
         
         // Update growth rate and total liquidity
@@ -74,6 +98,12 @@ impl PoolManager {
             },
             PoolPhase::Emergency { reason, .. } => {
                 Err(format!("Pool paused in emergency mode: {}", reason))
+            },
+            PoolPhase::Terminating { .. } => {
+                Err("SECURITY BLOCK: Pool withdrawals disabled during termination process".to_string())
+            },
+            PoolPhase::Terminated { .. } => {
+                Err("SECURITY BLOCK: Pool has been terminated, no withdrawals possible".to_string())
             }
         }
     }
@@ -92,10 +122,17 @@ impl PoolManager {
             return Err(format!("Insufficient liquidity. Available: {}, Requested: {}", available_amount, amount));
         }
         
-        // Execute withdrawal
+        // SECURITY: Execute withdrawal with safe arithmetic
         if let Some(chain_reserves) = pool_state.reserves.get_mut(&chain_id) {
             if let Some(asset_reserve) = chain_reserves.get_mut(&asset) {
-                asset_reserve.total_amount -= amount;
+                asset_reserve.total_amount = match asset_reserve.total_amount.checked_sub(amount) {
+                    Some(new_total) => new_total,
+                    None => {
+                        ic_cdk::println!("SECURITY: Integer underflow in withdrawal - current: {}, removing: {}", 
+                                       asset_reserve.total_amount, amount);
+                        return Err("SECURITY: Insufficient funds for withdrawal".to_string());
+                    }
+                };
                 asset_reserve.utilization_rate = 1.0 - (asset_reserve.total_amount as f64 / (asset_reserve.total_amount as f64 + amount as f64));
                 asset_reserve.last_updated = time();
                 
@@ -196,6 +233,12 @@ impl PoolManager {
             },
             PoolPhase::Emergency { .. } => {
                 Err("Cannot activate pool while in emergency mode".to_string())
+            },
+            PoolPhase::Terminating { .. } => {
+                Err("Cannot activate pool during termination process".to_string())
+            },
+            PoolPhase::Terminated { .. } => {
+                Err("Cannot activate terminated pool".to_string())
             }
         }
     }

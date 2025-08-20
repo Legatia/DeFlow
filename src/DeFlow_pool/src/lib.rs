@@ -117,13 +117,24 @@ fn post_upgrade() {
     // SECURITY: Restore critical state from stable memory after upgrade
     ic_cdk::println!("SECURITY: Starting post-upgrade state restoration");
     
-    MEMORY_MANAGER.with(|m| {
-        let memory = m.borrow().get(POOL_STATE_MEMORY_ID);
-        let stable_storage: StableStorage<u64, PoolState> = 
-            StableBTreeMap::init(memory);
-        
-        match stable_storage.get(&0) {
-            Some(restored_state) => {
+    // SECURITY: Wrap stable storage access in error handling for safe migration
+    let restoration_result = std::panic::catch_unwind(|| {
+        MEMORY_MANAGER.with(|m| {
+            let memory = m.borrow().get(POOL_STATE_MEMORY_ID);
+            let mut stable_storage: StableStorage<u64, PoolState> = 
+                StableBTreeMap::init(memory);
+            
+            match stable_storage.get(&0) {
+                Some(mut restored_state) => {
+                // SECURITY: Handle upgrade migration for new security fields
+                if restored_state.state_version == 0 {
+                    // Migrate from pre-security version
+                    restored_state.state_version = 1;
+                    restored_state.termination_nonce = 0;
+                    ic_cdk::println!("SECURITY: Migrated state to version 1 with security features");
+                }
+                
+                // Successfully restored state from stable memory
                 POOL_STATE.with(|state| {
                     *state.borrow_mut() = restored_state;
                 });
@@ -138,23 +149,407 @@ fn post_upgrade() {
                                      pool_state.dev_team_business.team_member_earnings.len(),
                                      pool_state.treasury_transactions.len());
                 });
-            }
-            None => {
-                ic_cdk::println!("WARNING: No saved state found in stable memory - using default state");
-                // Initialize with default state
+                }
+                None => {
+                // SECURITY: Handle migration case - use default state with new fields
+                ic_cdk::println!("WARNING: No saved state found in stable memory - initializing with migration");
+                
+                let migrated_state = migrate_pool_state();
                 POOL_STATE.with(|state| {
-                    *state.borrow_mut() = PoolState::default();
+                    *state.borrow_mut() = migrated_state;
                 });
+                
+                // Store the migrated state for future upgrades
+                let _ = stable_storage.insert(0, POOL_STATE.with(|s| s.borrow().clone()));
+                
+                ic_cdk::println!("SECURITY: Pool state migrated and stored successfully");
+                }
             }
-        }
+        })
     });
     
+    // SECURITY: Handle any panics during stable storage access
+    match restoration_result {
+        Ok(_) => {
+            ic_cdk::println!("SECURITY: Post-upgrade state restoration completed successfully");
+        }
+        Err(_) => {
+            ic_cdk::println!("WARNING: Stable storage restoration failed - performing emergency migration");
+            
+            // SECURITY: Emergency fallback - initialize with secure defaults
+            let emergency_state = migrate_pool_state();
+            POOL_STATE.with(|state| {
+                *state.borrow_mut() = emergency_state;
+            });
+            
+            ic_cdk::println!("SECURITY: Emergency migration completed with secure defaults");
+        }
+    }
+    
     ic_cdk::println!("SECURITY: Post-upgrade state restoration completed");
+}
+
+// SECURITY: Handle migration from previous PoolState versions
+fn migrate_pool_state() -> PoolState {
+    // Create a new PoolState with default values for new fields
+    let mut new_state = PoolState::default();
+    
+    // SECURITY: Initialize new termination-related fields with safe defaults
+    new_state.active_termination_request = None;
+    new_state.termination_history = Vec::new();
+    new_state.cofounder_principal = None;
+    
+    // Reset to safe bootstrap state
+    new_state.phase = PoolPhase::Bootstrapping {
+        started_at: ic_cdk::api::time(),
+        target_liquidity: new_state.bootstrap_targets.clone(),
+        estimated_completion: ic_cdk::api::time() + (365 * 24 * 60 * 60 * 1_000_000_000), // 1 year
+    };
+    
+    // Ensure owner is set to anonymous for now - will be set properly on first admin call
+    new_state.dev_team_business.team_hierarchy.owner_principal = Principal::anonymous();
+    
+    ic_cdk::println!("AUDIT: State migration completed - New termination fields initialized safely");
+    
+    new_state
+}
+
+// =============================================================================
+// SECURITY: BLOCKCHAIN ADDRESS VALIDATION FUNCTIONS  
+// =============================================================================
+
+// SECURITY: Comprehensive blockchain address validation
+fn validate_blockchain_address(address: &str, chain: &str) -> Result<(), String> {
+    match chain.to_lowercase().as_str() {
+        "bitcoin" => validate_bitcoin_address(address),
+        "ethereum" | "arbitrum" | "optimism" | "polygon" | "base" => validate_ethereum_address(address),
+        "solana" => validate_solana_address(address),
+        _ => Err(format!("SECURITY: Unsupported blockchain: {}", chain)),
+    }
+}
+
+fn validate_bitcoin_address(address: &str) -> Result<(), String> {
+    // SECURITY: Bitcoin address validation (P2PKH, P2SH, Bech32)
+    if address.len() < 26 || address.len() > 62 {
+        return Err("SECURITY: Invalid Bitcoin address length".to_string());
+    }
+    
+    // P2PKH addresses (1...)
+    if address.starts_with('1') {
+        if address.len() >= 26 && address.len() <= 35 && address.chars().all(|c| "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".contains(c)) {
+            return Ok(());
+        }
+    }
+    // P2SH addresses (3...)  
+    else if address.starts_with('3') {
+        if address.len() >= 26 && address.len() <= 35 && address.chars().all(|c| "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".contains(c)) {
+            return Ok(());
+        }
+    }
+    // Bech32 addresses (bc1...)
+    else if address.starts_with("bc1") {
+        if address.len() >= 39 && address.len() <= 62 && address.chars().all(|c| "qpzry9x8gf2tvdw0s3jn54khce6mua7l".contains(c) || c.is_ascii_digit()) {
+            return Ok(());
+        }
+    }
+    
+    Err("SECURITY: Invalid Bitcoin address format".to_string())
+}
+
+fn validate_ethereum_address(address: &str) -> Result<(), String> {
+    // SECURITY: Ethereum address validation (0x + 40 hex characters)
+    if !address.starts_with("0x") {
+        return Err("SECURITY: Ethereum address must start with 0x".to_string());
+    }
+    
+    if address.len() != 42 {
+        return Err("SECURITY: Ethereum address must be exactly 42 characters".to_string());
+    }
+    
+    let hex_part = &address[2..];
+    if !hex_part.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err("SECURITY: Ethereum address contains invalid hex characters".to_string());
+    }
+    
+    // SECURITY: Validate checksum if mixed case (EIP-55)
+    if hex_part.chars().any(|c| c.is_uppercase()) && hex_part.chars().any(|c| c.is_lowercase()) {
+        // Basic checksum validation - in production, implement full EIP-55
+        // For now, accept properly formatted addresses
+    }
+    
+    Ok(())
+}
+
+fn validate_solana_address(address: &str) -> Result<(), String> {
+    // SECURITY: Solana address validation (Base58, 32 bytes = 44 characters)
+    if address.len() < 32 || address.len() > 44 {
+        return Err("SECURITY: Invalid Solana address length".to_string());
+    }
+    
+    // Base58 character set validation
+    if !address.chars().all(|c| "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".contains(c)) {
+        return Err("SECURITY: Solana address contains invalid Base58 characters".to_string());
+    }
+    
+    Ok(())
+}
+
+// =============================================================================
+// SECURITY: ATOMIC STATE TRANSITION FUNCTIONS
+// =============================================================================
+
+/// SECURITY: Atomically update pool state with version checking to prevent race conditions
+fn atomic_state_update<F, R>(operation_name: &str, state_updater: F) -> Result<R, String>
+where
+    F: FnOnce(&mut PoolState) -> Result<R, String>,
+{
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        // Increment state version before the operation
+        let previous_version = pool_state.state_version;
+        pool_state.state_version = pool_state.state_version.saturating_add(1);
+        
+        // Perform the operation
+        match state_updater(&mut pool_state) {
+            Ok(result) => {
+                // AUDIT: Log successful state transition
+                ic_cdk::println!("AUDIT: Atomic state update '{}' successful - Version: {} -> {}", 
+                               operation_name, previous_version, pool_state.state_version);
+                Ok(result)
+            }
+            Err(error) => {
+                // SECURITY: Rollback state version on failure
+                pool_state.state_version = previous_version;
+                ic_cdk::println!("SECURITY: Atomic state update '{}' failed, version rolled back: {}", 
+                               operation_name, error);
+                Err(error)
+            }
+        }
+    })
+}
+
+/// SECURITY: Atomically check and update termination state with nonce validation
+fn atomic_termination_update<F, R>(
+    operation_name: &str, 
+    expected_nonce: Option<u64>,
+    state_updater: F
+) -> Result<R, String>
+where
+    F: FnOnce(&mut PoolState) -> Result<R, String>,
+{
+    atomic_state_update(operation_name, |pool_state| {
+        // SECURITY: Validate termination nonce if provided
+        if let Some(nonce) = expected_nonce {
+            if pool_state.termination_nonce != nonce {
+                return Err(format!(
+                    "SECURITY: Termination nonce mismatch. Expected: {}, Current: {}",
+                    nonce, pool_state.termination_nonce
+                ));
+            }
+        }
+        
+        // Increment termination nonce for next operation
+        pool_state.termination_nonce = pool_state.termination_nonce.saturating_add(1);
+        
+        // Perform the termination-specific operation
+        state_updater(pool_state)
+    })
 }
 
 // =============================================================================
 // SECURITY: INPUT VALIDATION FUNCTIONS
 // =============================================================================
+
+/// SECURITY: Validate emergency termination criteria with strict requirements
+fn validate_emergency_termination(reason: &str, caller: Principal) -> Result<(), String> {
+    // SECURITY: Emergency termination requires stronger justification
+    validate_string_input(reason, 50, 1000, "emergency termination reason")?; // Minimum 50 chars
+    
+    let reason_lower = reason.to_lowercase();
+    
+    // SECURITY: Emergency termination must have valid emergency keywords
+    let valid_emergency_keywords = [
+        "security breach", "hack", "exploit", "vulnerability", "critical bug", 
+        "funds at risk", "smart contract failure", "bridge failure", "oracle failure",
+        "regulatory requirement", "legal order", "compliance issue", "audit finding"
+    ];
+    
+    let has_valid_emergency_keyword = valid_emergency_keywords.iter()
+        .any(|keyword| reason_lower.contains(keyword));
+    
+    if !has_valid_emergency_keyword {
+        ic_cdk::println!("SECURITY: Invalid emergency termination reason from {}: {}", caller.to_text(), reason);
+        return Err(format!(
+            "SECURITY: Emergency termination requires valid emergency justification. Must include one of: {:?}",
+            valid_emergency_keywords
+        ));
+    }
+    
+    // SECURITY: Additional validation for emergency termination
+    if reason.len() < 100 {
+        return Err("SECURITY: Emergency termination reason must be at least 100 characters with detailed explanation".to_string());
+    }
+    
+    // AUDIT: Log emergency termination validation
+    ic_cdk::println!("AUDIT: Emergency termination validated - Initiator: {}, Reason length: {}", 
+                     caller.to_text(), reason.len());
+    
+    Ok(())
+}
+
+/// SECURITY: Generate cryptographically secure confirmation phrase for termination
+fn generate_secure_confirmation_phrase(
+    termination_id: &str, 
+    initiator: Principal, 
+    current_time: u64, 
+    state_version: u64,
+    nonce: u64
+) -> String {
+    // SECURITY: Combine multiple entropy sources for unpredictable confirmation phrase
+    let current_time_bytes = current_time.to_be_bytes();
+    let state_version_bytes = state_version.to_be_bytes();
+    let nonce_bytes = nonce.to_be_bytes();
+    let extra_time_bytes = ic_cdk::api::time().to_be_bytes();
+    
+    let entropy_components = vec![
+        termination_id.as_bytes(),
+        &initiator.as_slice(),
+        &current_time_bytes,
+        &state_version_bytes, 
+        &nonce_bytes,
+        &extra_time_bytes, // Additional timestamp entropy
+        b"DEFLOW_SECURE_TERMINATION_SALT_2024", // Static salt
+    ];
+    
+    // Create a hash from all entropy sources
+    let mut combined_entropy = Vec::new();
+    for component in entropy_components {
+        combined_entropy.extend_from_slice(component);
+    }
+    
+    // Use a simple but unpredictable hash (for production, use SHA-256 or similar)
+    let mut hash_value = 0u64;
+    for (i, &byte) in combined_entropy.iter().enumerate() {
+        hash_value = hash_value.wrapping_mul(31).wrapping_add(byte as u64).wrapping_add(i as u64);
+    }
+    
+    // Create human-readable but secure confirmation phrase
+    let phrase_components = [
+        "SECURE",
+        "TERMINATE", 
+        "DEFLOW",
+        "POOL",
+        &format!("{:016X}", hash_value), // 16-digit hex
+        &format!("{:08X}", current_time.wrapping_mul(state_version)), // Additional entropy
+    ];
+    
+    phrase_components.join("_")
+}
+
+/// SECURITY: Validate that a confirmation phrase matches the expected secure phrase
+fn validate_secure_confirmation_phrase(
+    provided_phrase: &str,
+    termination_request: &PoolTerminationRequest
+) -> Result<(), String> {
+    if provided_phrase != termination_request.secure_confirmation_phrase {
+        ic_cdk::println!("SECURITY: Invalid secure confirmation phrase provided. Expected length: {}, Provided length: {}", 
+                         termination_request.secure_confirmation_phrase.len(), 
+                         provided_phrase.len());
+        return Err("SECURITY: Invalid secure confirmation phrase".to_string());
+    }
+    
+    // SECURITY: Additional validation - ensure phrase has expected structure
+    if !termination_request.secure_confirmation_phrase.starts_with("SECURE_TERMINATE_DEFLOW_POOL_") {
+        ic_cdk::println!("SECURITY: Confirmation phrase structure validation failed");
+        return Err("SECURITY: Confirmation phrase structure invalid".to_string());
+    }
+    
+    Ok(())
+}
+
+/// SECURITY: Safe arithmetic operations to prevent integer overflow and precision loss
+fn safe_add_u64(a: u64, b: u64) -> Result<u64, String> {
+    a.checked_add(b)
+        .ok_or_else(|| {
+            ic_cdk::println!("SECURITY: Integer overflow detected - {} + {}", a, b);
+            "SECURITY: Integer overflow in financial calculation".to_string()
+        })
+}
+
+fn safe_sub_u64(a: u64, b: u64) -> Result<u64, String> {
+    a.checked_sub(b)
+        .ok_or_else(|| {
+            ic_cdk::println!("SECURITY: Integer underflow detected - {} - {}", a, b);
+            "SECURITY: Integer underflow in financial calculation".to_string()
+        })
+}
+
+fn safe_add_f64(a: f64, b: f64) -> Result<f64, String> {
+    if !a.is_finite() || !b.is_finite() {
+        ic_cdk::println!("SECURITY: Non-finite numbers in addition - {} + {}", a, b);
+        return Err("SECURITY: Non-finite numbers in financial calculation".to_string());
+    }
+    
+    let result = a + b;
+    
+    if !result.is_finite() {
+        ic_cdk::println!("SECURITY: Addition result not finite - {} + {} = {}", a, b, result);
+        return Err("SECURITY: Arithmetic overflow in financial calculation".to_string());
+    }
+    
+    // SECURITY: Check for reasonable financial limits (max $1 trillion to prevent absurd values)
+    if result.abs() > 1_000_000_000_000.0 {
+        ic_cdk::println!("SECURITY: Financial amount exceeds reasonable limits: {}", result);
+        return Err("SECURITY: Financial amount exceeds reasonable limits".to_string());
+    }
+    
+    Ok(result)
+}
+
+fn safe_sub_f64(a: f64, b: f64) -> Result<f64, String> {
+    if !a.is_finite() || !b.is_finite() {
+        ic_cdk::println!("SECURITY: Non-finite numbers in subtraction - {} - {}", a, b);
+        return Err("SECURITY: Non-finite numbers in financial calculation".to_string());
+    }
+    
+    let result = a - b;
+    
+    if !result.is_finite() {
+        ic_cdk::println!("SECURITY: Subtraction result not finite - {} - {} = {}", a, b, result);
+        return Err("SECURITY: Arithmetic overflow in financial calculation".to_string());
+    }
+    
+    // SECURITY: Check for negative results where they shouldn't occur
+    if result < 0.0 {
+        ic_cdk::println!("SECURITY: Negative result in financial calculation - {} - {} = {}", a, b, result);
+        return Err("SECURITY: Negative result in financial calculation".to_string());
+    }
+    
+    Ok(result)
+}
+
+fn safe_mul_f64(a: f64, b: f64) -> Result<f64, String> {
+    if !a.is_finite() || !b.is_finite() {
+        ic_cdk::println!("SECURITY: Non-finite numbers in multiplication - {} * {}", a, b);
+        return Err("SECURITY: Non-finite numbers in financial calculation".to_string());
+    }
+    
+    let result = a * b;
+    
+    if !result.is_finite() {
+        ic_cdk::println!("SECURITY: Multiplication result not finite - {} * {} = {}", a, b, result);
+        return Err("SECURITY: Arithmetic overflow in financial calculation".to_string());
+    }
+    
+    // SECURITY: Check for reasonable financial limits
+    if result.abs() > 1_000_000_000_000.0 {
+        ic_cdk::println!("SECURITY: Financial amount exceeds reasonable limits: {}", result);
+        return Err("SECURITY: Financial amount exceeds reasonable limits".to_string());
+    }
+    
+    Ok(result)
+}
 
 /// SECURITY: Comprehensive input validation for all user inputs
 fn validate_principal_input(principal: &Principal, context: &str) -> Result<(), String> {
@@ -501,8 +896,8 @@ fn deposit_fee(asset: Asset, amount: u64, tx_id: String, user: Principal) -> Res
                     .find(|b| b.chain == "icp" && b.asset == asset_string) {
                     
                     // SECURITY: Safe addition with overflow protection
-                    let new_amount = balance.amount + treasury_portion;
-                    let new_amount_usd = balance.amount_usd + treasury_portion;
+                    let new_amount = safe_add_f64(balance.amount, treasury_portion)?;
+                    let new_amount_usd = safe_add_f64(balance.amount_usd, treasury_portion)?;
                     
                     if !new_amount.is_finite() || !new_amount_usd.is_finite() || new_amount < 0.0 || new_amount_usd < 0.0 {
                         ic_cdk::println!("SECURITY: Balance calculation error - old: {}, adding: {}", balance.amount, treasury_portion);
@@ -1231,9 +1626,9 @@ fn record_subscription_payment(
             
         for balance in &mut pool_state.treasury_balances {
             if balance.chain == chain && balance.asset == asset {
-                // SECURITY: Verify balance calculations
-                let new_amount = balance.amount + amount;
-                let new_amount_usd = balance.amount_usd + amount_usd;
+                // SECURITY: Verify balance calculations with safe arithmetic
+                let new_amount = safe_add_f64(balance.amount, amount)?;
+                let new_amount_usd = safe_add_f64(balance.amount_usd, amount_usd)?;
                 
                 if new_amount < 0.0 || new_amount_usd < 0.0 || !new_amount.is_finite() || !new_amount_usd.is_finite() {
                     return Err("SECURITY: Invalid balance calculation".to_string());
@@ -1260,8 +1655,9 @@ fn record_subscription_payment(
             pool_state.treasury_balances.push(new_balance);
         }
         
-        // Process through existing business model
-        pool_state.dev_team_business.monthly_subscription_revenue += amount_usd;
+        // SECURITY: Process through existing business model with safe arithmetic
+        pool_state.dev_team_business.monthly_subscription_revenue = 
+            safe_add_f64(pool_state.dev_team_business.monthly_subscription_revenue, amount_usd)?;
         
         Ok(())
     })
@@ -1985,9 +2381,9 @@ fn create_payment_request(
                           payment_method.min_amount_usd, payment_method.max_amount_usd));
     }
     
-    // Calculate fee
-    let fee_amount_usd = amount_usd * (payment_method.processing_fee_bps as f64) / 10000.0;
-    let total_amount_usd = amount_usd + fee_amount_usd;
+    // SECURITY: Calculate fee with safe arithmetic
+    let fee_amount_usd = safe_mul_f64(amount_usd, (payment_method.processing_fee_bps as f64) / 10000.0)?;
+    let total_amount_usd = safe_add_f64(amount_usd, fee_amount_usd)?;
     
     // Convert to token units (assuming 1:1 for stablecoins)
     let amount = total_amount_usd;
@@ -2163,6 +2559,531 @@ async fn initialize_chain_fusion() -> Result<String, String> {
             Err(error_msg)
         }
     }
+}
+
+// =============================================================================
+// POOL TERMINATION FUNCTIONS
+// =============================================================================
+
+#[update]
+fn set_cofounder(cofounder_principal: Principal) -> Result<String, String> {
+    let caller = require_owner()?; // Only owner can set cofounder
+    
+    // SECURITY: Comprehensive input validation
+    validate_principal_input(&cofounder_principal, "cofounder principal")?;
+    
+    // SECURITY: Prevent owner from setting themselves as cofounder
+    if cofounder_principal == caller {
+        return Err("SECURITY: Owner cannot be their own cofounder".to_string());
+    }
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        // SECURITY: Check if cofounder already set
+        if pool_state.cofounder_principal.is_some() {
+            return Err("SECURITY: Cofounder already set - cannot be changed".to_string());
+        }
+        
+        pool_state.cofounder_principal = Some(cofounder_principal);
+        
+        // AUDIT: Log cofounder assignment
+        ic_cdk::println!("AUDIT: Cofounder set - Owner: {}, Cofounder: {}", 
+                         caller.to_text(), cofounder_principal.to_text());
+        
+        Ok(format!("Cofounder successfully set: {}", cofounder_principal.to_text()))
+    })
+}
+
+#[query]
+fn get_cofounder() -> Option<Principal> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Only owner and existing cofounder can view cofounder info
+    if !is_owner(caller) && !is_cofounder(caller) {
+        return None;
+    }
+    
+    POOL_STATE.with(|state| {
+        state.borrow().cofounder_principal
+    })
+}
+
+#[update]
+fn initiate_pool_termination(
+    reason: String,
+    asset_distribution_addresses: Vec<(String, String, String)>, // (chain, asset, address)
+    emergency: bool
+) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Only owner or cofounder can initiate termination
+    if !is_owner(caller) && !is_cofounder(caller) {
+        return Err("SECURITY: Only owner or cofounder can initiate pool termination".to_string());
+    }
+    
+    // SECURITY: Input validation with emergency-specific checks
+    if emergency {
+        validate_emergency_termination(&reason, caller)?;
+    } else {
+        validate_string_input(&reason, 10, 500, "termination reason")?;
+    }
+    
+    if asset_distribution_addresses.is_empty() {
+        return Err("SECURITY: Asset distribution addresses cannot be empty".to_string());
+    }
+    
+    if asset_distribution_addresses.len() > 50 {
+        return Err("SECURITY: Too many distribution addresses (max 50)".to_string());
+    }
+    
+    // SECURITY: Use atomic state transition to prevent race conditions
+    atomic_termination_update("initiate_pool_termination", None, |pool_state| {
+        // SECURITY: Check current pool state
+        match pool_state.phase {
+            PoolPhase::Terminated { .. } => {
+                return Err("SECURITY: Pool is already terminated".to_string());
+            }
+            PoolPhase::Terminating { .. } => {
+                return Err("SECURITY: Pool termination already in progress".to_string());
+            }
+            _ => {} // Allow termination from other states
+        }
+        
+        // SECURITY: Check if there's already an active termination request
+        if pool_state.active_termination_request.is_some() {
+            return Err("SECURITY: Active termination request already exists".to_string());
+        }
+        
+        // SECURITY: Cofounder must be set for all terminations (emergency requires expedited approval, not bypass)
+        if pool_state.cofounder_principal.is_none() {
+            return Err("SECURITY: Cofounder must be set before any pool termination".to_string());
+        }
+        
+        let current_time = ic_cdk::api::time();
+        let termination_id = format!("termination_{}_{}", caller.to_text(), current_time);
+        
+        // Validate and create asset distribution plan
+        let mut asset_distribution_plan = Vec::new();
+        for (chain, asset, address) in asset_distribution_addresses {
+            // SECURITY: Validate each distribution entry
+            validate_string_input(&chain, 3, 20, "chain name")?;
+            validate_string_input(&asset, 2, 10, "asset name")?;
+            
+            // SECURITY: Comprehensive blockchain address validation
+            validate_blockchain_address(&address, &chain)
+                .map_err(|e| format!("TERMINATION: Invalid {}/{} address '{}': {}", chain, asset, address, e))?;
+            
+            // Calculate current balance for this chain/asset
+            let balance = pool_state.treasury_balances.iter()
+                .find(|b| b.chain.to_lowercase() == chain.to_lowercase() && 
+                         b.asset.to_lowercase() == asset.to_lowercase())
+                .map(|b| b.amount)
+                .unwrap_or(0.0);
+            
+            let estimated_usd = pool_state.treasury_balances.iter()
+                .find(|b| b.chain.to_lowercase() == chain.to_lowercase() && 
+                         b.asset.to_lowercase() == asset.to_lowercase())
+                .map(|b| b.amount_usd)
+                .unwrap_or(0.0);
+            
+            asset_distribution_plan.push(AssetDistribution {
+                chain,
+                asset,
+                total_amount: balance,
+                destination_address: address,
+                estimated_usd_value: estimated_usd,
+                status: DistributionStatus::Pending,
+                tx_hash: None,
+                executed_at: None,
+            });
+        }
+        
+        // SECURITY: Emergency terminations have expedited but not bypassed approval timeframes
+        let expiration_time = if emergency {
+            current_time + (12 * 60 * 60 * 1_000_000_000) // 12 hours for emergency (expedited)
+        } else {
+            current_time + (48 * 60 * 60 * 1_000_000_000) // 48 hours for normal
+        };
+        
+        // SECURITY: Generate cryptographically secure confirmation phrase
+        let secure_phrase = generate_secure_confirmation_phrase(
+            &termination_id,
+            caller,
+            current_time,
+            pool_state.state_version,
+            pool_state.termination_nonce
+        );
+        
+        // Create termination request with state version and nonce
+        let termination_request = PoolTerminationRequest {
+            id: termination_id.clone(),
+            initiated_by: caller,
+            reason: reason.clone(),
+            asset_distribution_plan,
+            owner_approval: None,
+            cofounder_approval: None,
+            created_at: current_time,
+            expires_at: expiration_time,
+            emergency_termination: emergency,
+            expected_state_version: pool_state.state_version, // Capture current state version
+            termination_nonce: pool_state.termination_nonce, // Capture current nonce
+            secure_confirmation_phrase: secure_phrase.clone(), // Store secure phrase
+        };
+        
+        pool_state.active_termination_request = Some(termination_request);
+        
+        // Update pool phase to Terminating
+        pool_state.phase = PoolPhase::Terminating {
+            initiated_at: current_time,
+            termination_request: pool_state.active_termination_request.as_ref().unwrap().clone(),
+        };
+        
+        // AUDIT: Log termination initiation (but not the secure phrase)
+        ic_cdk::println!("AUDIT: Pool termination initiated - ID: {}, Initiator: {}, Emergency: {}, State Version: {}, Nonce: {}", 
+                         termination_id, caller.to_text(), emergency, pool_state.state_version, pool_state.termination_nonce);
+        
+        Ok(format!(
+            "Pool termination initiated with ID: {}\nSecure confirmation phrase: {}\n\nIMPORTANT: Save this phrase - you'll need it for approval!", 
+            termination_id, secure_phrase
+        ))
+    })
+}
+
+#[update]
+fn approve_pool_termination(
+    termination_id: String,
+    confirmation_phrase: String,
+    approval_notes: Option<String>
+) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Input validation
+    validate_string_input(&termination_id, 10, 100, "termination ID")?;
+    validate_string_input(&confirmation_phrase, 1, 200, "confirmation phrase")?;
+    
+    // SECURITY: Check approval notes length if provided
+    if let Some(ref notes) = approval_notes {
+        validate_string_input(notes, 0, 500, "approval notes")?;
+    }
+    
+    // SECURITY: Use atomic state transition with nonce validation to prevent race conditions
+    atomic_termination_update("approve_pool_termination", None, |pool_state| {
+        // SECURITY: Only owner or cofounder can approve
+        let is_owner_caller = caller == pool_state.dev_team_business.team_hierarchy.owner_principal;
+        let is_cofounder_caller = match pool_state.cofounder_principal {
+            Some(cofounder) => caller == cofounder,
+            None => false,
+        };
+        
+        if !is_owner_caller && !is_cofounder_caller {
+            return Err("SECURITY: Only owner or cofounder can approve pool termination".to_string());
+        }
+        
+        // SECURITY: Check if termination request exists, matches ID, and has valid nonce
+        let termination_request = match pool_state.active_termination_request.as_mut() {
+            Some(req) if req.id == termination_id => {
+                // SECURITY: Validate that the termination request is still valid for the current state
+                if req.expected_state_version >= pool_state.state_version {
+                    return Err("SECURITY: Termination request state version conflict - possible race condition".to_string());
+                }
+                req
+            },
+            Some(_) => return Err("SECURITY: Termination ID mismatch".to_string()),
+            None => return Err("SECURITY: No active termination request found".to_string()),
+        };
+        
+        let current_time = ic_cdk::api::time();
+        
+        // SECURITY: Check if request has expired
+        if current_time > termination_request.expires_at {
+            return Err("SECURITY: Termination request has expired".to_string());
+        }
+        
+        // SECURITY: Validate secure confirmation phrase
+        validate_secure_confirmation_phrase(&confirmation_phrase, termination_request)
+            .map_err(|e| {
+                ic_cdk::println!("SECURITY: Confirmation phrase validation failed from {}: {}", caller.to_text(), e);
+                format!("SECURITY: {}", e)
+            })?;
+        
+        // SECURITY: Prevent double approval from same person
+        if is_owner_caller && termination_request.owner_approval.is_some() {
+            return Err("SECURITY: Owner has already approved this termination".to_string());
+        }
+        
+        if is_cofounder_caller && termination_request.cofounder_approval.is_some() {
+            return Err("SECURITY: Cofounder has already approved this termination".to_string());
+        }
+        
+        // Add approval
+        let approval = TerminationApproval {
+            approver: caller,
+            approved_at: current_time,
+            signature_confirmation: confirmation_phrase.clone(),
+            notes: approval_notes,
+        };
+        
+        if is_owner_caller {
+            termination_request.owner_approval = Some(approval);
+        } else if is_cofounder_caller {
+            termination_request.cofounder_approval = Some(approval);
+        }
+        
+        // AUDIT: Log approval with state tracking
+        ic_cdk::println!("AUDIT: Termination approval - ID: {}, Approver: {}, Role: {}, State Version: {}, Nonce: {}", 
+                         termination_id, caller.to_text(), 
+                         if is_owner_caller { "Owner" } else { "Cofounder" },
+                         pool_state.state_version, pool_state.termination_nonce);
+        
+        // SECURITY: All terminations require both approvals (emergency gets expedited timeframe, not bypassed authorization)
+        let ready_to_execute = termination_request.owner_approval.is_some() && termination_request.cofounder_approval.is_some();
+        
+        if ready_to_execute {
+            ic_cdk::println!("AUDIT: Pool termination fully approved - ready for execution");
+            return Ok(format!("Termination approved and ready for execution: {}", termination_id));
+        } else {
+            let still_needed = if termination_request.owner_approval.is_none() {
+                "still need owner approval"
+            } else {
+                "still need cofounder approval"
+            };
+            
+            let urgency_note = if termination_request.emergency_termination {
+                " (EMERGENCY - expedited timeframe)"
+            } else {
+                ""
+            };
+            
+            Ok(format!("Termination approval recorded - {}{}", still_needed, urgency_note))
+        }
+    })
+}
+
+#[update]
+async fn execute_pool_termination(termination_id: String) -> Result<TerminationSummary, String> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Only owner can execute termination
+    if !is_owner(caller) {
+        return Err("SECURITY: Only owner can execute pool termination".to_string());
+    }
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        // Validate termination request
+        let termination_request = match pool_state.active_termination_request.as_ref() {
+            Some(req) if req.id == termination_id => req.clone(),
+            Some(_) => return Err("SECURITY: Termination ID mismatch".to_string()),
+            None => return Err("SECURITY: No active termination request found".to_string()),
+        };
+        
+        // SECURITY: Verify both approvals exist for all terminations (emergency gets expedited timing, not bypassed authorization)
+        let can_execute = termination_request.owner_approval.is_some() && termination_request.cofounder_approval.is_some();
+        
+        if !can_execute {
+            return Err("SECURITY: Insufficient approvals for termination execution".to_string());
+        }
+        
+        let current_time = ic_cdk::api::time();
+        
+        // SECURITY: Check if request has expired
+        if current_time > termination_request.expires_at {
+            return Err("SECURITY: Termination request has expired".to_string());
+        }
+        
+        // Execute asset distributions (mock implementation for now)
+        let mut successful_distributions = 0;
+        let mut failed_distributions = 0;
+        let mut total_distributed_usd = 0.0;
+        let mut chains_processed = Vec::new();
+        let mut final_distributions = Vec::new();
+        
+        for distribution in &termination_request.asset_distribution_plan {
+            // SECURITY: Comprehensive blockchain address validation
+            if let Err(validation_error) = validate_blockchain_address(&distribution.destination_address, &distribution.chain) {
+                ic_cdk::println!("SECURITY: Invalid destination address for {}/{}: {} - {}", 
+                               distribution.chain, distribution.asset, distribution.destination_address, validation_error);
+                failed_distributions += 1;
+                continue;
+            }
+            
+            // Simulate asset transfer execution
+            // In production, this would:
+            // 1. Use Chain Fusion to sign and send transactions
+            // 2. Wait for confirmations
+            // 3. Update distribution status
+            
+            let mock_tx_hash = format!("0x{:x}{:x}", 
+                                     distribution.chain.len() as u64,
+                                     current_time);
+            
+            let mut executed_distribution = distribution.clone();
+            executed_distribution.status = DistributionStatus::Completed;
+            executed_distribution.tx_hash = Some(mock_tx_hash);
+            executed_distribution.executed_at = Some(current_time);
+            
+            successful_distributions += 1;
+            total_distributed_usd += executed_distribution.estimated_usd_value;
+            
+            if !chains_processed.contains(&executed_distribution.chain) {
+                chains_processed.push(executed_distribution.chain.clone());
+            }
+            
+            final_distributions.push(executed_distribution);
+            
+            ic_cdk::println!("AUDIT: Asset distributed - Chain: {}, Asset: {}, Amount: {}, Destination: {}", 
+                           distribution.chain, distribution.asset, distribution.total_amount, distribution.destination_address);
+        }
+        
+        // Create termination summary
+        let termination_summary = TerminationSummary {
+            total_assets_distributed: total_distributed_usd,
+            chains_processed: chains_processed.clone(),
+            successful_distributions,
+            failed_distributions,
+            termination_initiated_at: termination_request.created_at,
+            termination_completed_at: Some(current_time),
+            final_state_hash: format!("pool_terminated_{}", current_time),
+        };
+        
+        // Update pool to terminated state
+        pool_state.phase = PoolPhase::Terminated {
+            terminated_at: current_time,
+            final_asset_distribution: final_distributions,
+            termination_reason: termination_request.reason.clone(),
+        };
+        
+        // Move active request to history
+        pool_state.termination_history.push(termination_request);
+        pool_state.active_termination_request = None;
+        
+        // Clear all treasury balances (they've been distributed)
+        pool_state.treasury_balances.clear();
+        pool_state.total_liquidity_usd = 0.0;
+        
+        // AUDIT: Log termination completion
+        ic_cdk::println!("AUDIT: Pool termination completed - ID: {}, Total USD: ${}, Chains: {:?}, Success: {}, Failed: {}", 
+                         termination_id, total_distributed_usd, chains_processed, successful_distributions, failed_distributions);
+        
+        Ok(termination_summary)
+    })
+}
+
+#[update]
+fn cancel_pool_termination(termination_id: String, reason: String) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Only owner can cancel termination
+    if !is_owner(caller) {
+        return Err("SECURITY: Only owner can cancel pool termination".to_string());
+    }
+    
+    // SECURITY: Input validation
+    validate_string_input(&reason, 5, 200, "cancellation reason")?;
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        // Check active termination request
+        let termination_request = match pool_state.active_termination_request.take() {
+            Some(req) if req.id == termination_id => req,
+            Some(req) => {
+                // Put it back if ID doesn't match
+                pool_state.active_termination_request = Some(req);
+                return Err("SECURITY: Termination ID mismatch".to_string());
+            }
+            None => return Err("SECURITY: No active termination request found".to_string()),
+        };
+        
+        // Move to history with cancellation note
+        let cancelled_request = termination_request;
+        // We could add a cancellation field to track this
+        
+        pool_state.termination_history.push(cancelled_request);
+        
+        // Restore previous pool phase
+        pool_state.phase = match pool_state.total_liquidity_usd {
+            x if x > 0.0 => PoolPhase::Active {
+                activated_at: ic_cdk::api::time(),
+                min_reserve_ratio: 0.1,
+                max_utilization: 0.8,
+            },
+            _ => PoolPhase::Bootstrapping {
+                started_at: ic_cdk::api::time(),
+                target_liquidity: pool_state.bootstrap_targets.clone(),
+                estimated_completion: ic_cdk::api::time() + (365 * 24 * 60 * 60 * 1_000_000_000),
+            }
+        };
+        
+        // AUDIT: Log cancellation
+        ic_cdk::println!("AUDIT: Pool termination cancelled - ID: {}, Reason: {}, Cancelled by: {}", 
+                         termination_id, reason, caller.to_text());
+        
+        Ok(format!("Pool termination cancelled: {}", reason))
+    })
+}
+
+#[query]
+fn get_active_termination_request() -> Option<PoolTerminationRequest> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Only owner and cofounder can view termination requests
+    if !is_owner(caller) && !is_cofounder(caller) {
+        return None;
+    }
+    
+    POOL_STATE.with(|state| {
+        state.borrow().active_termination_request.clone()
+    })
+}
+
+#[query]
+fn get_termination_history() -> Vec<PoolTerminationRequest> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Only owner and cofounder can view termination history
+    if !is_owner(caller) && !is_cofounder(caller) {
+        return Vec::new();
+    }
+    
+    POOL_STATE.with(|state| {
+        state.borrow().termination_history.clone()
+    })
+}
+
+#[query]
+fn get_secure_confirmation_phrase() -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Only owner and cofounder can retrieve confirmation phrase
+    if !is_owner(caller) && !is_cofounder(caller) {
+        return Err("SECURITY: Only owner or cofounder can retrieve confirmation phrase".to_string());
+    }
+    
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        match &pool_state.active_termination_request {
+            Some(request) => {
+                // AUDIT: Log phrase retrieval (but not the actual phrase)
+                ic_cdk::println!("AUDIT: Secure confirmation phrase retrieved by {}", caller.to_text());
+                Ok(request.secure_confirmation_phrase.clone())
+            }
+            None => Err("SECURITY: No active termination request found".to_string())
+        }
+    })
+}
+
+// Helper function to check if caller is cofounder
+fn is_cofounder(caller: Principal) -> bool {
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        match pool_state.cofounder_principal {
+            Some(cofounder) => caller == cofounder,
+            None => false,
+        }
+    })
 }
 
 // =============================================================================

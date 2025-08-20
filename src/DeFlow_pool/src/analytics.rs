@@ -210,6 +210,8 @@ impl PoolAnalytics {
                 }
             },
             PoolPhase::Emergency { .. } => "Emergency".to_string(),
+            PoolPhase::Terminating { .. } => "Terminating".to_string(),
+            PoolPhase::Terminated { .. } => "Terminated".to_string(),
         }
     }
     
