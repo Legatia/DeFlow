@@ -40,7 +40,6 @@ impl CrossChainPriceOracle {
 
     /// Initialize oracle system with default configurations
     pub fn initialize(&mut self) -> Result<(), OracleError> {
-        ic_cdk::println!("Initializing cross-chain price oracle system...");
         
         // Initialize individual oracles
         self.chainlink_oracle.initialize()?;
@@ -51,7 +50,6 @@ impl CrossChainPriceOracle {
         // Set up supported assets
         self.setup_supported_assets()?;
         
-        ic_cdk::println!("Cross-chain price oracle system initialized successfully");
         Ok(())
     }
 
@@ -878,17 +876,14 @@ impl PriceAlertSystem {
                     AlertCondition::PriceAbove(threshold) => {
                         if price.price_usd > threshold {
                             // Trigger alert (in production would send notification)
-                            ic_cdk::println!("Price alert: {} is above ${}", price.asset.symbol, threshold);
                         }
                     },
                     AlertCondition::PriceBelow(threshold) => {
                         if price.price_usd < threshold {
-                            ic_cdk::println!("Price alert: {} is below ${}", price.asset.symbol, threshold);
                         }
                     },
                     AlertCondition::PercentageChange(percentage) => {
                         if price.change_24h_percentage.abs() > percentage {
-                            ic_cdk::println!("Price alert: {} changed by {}%", price.asset.symbol, price.change_24h_percentage);
                         }
                     },
                 }

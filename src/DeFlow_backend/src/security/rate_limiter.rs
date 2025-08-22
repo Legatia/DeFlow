@@ -322,7 +322,6 @@ impl RateLimiterService {
     // Handle rate limit violations
     fn handle_rate_limit_violation(&mut self, user: Principal) {
         // For now, just log. In production, implement escalating penalties
-        ic_cdk::println!("SECURITY: Rate limit violation by user: {}", user.to_text());
         
         // Could implement: temporary blocks, escalating penalties, etc.
     }

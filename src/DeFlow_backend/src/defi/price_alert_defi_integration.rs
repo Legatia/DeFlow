@@ -119,7 +119,6 @@ impl DeFiTriggerEngine {
 
     /// Initialize DeFi trigger engine
     pub fn initialize(&mut self) {
-        ic_cdk::println!("🔗 Initializing DeFi Price Alert Integration Engine");
         
         // Set default risk limits
         self.risk_limits = DeFiRiskLimits {
@@ -130,7 +129,6 @@ impl DeFiTriggerEngine {
             require_manual_approval_above: 5000.0, // Manual approval for > $5,000
         };
 
-        ic_cdk::println!("✅ DeFi trigger engine initialized with risk limits");
     }
 
     /// Execute DeFi action triggered by price alert
@@ -160,7 +158,6 @@ impl DeFiTriggerEngine {
         // Pre-execution validation
         self.validate_execution_conditions(alert, amount, current_price).await?;
 
-        ic_cdk::println!("🚀 Executing DeFi strategy {} for alert {} at price ${}", 
                          strategy_type, alert.id, current_price.price_usd);
 
         let execution_result = match strategy_type {
@@ -235,7 +232,6 @@ impl DeFiTriggerEngine {
         // Check cooldown period
         self.validate_cooldown_period(alert).await?;
 
-        ic_cdk::println!("✅ All execution conditions validated for alert {}", alert.id);
         Ok(())
     }
 
@@ -246,7 +242,6 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-        ic_cdk::println!("📈 Executing market buy: {} {} at ${}", 
                          amount, alert.token_symbol, current_price.price_usd);
 
         // Create strategy configuration for market buy
@@ -302,7 +297,6 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-        ic_cdk::println!("📉 Executing market sell: {} {} at ${}", 
                          amount, alert.token_symbol, current_price.price_usd);
 
         // For market sell, we need to liquidate existing positions
@@ -326,7 +320,6 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-        ic_cdk::println!("📊 Executing limit order for {} with parameters: {}", 
                          alert.token_symbol, parameters);
 
         // Parse limit order parameters (would parse JSON in real implementation)
@@ -350,7 +343,6 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-        ic_cdk::println!("🛑 Executing stop loss for {} at ${}", 
                          alert.token_symbol, current_price.price_usd);
 
         // Stop loss execution - sell to minimize losses
@@ -374,7 +366,6 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-        ic_cdk::println!("💰 Executing take profit for {} at ${}", 
                          alert.token_symbol, current_price.price_usd);
 
         let realized_profit = amount * 0.15; // Assume 15% profit
@@ -397,7 +388,6 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-        ic_cdk::println!("🌾 Executing yield farming strategy for {} with ${}", 
                          alert.token_symbol, amount);
 
         let yield_config = YieldFarmingConfig {
@@ -444,7 +434,6 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-        ic_cdk::println!("⚖️ Executing arbitrage strategy for {} with ${}", 
                          alert.token_symbol, amount);
 
         let arbitrage_config = ArbitrageConfig {
@@ -473,7 +462,6 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-        ic_cdk::println!("⚖️ Executing portfolio rebalancing triggered by {} price change", 
                          alert.token_symbol);
 
         // Portfolio rebalancing integrates with existing portfolio management
@@ -495,7 +483,6 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-        ic_cdk::println!("📈 Executing DCA strategy for {} with ${}", 
                          alert.token_symbol, amount);
 
         let dca_config = DCAConfig {
@@ -584,7 +571,6 @@ impl DeFiTriggerEngine {
             self.execution_history.remove(0);
         }
 
-        ic_cdk::println!("📝 Recorded DeFi execution: {} for ${}", strategy_type, amount);
     }
 
     pub fn get_execution_history(&self, user_id: &str) -> Vec<DeFiExecutionRecord> {

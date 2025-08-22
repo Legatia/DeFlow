@@ -184,7 +184,6 @@ class MultiChainWalletService {
     try {
       await this.loadWalletFromStorage()
       this.initialized = true
-      console.log('🔒 MultiChainWalletService initialized securely')
     } catch (error) {
       console.error('❌ Failed to initialize MultiChainWalletService:', error)
       // Continue with empty wallet for security
@@ -591,7 +590,6 @@ class MultiChainWalletService {
       const stored = await secureStorageService.getSecureItem<MultiChainWallet>('multichain_wallet')
       if (stored) {
         this.wallet = stored
-        console.log('🔒 Wallet loaded securely from encrypted storage')
       } else {
         // Check for old unencrypted data and migrate
         await this.migrateFromUnencryptedStorage()
@@ -616,7 +614,6 @@ class MultiChainWalletService {
       // Save encrypted wallet data
       const success = await secureStorageService.setSecureItem('multichain_wallet', this.wallet)
       if (success) {
-        console.log('🔒 Wallet saved securely to encrypted storage')
       } else {
         throw new Error('Failed to save wallet to secure storage')
       }
@@ -631,7 +628,6 @@ class MultiChainWalletService {
     try {
       const oldData = localStorage.getItem('deflow_multichain_wallet')
       if (oldData) {
-        console.log('🔄 Migrating wallet data to secure storage...')
         
         // Parse old unencrypted data
         const oldWallet = JSON.parse(oldData) as MultiChainWallet
@@ -643,7 +639,6 @@ class MultiChainWalletService {
           // Remove old unencrypted data
           localStorage.removeItem('deflow_multichain_wallet')
           this.wallet = oldWallet
-          console.log('✅ Wallet migration to secure storage completed')
         } else {
           console.error('❌ Failed to migrate wallet data')
         }
@@ -676,7 +671,6 @@ class MultiChainWalletService {
         lastSyncAt: Date.now()
       }
       
-      console.log('🧹 Wallet data cleared securely')
     } catch (error) {
       console.error('❌ Failed to clear wallet data:', error)
       throw error
@@ -699,7 +693,6 @@ class MultiChainWalletService {
       (this as any)._cleanup()
     }
     
-    console.log('🧹 MultiChainWalletService cleanup completed')
   }
 }
 

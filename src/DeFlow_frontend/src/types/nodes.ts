@@ -19,7 +19,7 @@ export interface NodeType {
   inputs: NodePort[]
   outputs: NodePort[]
   configSchema: ConfigField[]
-  defaultConfig: Record<string, any>
+  defaultConfig: Record<string, unknown>
   requiredTier?: SubscriptionTier  // Minimum tier required to use this node (defaults to 'standard')
   tieredPricing?: TieredPricing    // Optional tiered pricing (mainly for DeFi nodes)
 }

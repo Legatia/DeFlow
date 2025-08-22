@@ -29,10 +29,6 @@ mod performance_benchmarks {
         let elapsed = start_time.elapsed();
         let avg_execution_time = elapsed / iterations;
         
-        println!("Strategy execution benchmark:");
-        println!("  Total time: {:?}", elapsed);
-        println!("  Average per execution: {:?}", avg_execution_time);
-        println!("  Executions per second: {:.2}", 1000.0 / avg_execution_time.as_millis() as f64);
         
         // Performance target: Should execute in under 100ms per strategy
         assert!(avg_execution_time < Duration::from_millis(100), 
@@ -55,9 +51,6 @@ mod performance_benchmarks {
         let elapsed = start_time.elapsed();
         let avg_calculation_time = elapsed / iterations;
         
-        println!("Portfolio calculation benchmark:");
-        println!("  Portfolio size: {} positions", portfolio_manager.get_position_count());
-        println!("  Average calculation time: {:?}", avg_calculation_time);
         
         // Performance target: Should calculate large portfolio in under 50ms
         assert!(avg_calculation_time < Duration::from_millis(50),
@@ -79,9 +72,6 @@ mod performance_benchmarks {
         let elapsed = start_time.elapsed();
         let avg_scan_time = elapsed / iterations;
         
-        println!("Arbitrage scanning benchmark:");
-        println!("  Trading pairs: 1000");
-        println!("  Average scan time: {:?}", avg_scan_time);
         
         // Performance target: Should scan 1000 pairs in under 500ms
         assert!(avg_scan_time < Duration::from_millis(500),
@@ -106,9 +96,6 @@ mod performance_benchmarks {
         let elapsed = start_time.elapsed();
         let avg_risk_calc_time = elapsed / strategies.len() as u32;
         
-        println!("Risk calculation benchmark:");
-        println!("  Strategies analyzed: {}", strategies.len());
-        println!("  Average risk calc time: {:?}", avg_risk_calc_time);
         
         // Performance target: Should calculate risk metrics in under 10ms per strategy
         assert!(avg_risk_calc_time < Duration::from_millis(10),
@@ -136,9 +123,6 @@ mod performance_benchmarks {
         let elapsed = start_time.elapsed();
         let avg_coordination_time = elapsed / iterations;
         
-        println!("Multi-strategy coordination benchmark:");
-        println!("  Strategies: 50");
-        println!("  Average coordination time: {:?}", avg_coordination_time);
         
         // Performance target: Should coordinate 50 strategies in under 200ms
         assert!(avg_coordination_time < Duration::from_millis(200),
@@ -172,9 +156,6 @@ mod performance_benchmarks {
             
             memory_measurements.push((count, memory_per_position));
             
-            println!("Portfolio memory usage:");
-            println!("  Positions: {}", count);
-            println!("  Memory per position: {:.2} bytes", memory_per_position);
         }
         
         // Memory should scale linearly and be reasonable per position
@@ -204,9 +185,6 @@ mod performance_benchmarks {
             let current_memory = get_estimated_memory_usage();
             let memory_per_strategy = (current_memory - initial_memory) / count as f64;
             
-            println!("Strategy memory usage:");
-            println!("  Strategies: {}", count);
-            println!("  Memory per strategy: {:.2} bytes", memory_per_strategy);
             
             assert!(memory_per_strategy < 5000.0, // Less than 5KB per strategy
                    "Strategy memory usage too high: {:.2} bytes", memory_per_strategy);
@@ -241,9 +219,6 @@ mod performance_benchmarks {
         let elapsed = start_time.elapsed();
         let operations_per_second = operation_count as f64 / elapsed.as_secs_f64();
         
-        println!("Concurrent operations throughput:");
-        println!("  Operations completed: {}", operation_count);
-        println!("  Operations per second: {:.2}", operations_per_second);
         
         // Should handle at least 100 operations per second
         assert!(operations_per_second >= 100.0,
@@ -273,8 +248,6 @@ mod performance_benchmarks {
             let elapsed = start_time.elapsed();
             let avg_response_time = elapsed / iterations;
             
-            println!("API response time for {}:", operation_name);
-            println!("  Average response time: {:?}", avg_response_time);
             
             // All API operations should respond within 50ms
             assert!(avg_response_time < Duration::from_millis(50),
@@ -310,10 +283,6 @@ mod performance_benchmarks {
         
         let elapsed = start_time.elapsed();
         
-        println!("High-frequency update stress test:");
-        println!("  Updates: {}", iterations);
-        println!("  Total time: {:?}", elapsed);
-        println!("  Updates per second: {:.2}", iterations as f64 / elapsed.as_secs_f64());
         
         // Should handle at least 1000 updates per second
         let updates_per_second = iterations as f64 / elapsed.as_secs_f64();
@@ -343,9 +312,6 @@ mod performance_benchmarks {
             
             performance_results.push((count, coordination_time));
             
-            println!("Strategy scaling test:");
-            println!("  Strategy count: {}", count);
-            println!("  Coordination time: {:?}", coordination_time);
         }
         
         // Check that performance doesn't degrade exponentially

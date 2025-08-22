@@ -237,7 +237,6 @@ impl StrategyRiskManager {
         self.emergency_controls.trigger_stop(strategy_id, reason, self.get_current_time())?;
         
         // Log emergency stop
-        ic_cdk::println!("🚨 EMERGENCY STOP triggered for strategy {}: {}", strategy_id, reason_clone);
         
         Ok(())
     }

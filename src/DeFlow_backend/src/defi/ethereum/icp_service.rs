@@ -104,7 +104,6 @@ impl IcpEthereumDeFiService {
                     addresses.push(address);
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to get address for chain {:?}: {}", chain, e);
                     // Continue with other chains
                     chain_balances.insert(chain.name().to_string(), 0.0);
                 }

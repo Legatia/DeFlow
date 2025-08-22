@@ -169,7 +169,6 @@ impl CyclesMonitorService {
                         self.alert_history.push(topup_alert);
                     },
                     Err(e) => {
-                        ic_cdk::println!("Failed to request top-up: {}", e);
                     }
                 }
             }
@@ -191,7 +190,6 @@ impl CyclesMonitorService {
         // Send notifications
         for alert in &mut alerts_triggered {
             if let Err(e) = self.send_alert_notifications(alert, &config.notification_channels).await {
-                ic_cdk::println!("Failed to send notification: {}", e);
             } else {
                 alert.notification_sent = true;
             }
@@ -275,7 +273,6 @@ impl CyclesMonitorService {
                     self.send_slack_alert(&message).await?;
                 },
                 _ => {
-                    ic_cdk::println!("Unknown notification channel: {}", channel);
                 }
             }
         }
@@ -317,25 +314,21 @@ impl CyclesMonitorService {
 
     async fn send_email_alert(&self, message: &str) -> Result<(), String> {
         // Placeholder for email notification
-        ic_cdk::println!("EMAIL ALERT: {}", message);
         Ok(())
     }
 
     async fn send_discord_alert(&self, message: &str) -> Result<(), String> {
         // Placeholder for Discord webhook
-        ic_cdk::println!("DISCORD ALERT: {}", message);
         Ok(())
     }
 
     async fn send_telegram_alert(&self, message: &str) -> Result<(), String> {
         // Placeholder for Telegram bot
-        ic_cdk::println!("TELEGRAM ALERT: {}", message);
         Ok(())
     }
 
     async fn send_slack_alert(&self, message: &str) -> Result<(), String> {
         // Placeholder for Slack webhook
-        ic_cdk::println!("SLACK ALERT: {}", message);
         Ok(())
     }
 
@@ -349,7 +342,6 @@ impl CyclesMonitorService {
         // 2. Use the cycles management API to send cycles
         // 3. For external canisters, might need to notify the owner
         
-        ic_cdk::println!(
             "TOP-UP REQUESTED: {} cycles for canister {}",
             amount, canister_id
         );

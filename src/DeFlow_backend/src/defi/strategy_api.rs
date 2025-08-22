@@ -128,12 +128,10 @@ pub fn init_strategy_api() {
     });
     
     // Initialize protocol integrations (async initialization will happen on first call)
-    ic_cdk::println!("Protocol integrations will be initialized on first API call");
     
     // Start periodic refresh tasks
     start_periodic_refresh_tasks();
     
-    ic_cdk::println!("DeFlow Strategy API initialized successfully");
 }
 
 /// Start background tasks to refresh protocol data
@@ -151,7 +149,6 @@ fn start_periodic_refresh_tasks() {
         });
     });
     
-    ic_cdk::println!("Started periodic protocol data refresh tasks");
 }
 
 // =============================================================================
@@ -239,7 +236,6 @@ async fn fetch_yield_opportunities() -> Result<YieldOpportunitiesResponse, Strin
 pub async fn refresh_yield_opportunities() -> Result<(), String> {
     // Note: In a real implementation, this would refresh the protocol manager's cache
     // For now, we log that a refresh was attempted
-    ic_cdk::println!("Yield opportunities refresh triggered");
     Ok(())
 }
 
@@ -292,7 +288,6 @@ async fn fetch_arbitrage_opportunities() -> Result<ArbitrageScanResponse, String
 pub async fn refresh_arbitrage_opportunities() -> Result<(), String> {
     // Note: In a real implementation, this would refresh the protocol manager's cache
     // For now, we log that a refresh was attempted
-    ic_cdk::println!("Arbitrage opportunities refresh triggered");
     Ok(())
 }
 

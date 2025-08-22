@@ -312,7 +312,6 @@ impl IcpGasEstimator {
                     });
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to estimate gas for {:?}: {}", chain, e);
                     // Continue with other chains
                 }
             }

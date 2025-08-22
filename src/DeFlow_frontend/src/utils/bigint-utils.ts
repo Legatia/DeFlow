@@ -176,4 +176,3 @@ export class BigIntUtils {
   }
 }
 
-console.log('✅ BigInt utilities loaded with bignumber.js support')

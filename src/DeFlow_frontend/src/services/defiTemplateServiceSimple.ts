@@ -43,14 +43,12 @@ class SimpleDefiTemplateService {
     if (this.isInitialized) return;
 
     try {
-      console.log('Initializing Simple DeFi Template service...');
 
       if (canisterId) {
         this.canisterId = canisterId;
       }
 
       this.isInitialized = true;
-      console.log('Simple DeFi Template service initialized successfully');
     } catch (error) {
       console.error('Failed to initialize Simple DeFi Template service:', error);
       throw error;
@@ -67,7 +65,6 @@ class SimpleDefiTemplateService {
   private async callCanister(method: string, args: any[] = []): Promise<any> {
     try {
       // For now, we'll return mock data since direct dfx calls from browser are not straightforward
-      console.log(`Would call canister method: ${method} with args:`, args);
       
       // In a real implementation, you could use a proxy server or the agent-js library
       // For demo purposes, we'll use mock data
@@ -338,7 +335,6 @@ class SimpleDefiTemplateService {
         return;
       }
 
-      console.log('Updating templates with real market data...');
       
       // Get real yield opportunities
       const yieldData = await realProtocolService.getYieldOpportunities();
@@ -354,7 +350,6 @@ class SimpleDefiTemplateService {
       }
 
       this.realMarketData.lastUpdated = Date.now();
-      console.log('Templates updated with real market data:', this.realMarketData);
     } catch (error) {
       console.warn('Failed to update templates with real data:', error);
     }

@@ -141,12 +141,10 @@ impl PriceAlertManager {
 
     /// Initialize the price alert system
     pub fn initialize(&mut self) {
-        ic_cdk::println!("🚨 Initializing Price Alert & Social Media System");
         
         // Start price monitoring
         self.start_monitoring();
         
-        ic_cdk::println!("✅ Price Alert System initialized successfully");
     }
 
     /// Start periodic price monitoring
@@ -167,7 +165,6 @@ impl PriceAlertManager {
             }
         );
 
-        ic_cdk::println!("🔄 Started price monitoring (interval: {}s)", self.monitoring_interval);
     }
 
     /// Create a new price alert
@@ -184,7 +181,6 @@ impl PriceAlertManager {
         let alert_id = alert.id.clone();
         self.alerts.insert(alert_id.clone(), alert.clone());
         
-        ic_cdk::println!("✅ Created price alert: {} for {} {}", 
                          alert_id, alert.token_symbol, self.format_condition(&alert.condition));
         
         Ok(alert_id)
@@ -208,7 +204,6 @@ impl PriceAlertManager {
                 existing_alert.is_active = updates.is_active;
                 existing_alert.max_triggers = updates.max_triggers;
 
-                ic_cdk::println!("✅ Updated price alert: {}", alert_id);
                 Ok(())
             },
             None => Err(format!("Alert not found: {}", alert_id))
@@ -224,7 +219,6 @@ impl PriceAlertManager {
                 }
 
                 alert.is_active = false;
-                ic_cdk::println!("⏹️ Deactivated price alert: {}", alert_id);
                 Ok(())
             },
             None => Err(format!("Alert not found: {}", alert_id))
@@ -240,7 +234,6 @@ impl PriceAlertManager {
                 }
 
                 self.alerts.remove(alert_id);
-                ic_cdk::println!("🗑️ Deleted price alert: {}", alert_id);
                 Ok(())
             },
             None => Err(format!("Alert not found: {}", alert_id))
@@ -293,7 +286,6 @@ impl PriceAlertManager {
 
     /// Trigger alert actions
     async fn trigger_alert(&mut self, alert: &PriceAlert, current_price: &TokenPrice) -> Result<AlertTriggerEvent, String> {
-        ic_cdk::println!("🚨 Price alert triggered for {}: ${}", alert.token_symbol, current_price.price_usd);
         
         let mut action_results = Vec::new();
         let start_time = ic_cdk::api::time();
@@ -322,7 +314,6 @@ impl PriceAlertManager {
             if let Some(max) = alert_mut.max_triggers {
                 if alert_mut.triggered_count >= max {
                     alert_mut.is_active = false;
-                    ic_cdk::println!("⏹️ Auto-deactivated alert {} after {} triggers", alert.id, max);
                 }
             }
         }
@@ -420,22 +411,18 @@ impl PriceAlertManager {
 
     /// Fetch price from multiple sources and aggregate
     async fn fetch_price_from_multiple_sources(&self, token_symbol: &str) -> Result<TokenPrice, String> {
-        ic_cdk::println!("🔍 Fetching real-time price for {}", token_symbol);
         
         // Try CoinGecko first
         match self.fetch_from_coingecko(token_symbol).await {
             Ok(price) => return Ok(price),
-            Err(e) => ic_cdk::println!("CoinGecko failed: {}", e),
         }
         
         // Fallback to Binance
         match self.fetch_from_binance(token_symbol).await {
             Ok(price) => return Ok(price),
-            Err(e) => ic_cdk::println!("Binance failed: {}", e),
         }
         
         // Final fallback - return cached or estimated price
-        ic_cdk::println!("⚠️ All price sources failed, using fallback");
         self.get_fallback_price(token_symbol)
     }
     
@@ -537,7 +524,6 @@ impl PriceAlertManager {
                         } else { 0.0 }
                     } else { 0.0 };
                     
-                    ic_cdk::println!("✅ CoinGecko price for {}: ${:.2} ({:+.2}%)", token_symbol, price, change_24h);
                     
                     return Ok(TokenPrice {
                         symbol: token_symbol.to_string(),
@@ -581,7 +567,6 @@ impl PriceAlertManager {
                         } else { 0.0 }
                     } else { 0.0 };
                     
-                    ic_cdk::println!("✅ Binance price for {}: ${:.2} ({:+.2}%)", token_symbol, price, change_24h);
                     
                     return Ok(TokenPrice {
                         symbol: token_symbol.to_string(),
@@ -643,7 +628,6 @@ impl PriceAlertManager {
             _ => (100.0, 1_000_000_000.0), // Generic fallback
         };
         
-        ic_cdk::println!("⚠️ Using fallback price for {}: ${:.2}", token_symbol, price);
         
         Ok(TokenPrice {
             symbol: token_symbol.to_string(),
@@ -666,7 +650,6 @@ impl PriceAlertManager {
     ) -> Result<String, String> {
         match strategy_type {
             "market_buy" => {
-                ic_cdk::println!("💰 Executing market buy: {} {} for user {}", 
                                amount, alert.token_symbol, alert.user_id);
                 
                 // Integration point with existing DeFi system
@@ -675,14 +658,12 @@ impl PriceAlertManager {
                 Ok(format!("Market buy executed: {} {}", amount, alert.token_symbol))
             },
             "market_sell" => {
-                ic_cdk::println!("💸 Executing market sell: {} {} for user {}", 
                                amount, alert.token_symbol, alert.user_id);
                 
                 Ok(format!("Market sell executed: {} {}", amount, alert.token_symbol))
             },
             "activate_strategy" => {
                 // Parse JSON parameters
-                ic_cdk::println!("🎯 Activating strategy for user {} with parameters: {}", alert.user_id, parameters);
                 
                 Ok(format!("Strategy activated with parameters: {}", parameters))
             },
@@ -706,10 +687,8 @@ impl PriceAlertManager {
             match self.post_to_platform(platform, alert, message_template, current_price, include_chart, hashtags).await {
                 Ok(_) => {
                     posted_platforms.push(format!("{:?}", platform));
-                    ic_cdk::println!("✅ Posted to {:?}", platform);
                 },
                 Err(e) => {
-                    ic_cdk::println!("❌ Failed to post to {:?}: {}", platform, e);
                 }
             }
         }
@@ -766,7 +745,6 @@ impl PriceAlertManager {
     ) -> Result<String, String> {
         let payload = self.format_webhook_payload(payload_template, alert, current_price)?;
         
-        ic_cdk::println!("📡 Sending webhook to: {}", url);
         
         // This would use HTTPS outcalls to send the webhook
         // For now, return success message
@@ -893,7 +871,6 @@ impl PriceAlertManager {
 
     // Real social media posting methods with HTTP outcalls
     async fn post_to_twitter(&self, message: &str) -> Result<(), String> {
-        ic_cdk::println!("🐦 Posting to Twitter: {}", message);
         
         // For production, you would use Twitter API v2
         let escaped_msg = message.replace('\"', \"\\\"\");\n        let payload = format!(\"{{\\\"text\\\":\\\"{}\\\"}}\", escaped_msg);
@@ -910,14 +887,12 @@ impl PriceAlertManager {
         };
         
         // For now, simulate success without actual API call
-        ic_cdk::println!("✅ Twitter post simulated (would need real API credentials)");
         Ok(())
         
         // Uncomment for real implementation:
         // match ic_cdk::api::management_canister::http_request::http_request(request, 10_000_000_000).await {
         //     Ok((response,)) => {
         //         if response.status == 201u64.into() {
-        //             ic_cdk::println!("✅ Twitter post successful");
         //             Ok(())
         //         } else {
         //             Err(format!("Twitter API error: status {}", response.status))
@@ -928,7 +903,6 @@ impl PriceAlertManager {
     }
 
     async fn post_to_discord(&self, message: &str) -> Result<(), String> {
-        ic_cdk::println!("💬 Posting to Discord: {}", message);
         
         // Discord webhook URL (would be configured per user/server)
         let webhook_url = "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN";
@@ -946,14 +920,12 @@ impl PriceAlertManager {
         };
         
         // For now, simulate success
-        ic_cdk::println!("✅ Discord webhook simulated (would need real webhook URL)");
         Ok(())
         
         // Uncomment for real implementation:
         // match ic_cdk::api::management_canister::http_request::http_request(request, 10_000_000_000).await {
         //     Ok((response,)) => {
         //         if response.status < 300u64.into() {
-        //             ic_cdk::println!("✅ Discord webhook successful");
         //             Ok(())
         //         } else {
         //             Err(format!("Discord webhook error: status {}", response.status))
@@ -964,7 +936,6 @@ impl PriceAlertManager {
     }
 
     async fn post_to_telegram(&self, message: &str) -> Result<(), String> {
-        ic_cdk::println!("📱 Posting to Telegram: {}", message);
         
         // Telegram Bot API
         let bot_token = "YOUR_TELEGRAM_BOT_TOKEN";
@@ -984,14 +955,12 @@ impl PriceAlertManager {
         };
         
         // For now, simulate success
-        ic_cdk::println!("✅ Telegram post simulated (would need real bot token)");
         Ok(())
         
         // Uncomment for real implementation:
         // match ic_cdk::api::management_canister::http_request::http_request(request, 10_000_000_000).await {
         //     Ok((response,)) => {
         //         if response.status == 200u64.into() {
-        //             ic_cdk::println!("✅ Telegram post successful");
         //             Ok(())
         //         } else {
         //             Err(format!("Telegram API error: status {}", response.status))
@@ -1002,7 +971,6 @@ impl PriceAlertManager {
     }
 
     async fn post_to_reddit(&self, message: &str) -> Result<(), String> {
-        ic_cdk::println!("🤖 Posting to Reddit: {}", message);
         
         // Reddit API requires OAuth2 authentication
         let subreddit = "DeFlowProtocol"; // Or relevant crypto subreddit
@@ -1013,7 +981,6 @@ impl PriceAlertManager {
         // 2. Submit post to subreddit
         // This is more complex than other platforms
         
-        ic_cdk::println!("✅ Reddit post simulated (requires OAuth2 setup)");
         Ok(())
         
         // Real implementation would require proper OAuth2 flow
@@ -1042,15 +1009,12 @@ impl PriceAlertManager {
                         Ok(_) => {
                             posted_platforms.push(format!("{:?}", platform));
                             social_posts.push(social_post_data);
-                            ic_cdk::println!("✅ Posted enhanced content to {:?}", platform);
                         },
                         Err(e) => {
-                            ic_cdk::println!("❌ Failed to post to {:?}: {}", platform, e);
                         }
                     }
                 },
                 Err(e) => {
-                    ic_cdk::println!("❌ Failed to format post for {:?}: {}", platform, e);
                 }
             }
         }
@@ -1088,7 +1052,6 @@ impl PriceAlertManager {
 
     /// Enhanced platform-specific posting methods with JSON context
     async fn post_to_twitter_enhanced(&self, message: &str, json_context: &str) -> Result<(), String> {
-        ic_cdk::println!("🐦 Enhanced Twitter post: {}", message);
         
         // For enhanced posts, we can include JSON as a thread or attachment
         let truncated_message = if message.len() > 240 {
@@ -1110,7 +1073,6 @@ impl PriceAlertManager {
     }
 
     async fn post_to_discord_enhanced(&self, message: &str, json_context: &str) -> Result<(), String> {
-        ic_cdk::println!("💬 Enhanced Discord post with embeds");
         
         // Discord supports rich embeds with JSON data
         let enhanced_payload = format!(r#"{{
@@ -1141,12 +1103,10 @@ impl PriceAlertManager {
             transform: None,
         };
         
-        ic_cdk::println!("✅ Enhanced Discord webhook simulated");
         Ok(())
     }
 
     async fn post_to_telegram_enhanced(&self, message: &str, json_context: &str) -> Result<(), String> {
-        ic_cdk::println!("📱 Enhanced Telegram post with formatting");
         
         // Telegram supports HTML formatting
         let enhanced_message = format!(r#"{}
@@ -1163,7 +1123,6 @@ impl PriceAlertManager {
     }
 
     async fn post_to_reddit_enhanced(&self, message: &str, json_context: &str) -> Result<(), String> {
-        ic_cdk::println!("🤖 Enhanced Reddit post with detailed context");
         
         // Reddit supports markdown formatting
         let enhanced_message = format!(r#"{}
@@ -1195,8 +1154,6 @@ impl PriceAlertManager {
     ) -> Result<String, String> {
         let enhanced_payload = self.format_webhook_payload_enhanced(payload_template, alert, current_price, defi_result)?;
         
-        ic_cdk::println!("📡 Sending enhanced webhook to: {}", url);
-        ic_cdk::println!("📊 Enhanced payload: {}", enhanced_payload);
         
         // In production: use HTTPS outcalls with structured payload
         Ok(format!("Enhanced webhook sent to {}", url))
@@ -1231,9 +1188,7 @@ impl PriceAlertManager {
 
     /// Log social posts for analytics and tracking
     async fn log_social_posts(&self, alert: &PriceAlert, posts: &[SocialPostData]) {
-        ic_cdk::println!("📈 Logging {} social posts for alert {}", posts.len(), alert.id);
         for post in posts {
-            ic_cdk::println!("  - {:?} post with {} hashtags", post.platform, post.hashtags.len());
         }
         // In production: store in persistent analytics storage
     }
@@ -1244,7 +1199,6 @@ pub async fn check_all_price_alerts() -> Result<Vec<AlertTriggerEvent>, String> 
     let triggered_events = Vec::new();
     
     // For now, return empty vec - will be implemented with proper async handling
-    ic_cdk::println!("🔍 Checking price alerts...");
     
     Ok(triggered_events)
 }

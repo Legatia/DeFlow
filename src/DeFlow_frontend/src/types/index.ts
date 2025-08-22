@@ -31,7 +31,7 @@ export interface WorkflowNode {
   id: string
   node_type: string
   position: { x: number; y: number }
-  configuration: Record<string, any>
+  configuration: Record<string, unknown>
   metadata: {
     label: string
     description?: string

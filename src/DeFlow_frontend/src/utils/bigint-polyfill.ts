@@ -227,8 +227,6 @@ window.addEventListener('unhandledrejection', (event) => {
   }
 });
 
-console.log('✅ BigInt utilities loaded (BigNumber.js for app, native BigInt for crypto)');
-console.log('✅ Timestamp utilities loaded (BigNumber.js based, no BigInt)');
 
 // Export a safe BigInt helper
 export const safeBigInt = {

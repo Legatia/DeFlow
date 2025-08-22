@@ -143,12 +143,10 @@ impl PriceAlertManager {
 
     /// Initialize the price alert system
     pub fn initialize(&mut self) {
-        ic_cdk::println!("🚨 Initializing Price Alert & Social Media System");
         
         // Start price monitoring
         self.start_monitoring();
         
-        ic_cdk::println!("✅ Price Alert System initialized successfully");
     }
 
     /// Start periodic price monitoring
@@ -169,7 +167,6 @@ impl PriceAlertManager {
             }
         );
 
-        ic_cdk::println!("🔄 Started price monitoring (interval: {}s)", self.monitoring_interval);
     }
 
     /// Create a new price alert
@@ -186,7 +183,6 @@ impl PriceAlertManager {
         let alert_id = alert.id.clone();
         self.alerts.insert(alert_id.clone(), alert.clone());
         
-        ic_cdk::println!("✅ Created price alert: {} for {} {}", 
                          alert_id, alert.token_symbol, self.format_condition(&alert.condition));
         
         Ok(alert_id)
@@ -202,7 +198,6 @@ impl PriceAlertManager {
 
     /// Trigger alert actions with enhanced DeFi integration
     async fn trigger_alert(&mut self, alert: &PriceAlert, current_price: &TokenPrice) -> Result<AlertTriggerEvent, String> {
-        ic_cdk::println!("🚨 Price alert triggered for {}: ${}", alert.token_symbol, current_price.price_usd);
         
         let mut action_results = Vec::new();
         let start_time = ic_cdk::api::time();
@@ -231,7 +226,6 @@ impl PriceAlertManager {
             if let Some(max) = alert_mut.max_triggers {
                 if alert_mut.triggered_count >= max {
                     alert_mut.is_active = false;
-                    ic_cdk::println!("⏹️ Auto-deactivated alert {} after {} triggers", alert.id, max);
                 }
             }
         }
@@ -295,22 +289,18 @@ impl PriceAlertManager {
 
     /// Fetch price from multiple sources and aggregate
     async fn fetch_price_from_multiple_sources(&self, token_symbol: &str) -> Result<TokenPrice, String> {
-        ic_cdk::println!("🔍 Fetching real-time price for {}", token_symbol);
         
         // Try CoinGecko first
         match self.fetch_from_coingecko(token_symbol).await {
             Ok(price) => return Ok(price),
-            Err(e) => ic_cdk::println!("CoinGecko failed: {}", e),
         }
         
         // Fallback to Binance
         match self.fetch_from_binance(token_symbol).await {
             Ok(price) => return Ok(price),
-            Err(e) => ic_cdk::println!("Binance failed: {}", e),
         }
         
         // Final fallback - return cached or estimated price
-        ic_cdk::println!("⚠️ All price sources failed, using fallback");
         self.get_fallback_price(token_symbol)
     }
     
@@ -363,7 +353,6 @@ impl PriceAlertManager {
             if let Some(comma_pos) = after_usd.find(',') {
                 let price_str = &after_usd[..comma_pos];
                 if let Ok(price) = price_str.parse::<f64>() {
-                    ic_cdk::println!("✅ CoinGecko price for {}: ${:.2}", token_symbol, price);
                     
                     return Ok(TokenPrice {
                         symbol: token_symbol.to_string(),
@@ -422,7 +411,6 @@ impl PriceAlertManager {
             if let Some(quote_pos) = after_price.find('\"') {
                 let price_str = &after_price[..quote_pos];
                 if let Ok(price) = price_str.parse::<f64>() {
-                    ic_cdk::println!("✅ Binance price for {}: ${:.2}", token_symbol, price);
                     
                     return Ok(TokenPrice {
                         symbol: token_symbol.to_string(),
@@ -489,10 +477,8 @@ impl PriceAlertManager {
             match self.post_to_platform(platform, alert, message_template, current_price, include_chart, hashtags).await {
                 Ok(_) => {
                     posted_platforms.push(format!("{:?}", platform));
-                    ic_cdk::println!("✅ Posted to {:?}", platform);
                 },
                 Err(e) => {
-                    ic_cdk::println!("❌ Failed to post to {:?}: {}", platform, e);
                 }
             }
         }
@@ -532,37 +518,29 @@ impl PriceAlertManager {
 
     /// Real social media posting methods with HTTP outcalls
     async fn post_to_twitter(&self, message: &str) -> Result<(), String> {
-        ic_cdk::println!("🐦 Posting to Twitter: {}", message);
         
         // For production, use Twitter API v2
         let escaped_msg = message.replace('\"', "\\\"");
         let payload = format!("{{\"text\":\"{}\"}}", escaped_msg);
         
-        ic_cdk::println!("✅ Twitter post simulated (would need real API credentials)");
         Ok(())
     }
 
     async fn post_to_discord(&self, message: &str) -> Result<(), String> {
-        ic_cdk::println!("💬 Posting to Discord: {}", message);
         
         let escaped_msg = message.replace('\"', "\\\"");
         let payload = format!("{{\"content\":\"{}\",\"username\":\"DeFlow Bot\"}}", escaped_msg);
         
-        ic_cdk::println!("✅ Discord webhook simulated (would need real webhook URL)");
         Ok(())
     }
 
     async fn post_to_telegram(&self, message: &str) -> Result<(), String> {
-        ic_cdk::println!("📱 Posting to Telegram: {}", message);
         
-        ic_cdk::println!("✅ Telegram post simulated (would need real bot token)");
         Ok(())
     }
 
     async fn post_to_reddit(&self, message: &str) -> Result<(), String> {
-        ic_cdk::println!("🤖 Posting to Reddit: {}", message);
         
-        ic_cdk::println!("✅ Reddit post simulated (requires OAuth2 setup)");
         Ok(())
     }
 
@@ -575,7 +553,6 @@ impl PriceAlertManager {
         alert: &PriceAlert,
         current_price: &TokenPrice,
     ) -> Result<String, String> {
-        ic_cdk::println!("📡 Sending webhook to: {}", url);
         Ok(format!("Webhook sent to {}", url))
     }
 
@@ -642,7 +619,6 @@ impl PriceAlertManager {
 // Global functions for canister interface
 pub async fn check_all_price_alerts() -> Result<Vec<AlertTriggerEvent>, String> {
     let triggered_events = Vec::new();
-    ic_cdk::println!("🔍 Checking price alerts...");
     Ok(triggered_events)
 }
 

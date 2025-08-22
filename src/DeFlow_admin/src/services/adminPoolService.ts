@@ -148,7 +148,6 @@ export class AdminPoolService {
     // SECURITY: Additional validation for production
     if (process.env.DFX_NETWORK === "ic" && !this.poolCanisterId?.includes(".ic0.app")) {
       // For mainnet, ensure we have proper canister ID format
-      console.log('PRODUCTION: Using mainnet canister ID:', this.poolCanisterId);
     }
 
     return Actor.createActor(poolIdlFactory, {
@@ -344,7 +343,6 @@ export class AdminPoolService {
       }
       
       const withdrawnAmount = result.Ok;
-      console.log(`Successfully withdrew ${withdrawnAmount} for ${reason}`);
       
       // Return a simple confirmation ID
       return `withdrawal_${Date.now()}_${withdrawnAmount}`;

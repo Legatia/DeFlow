@@ -76,7 +76,6 @@ class CustomStrategyService {
       // In production, this would call the backend canister
       const response = await this.simulateBackendCall(workflowDefinition)
       
-      console.log('Strategy creation response:', response)
       return response
     } catch (error) {
       console.error('Failed to create strategy from workflow:', error)

@@ -64,7 +64,6 @@ export class PaymentService {
   static async getSupportedPaymentMethods(): Promise<PaymentMethod[]> {
     try {
       // Mock implementation for development
-      console.log('Getting supported payment methods...');
       
       return [
         {
@@ -156,12 +155,13 @@ export class PaymentService {
     senderAddress: string
   ): Promise<PaymentRequest> {
     try {
-      console.log('Creating payment request:', {
-        paymentMethodId,
-        amountUsd,
-        purpose,
-        senderAddress
-      });
+      // TODO: Call pool canister create_payment_request function
+      // await poolCanister.create_payment_request({
+      //   paymentMethodId,
+      //   amountUsd,
+      //   purpose,
+      //   senderAddress
+      // });
 
       // Mock implementation for development
       const paymentMethods = await this.getSupportedPaymentMethods();
@@ -223,7 +223,8 @@ export class PaymentService {
    */
   static async confirmPayment(paymentId: string, txHash: string): Promise<void> {
     try {
-      console.log('Confirming payment:', { paymentId, txHash });
+      // TODO: Call pool canister confirm_payment function
+      // await poolCanister.confirm_payment(paymentId, txHash);
 
       // Mock implementation for development
       // In production, this would call the pool canister confirm_payment function
@@ -231,7 +232,6 @@ export class PaymentService {
       // Simulate processing time
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      console.log(`Payment ${paymentId} confirmed with tx ${txHash}`);
     } catch (error) {
       console.error('Failed to confirm payment:', error);
       throw new Error(`Failed to confirm payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -243,7 +243,8 @@ export class PaymentService {
    */
   static async getPaymentStatus(paymentId: string): Promise<PaymentStatus> {
     try {
-      console.log('Getting payment status for:', paymentId);
+      // TODO: Call pool canister get_payment_status function
+      // return await poolCanister.get_payment_status(paymentId);
 
       // Mock implementation for development
       // In production, this would call the pool canister get_payment_status function
@@ -259,7 +260,8 @@ export class PaymentService {
    */
   static async getUserPayments(userPrincipal: string): Promise<PaymentRequest[]> {
     try {
-      console.log('Getting payments for user:', userPrincipal);
+      // TODO: Call pool canister get_user_payments function
+      // return await poolCanister.get_user_payments(userPrincipal);
 
       // Mock implementation for development
       // In production, this would call the pool canister get_user_payments function

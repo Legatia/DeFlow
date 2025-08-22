@@ -46,7 +46,6 @@ impl DeFiProtocolIntegrations {
 
     /// Initialize all protocol integrations
     pub async fn initialize(&mut self) -> Result<(), IntegrationError> {
-        ic_cdk::println!("Initializing DeFi protocol integrations...");
 
         // Initialize price oracle first
         self.price_oracle.initialize()
@@ -61,7 +60,6 @@ impl DeFiProtocolIntegrations {
         self.jupiter_integration.initialize().await?;
         self.gas_tracker.initialize().await?;
 
-        ic_cdk::println!("DeFi protocol integrations initialized successfully");
         Ok(())
     }
 

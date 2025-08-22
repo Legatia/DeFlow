@@ -102,16 +102,13 @@ class InternetIdentityService {
 
   // Authenticate with Internet Identity
   async authenticate(): Promise<boolean> {
-    console.log("Starting Internet Identity authentication...")
     
     try {
       const authClient = await this.initializeAuthClient()
       const isAuthenticated = await authClient.isAuthenticated()
       
-      console.log("Is Authenticated:", isAuthenticated)
 
       if (!isAuthenticated) {
-        console.log("Authenticating with Internet Identity...")
         
         this.updateState({
           ...this.currentState,
@@ -130,7 +127,6 @@ class InternetIdentityService {
         })
       }
 
-      console.log("Internet Identity authenticated successfully")
 
       const identity = authClient.getIdentity()
       const principal = identity.getPrincipal()
@@ -184,7 +180,6 @@ class InternetIdentityService {
       // Clear stored auth state
       localStorage.removeItem('deflow_ii_auth_state')
       
-      console.log("Internet Identity logged out successfully")
     } catch (error) {
       console.error('Internet Identity logout failed:', error)
       this.updateState({

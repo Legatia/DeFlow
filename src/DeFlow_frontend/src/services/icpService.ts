@@ -41,7 +41,6 @@ class ICPService {
   private async doInitialize(): Promise<void> {
 
     try {
-      console.log('Initializing ICP service...');
 
       // Initialize auth client
       this.authClient = await AuthClient.create();
@@ -91,7 +90,6 @@ class ICPService {
         );
 
         this.isInitialized = true;
-        console.log('ICP service initialized successfully');
 
       } catch (canisterError) {
         console.warn('Canister initialization failed, using mock mode:', canisterError);
@@ -114,16 +112,13 @@ class ICPService {
       greet: async (name: string) => `Hello, ${name}! (Mock mode)`,
       
       create_workflow: async (workflow: any) => {
-        console.log('Mock: Creating workflow:', workflow);
         return `workflow_${Date.now()}`;
       },
       
       update_workflow: async (workflow: any) => {
-        console.log('Mock: Updating workflow:', workflow);
       },
       
       get_workflow: async (id: string) => {
-        console.log('Mock: Getting workflow:', id);
         return {
           id,
           name: 'Mock Workflow',
@@ -138,21 +133,17 @@ class ICPService {
       },
       
       list_workflows: async () => {
-        console.log('Mock: Listing workflows');
         return [];
       },
       
       delete_workflow: async (id: string) => {
-        console.log('Mock: Deleting workflow:', id);
       },
       
       start_execution: async (workflowId: string, triggerData?: any) => {
-        console.log('Mock: Starting execution for workflow:', workflowId);
         return `execution_${Date.now()}`;
       },
       
       get_execution: async (id: string) => {
-        console.log('Mock: Getting execution:', id);
         return {
           id,
           workflow_id: 'mock_workflow',
@@ -164,17 +155,14 @@ class ICPService {
       },
       
       list_executions: async (workflowId?: string) => {
-        console.log('Mock: Listing executions for workflow:', workflowId);
         return [];
       },
       
       list_node_types: async () => {
-        console.log('Mock: Listing node types');
         return ['trigger', 'action', 'condition'];
       },
       
       get_node_definition: async (nodeType: string) => {
-        console.log('Mock: Getting node definition for:', nodeType);
         return {
           node_type: nodeType,
           name: `${nodeType} Node`,
@@ -330,7 +318,6 @@ class ICPService {
           ? 'http://localhost:4943/?canisterId=rdmx6-jaaaa-aaaaa-aaadq-cai'
           : 'https://identity.ic0.app',
         onSuccess: () => {
-          console.log('Login successful');
           resolve(true);
         },
         onError: (error) => {

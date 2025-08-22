@@ -390,7 +390,6 @@ impl SchedulerService {
             std::time::Duration::from_secs(delay_seconds),
             || {
                 // This would trigger workflow execution
-                ic_cdk::println!("Schedule executed: timer_triggered");
             }
         );
         
@@ -407,7 +406,6 @@ impl SchedulerService {
             std::time::Duration::from_secs(interval_seconds),
             || {
                 // This would trigger workflow execution
-                ic_cdk::println!("Recurring schedule executed");
             }
         );
         

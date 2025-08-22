@@ -81,7 +81,6 @@ class RealProtocolService {
     if (this.isInitialized) return;
 
     try {
-      console.log('Initializing Real Protocol Service...');
 
       if (canisterId) {
         this.canisterId = canisterId;
@@ -106,7 +105,6 @@ class RealProtocolService {
       });
 
       this.isInitialized = true;
-      console.log('Real Protocol Service initialized successfully');
     } catch (error) {
       console.error('Failed to initialize Real Protocol Service:', error);
       throw error;
@@ -149,7 +147,6 @@ class RealProtocolService {
 
     return await ProtocolCircuitBreaker.executeWithCircuitBreaker('yield_opportunities', async () => {
       return await DeFiErrorHandler.retryOperation(async () => {
-        console.log('Fetching yield opportunities from backend...');
         const response: ApiResponse<YieldOpportunitiesResponse> = await this.actor.get_strategy_yield_opportunities();
         
         if (response.success && response.data) {
@@ -182,7 +179,6 @@ class RealProtocolService {
     }
 
     try {
-      console.log('Fetching arbitrage opportunities from backend...');
       const response: ApiResponse<ArbitrageOpportunitiesResponse> = await this.actor.scan_arbitrage_opportunities();
       
       if (response.success && response.data) {
@@ -211,7 +207,6 @@ class RealProtocolService {
     }
 
     try {
-      console.log('Fetching protocol health metrics...');
       const response: ApiResponse<ProtocolHealthMetrics> = await this.actor.get_protocol_health();
       
       if (response.success && response.data) {
@@ -240,7 +235,6 @@ class RealProtocolService {
     }
 
     try {
-      console.log('Fetching token prices...');
       const response: ApiResponse<Record<string, number>> = await this.actor.get_token_prices(tokens);
       
       if (response.success && response.data) {
@@ -266,7 +260,6 @@ class RealProtocolService {
     await this.ensureInitialized();
 
     try {
-      console.log(`Executing ${strategyType} strategy with config:`, config);
       const response = await this.actor.execute_defi_strategy({
         strategy_type: strategyType,
         config,
@@ -431,7 +424,6 @@ class RealProtocolService {
    */
   clearCache(): void {
     this.cache.clear();
-    console.log('Protocol service cache cleared');
   }
 
   /**

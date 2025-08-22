@@ -69,7 +69,6 @@ fn init() {
     // Initialize DeFi system
     ic_cdk::spawn(async {
         if let Err(e) = defi::initialize_defi_system().await {
-            ic_cdk::println!("Failed to initialize DeFi system: {}", e);
         }
     });
     
@@ -79,7 +78,6 @@ fn init() {
     // Initialize automated strategy system
     ic_cdk::spawn(async {
         if let Err(e) = defi::automated_strategy_api::init_automated_strategy_system().await {
-            ic_cdk::println!("Failed to initialize automated strategy system: {}", e);
         }
     });
     
@@ -89,7 +87,6 @@ fn init() {
     // Initialize workflow template system
     defi::simple_template_api::init_simple_workflow_template_system();
     
-    ic_cdk::println!("DeFlow backend initialized");
 }
 
 #[pre_upgrade]
@@ -97,7 +94,6 @@ fn pre_upgrade() {
     let state = save_workflow_state_for_upgrade();
     ic_cdk::storage::stable_save((state,))
         .expect("Failed to save state before upgrade");
-    ic_cdk::println!("DeFlow state saved for upgrade");
 }
 
 #[post_upgrade]
@@ -106,11 +102,8 @@ fn post_upgrade() {
     match ic_cdk::storage::stable_restore::<(InternalWorkflowState,)>() {
         Ok((saved_state,)) => {
             restore_workflow_state_after_upgrade(saved_state);
-            ic_cdk::println!("DeFlow backend upgraded and state restored successfully");
         }
         Err(e) => {
-            ic_cdk::println!("Could not restore previous state (this is normal for first deployment): {:?}", e);
-            ic_cdk::println!("Initializing with fresh state");
             
             // Initialize with a fresh default state
             let fresh_state = InternalWorkflowState::default();
@@ -126,7 +119,6 @@ fn post_upgrade() {
     // Re-initialize DeFi system
     ic_cdk::spawn(async {
         if let Err(e) = defi::initialize_defi_system().await {
-            ic_cdk::println!("Failed to re-initialize DeFi system after upgrade: {}", e);
         }
     });
     
@@ -136,7 +128,6 @@ fn post_upgrade() {
     // Re-initialize automated strategy system  
     ic_cdk::spawn(async {
         if let Err(e) = defi::automated_strategy_api::init_automated_strategy_system().await {
-            ic_cdk::println!("Failed to re-initialize automated strategy system: {}", e);
         }
     });
     
@@ -146,7 +137,6 @@ fn post_upgrade() {
     // Re-initialize workflow template system
     defi::simple_template_api::init_simple_workflow_template_system();
     
-    ic_cdk::println!("DeFlow backend post_upgrade completed");
 }
 
 #[heartbeat]
@@ -164,10 +154,8 @@ async fn heartbeat() {
     let due_workflows = get_due_workflows(current_time, &state.scheduled_executions);
     
     for workflow_id in due_workflows {
-        ic_cdk::println!("Executing scheduled workflow: {}", workflow_id);
         spawn(async move {
             if let Ok(execution_id) = start_execution(workflow_id.clone(), None).await {
-                ic_cdk::println!("Started scheduled execution: {}", execution_id);
             }
         });
     }
@@ -202,7 +190,6 @@ async fn monitor_active_executions(state: &mut InternalWorkflowState) {
             let execution_time = current_time.saturating_sub(execution.started_at);
             
             if execution_time > timeout_threshold {
-                ic_cdk::println!("Workflow {} timed out after {}ns", workflow_id, execution_time);
                 execution.status = InternalExecutionStatus::Failed;
                 execution.completed_at = Some(current_time);
                 execution.error_message = Some("Execution timed out".to_string());
@@ -236,7 +223,6 @@ fn cleanup_completed_workflows(state: &mut InternalWorkflowState, current_time: 
     
     let cleaned_count = initial_count - state.active_workflows.len();
     if cleaned_count > 0 {
-        ic_cdk::println!("Cleaned up {} old workflow executions", cleaned_count);
     }
 }
 
@@ -382,7 +368,6 @@ fn count_total_workflows() -> u32 {
 async fn enable_emergency_mode() -> Result<(), String> {
     use storage::{get_workflow_state, update_workflow_state};
     
-    ic_cdk::println!("🚨 EMERGENCY MODE ACTIVATED 🚨");
     
     let mut state = get_workflow_state();
     
@@ -393,7 +378,6 @@ async fn enable_emergency_mode() -> Result<(), String> {
             execution.completed_at = Some(ic_cdk::api::time());
             execution.error_message = Some("Cancelled due to emergency mode".to_string());
             
-            ic_cdk::println!("Emergency: Cancelled execution {}", execution.id);
         }
     }
     
@@ -407,7 +391,6 @@ async fn enable_emergency_mode() -> Result<(), String> {
 
 #[update]
 async fn disable_emergency_mode() -> Result<(), String> {
-    ic_cdk::println!("Emergency mode disabled - system returning to normal operation");
     Ok(())
 }
 
@@ -501,7 +484,6 @@ pub enum AlertLevel {
 
 #[update]
 async fn send_system_notification(message: String, level: AlertLevel) -> Result<(), String> {
-    ic_cdk::println!("📢 SYSTEM NOTIFICATION [{:?}]: {}", level, message);
     
     // In a real implementation, this would:
     // - Send emails to administrators
@@ -739,7 +721,6 @@ async fn test_complete_price_alert_flow(
     enable_defi: bool,
     enable_social: bool,
 ) -> Result<String, String> {
-    ic_cdk::println!("🗺 Testing complete price alert flow for {} at ${}", token_symbol, target_price);
     
     let test_user_id = "test_user_123".to_string();
     
@@ -788,7 +769,6 @@ async fn test_complete_price_alert_flow(
     
     // Create the alert
     let alert_id = create_price_alert(test_alert)?;
-    ic_cdk::println!("✅ Created test alert: {}", alert_id);
     
     Ok(format!(
         "🎯 Test completed successfully!\n- Alert ID: {}\n- Token: {}\n- Target Price: ${}\n- DeFi Actions: {}\n- Social Posts: {}\n\n✨ Complete flow: Price Monitor → Alert Trigger → DeFi Execution → JSON Formatting → Social Media Posts",

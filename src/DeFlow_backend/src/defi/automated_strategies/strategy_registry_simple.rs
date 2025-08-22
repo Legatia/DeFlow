@@ -17,7 +17,6 @@ impl StrategyRegistry {
 
     /// Initialize with minimal templates
     pub fn initialize(&mut self) {
-        ic_cdk::println!("Strategy registry initialized with minimal templates");
         
         // Add a simple template
         let simple_template = StrategyTemplate {

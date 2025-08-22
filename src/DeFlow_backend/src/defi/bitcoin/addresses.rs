@@ -89,19 +89,16 @@ impl BitcoinAddressManager {
         // Generate P2PKH (Legacy)
         match self.get_p2pkh_address(user).await {
             Ok(addr) => addresses.push(addr),
-            Err(e) => ic_cdk::println!("Failed to generate P2PKH address: {}", e),
         }
         
         // Generate P2WPKH (SegWit)
         match self.get_p2wpkh_address(user).await {
             Ok(addr) => addresses.push(addr),
-            Err(e) => ic_cdk::println!("Failed to generate P2WPKH address: {}", e),
         }
         
         // Generate P2TR (Taproot)
         match self.get_p2tr_address(user).await {
             Ok(addr) => addresses.push(addr),
-            Err(e) => ic_cdk::println!("Failed to generate P2TR address: {}", e),
         }
         
         if addresses.is_empty() {

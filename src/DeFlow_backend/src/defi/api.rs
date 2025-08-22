@@ -362,7 +362,6 @@ pub async fn clear_defi_caches() -> Result<(), String> {
     }
     
     // SECURITY: Log administrative action
-    ic_cdk::println!("🔧 ADMIN: Cache clearing requested by controller: {}", caller.to_text());
     
     with_defi_manager_mut(|manager| {
         if let Some(ref mut bitcoin_service) = manager.bitcoin_service {
@@ -383,8 +382,6 @@ pub async fn emergency_pause_defi() -> Result<(), String> {
     }
     
     // SECURITY: Log emergency action
-    ic_cdk::println!("🚨 EMERGENCY: DeFi operations paused by controller: {}", caller.to_text());
-    ic_cdk::println!("🚨 DeFi EMERGENCY PAUSE ACTIVATED 🚨");
     
     // This would implement emergency pause logic
     // - Stop all active transactions
@@ -404,7 +401,6 @@ pub async fn resume_defi_operations() -> Result<(), String> {
     }
     
     // SECURITY: Log administrative action
-    ic_cdk::println!("✅ ADMIN: DeFi operations resumed by controller: {}", caller.to_text());
     
     // Re-enable normal DeFi operations
     Ok(())
@@ -773,7 +769,6 @@ pub async fn cleanup_rate_limiters() -> Result<(), String> {
         limiter.borrow_mut().cleanup();
     });
     
-    ic_cdk::println!("🧹 ADMIN: Rate limiter cleanup completed by controller: {}", caller.to_text());
     Ok(())
 }
 

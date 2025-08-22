@@ -433,5 +433,4 @@ fn is_suitable_difficulty(template_difficulty: &DifficultyLevel, user_experience
 
 /// Initialize the workflow template system
 pub fn init_workflow_template_system() {
-    ic_cdk::println!("DeFlow Workflow Template System initialized successfully");
 }

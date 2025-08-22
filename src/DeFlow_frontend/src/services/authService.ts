@@ -238,12 +238,10 @@ class AuthService {
     }
 
     // In real implementation, send email with reset token
-    console.log(`Password reset requested for ${request.email}`)
   }
 
   async resetPassword(reset: PasswordReset): Promise<void> {
     // In real implementation, verify token and update password
-    console.log('Password reset completed')
   }
 
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
@@ -252,7 +250,6 @@ class AuthService {
     }
 
     // In real implementation, verify current password and update
-    console.log('Password changed successfully')
   }
 
   // User management

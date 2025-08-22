@@ -290,7 +290,6 @@ impl AutomatedStrategyManager {
         });
         self.risk_manager.initialize_default_limits();
 
-        ic_cdk::println!("Automated Strategy Manager initialized successfully");
     }
 
     /// Create a new strategy for a user
@@ -325,7 +324,6 @@ impl AutomatedStrategyManager {
             self.user_preferences.insert(user_id.clone(), UserPreferences::default());
         }
 
-        ic_cdk::println!("Created new strategy {} for user {}", strategy_id, user_id);
         Ok(strategy_id)
     }
 
@@ -343,7 +341,6 @@ impl AutomatedStrategyManager {
         strategy.last_updated = ic_cdk::api::time();
         strategy.next_execution = Some(ic_cdk::api::time() + strategy.config.execution_interval_minutes * 60 * 1_000_000_000);
 
-        ic_cdk::println!("Activated strategy {} with ${:.2} capital", strategy_id, capital_amount);
         Ok(())
     }
 
@@ -365,12 +362,10 @@ impl AutomatedStrategyManager {
 
         // Coordinate strategies before execution
         let coordination_result = self.coordination_engine.coordinate_strategies(&mut self.active_strategies)?;
-        ic_cdk::println!("Strategy coordination completed: {} optimizations applied", 
             coordination_result.optimizations_applied);
 
         // Scan for opportunities
         let opportunities = self.opportunity_scanner.scan_opportunities().await?;
-        ic_cdk::println!("Found {} opportunities for strategy execution", opportunities.len());
 
         // Execute each eligible strategy
         for strategy_id in eligible_strategy_ids {
@@ -378,7 +373,6 @@ impl AutomatedStrategyManager {
             
             // Pre-execution risk check
             if let Err(e) = self.risk_manager.pre_execution_check(&strategy) {
-                ic_cdk::println!("Pre-execution risk check failed for strategy {}: {}", strategy_id, e);
                 continue;
             }
 
@@ -393,13 +387,11 @@ impl AutomatedStrategyManager {
                     Ok(mut result) => {
                         // Post-execution risk assessment
                         if let Err(risk_error) = self.risk_manager.post_execution_assessment(&strategy, &result) {
-                            ic_cdk::println!("Post-execution risk assessment warning: {}", risk_error);
                         }
 
                         // Update performance tracker
                         if let Some(strategy_mut) = self.active_strategies.get_mut(&strategy_id) {
                             if let Err(perf_error) = self.performance_tracker.update_strategy_performance(strategy_mut, &result) {
-                                ic_cdk::println!("Performance tracking error: {}", perf_error);
                             }
                             
                             // Update strategy execution history
@@ -413,7 +405,6 @@ impl AutomatedStrategyManager {
                         results.push(result);
                     }
                     Err(e) => {
-                        ic_cdk::println!("Strategy {} execution failed: {}", strategy_id, e);
                         // Record failed execution
                         if let Some(strategy_mut) = self.active_strategies.get_mut(&strategy_id) {
                             let failed_result = StrategyExecutionResult {
@@ -439,7 +430,6 @@ impl AutomatedStrategyManager {
                     }
                 }
             } else {
-                ic_cdk::println!("No suitable opportunity found for strategy {}", strategy_id);
             }
         }
 
@@ -472,7 +462,6 @@ impl AutomatedStrategyManager {
         strategy.last_updated = ic_cdk::api::time();
         strategy.next_execution = None;
 
-        ic_cdk::println!("Paused strategy {}", strategy_id);
         Ok(())
     }
 
@@ -486,7 +475,6 @@ impl AutomatedStrategyManager {
             strategy.last_updated = ic_cdk::api::time();
             strategy.next_execution = Some(ic_cdk::api::time() + strategy.config.execution_interval_minutes * 60 * 1_000_000_000);
 
-            ic_cdk::println!("Resumed strategy {}", strategy_id);
         }
 
         Ok(())
@@ -501,7 +489,6 @@ impl AutomatedStrategyManager {
         strategy.last_updated = ic_cdk::api::time();
         strategy.next_execution = None;
 
-        ic_cdk::println!("Stopped strategy {}", strategy_id);
         Ok(())
     }
 
@@ -516,7 +503,6 @@ impl AutomatedStrategyManager {
         strategy.config = new_config;
         strategy.last_updated = ic_cdk::api::time();
 
-        ic_cdk::println!("Updated configuration for strategy {}", strategy_id);
         Ok(())
     }
 

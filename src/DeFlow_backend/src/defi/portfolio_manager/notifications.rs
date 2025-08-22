@@ -390,14 +390,12 @@ impl NotificationSystem {
     async fn send_email_notification(&self, notification: &Notification) -> Result<(), PortfolioError> {
         // Mock email sending implementation
         // In production, this would integrate with an email service
-        ic_cdk::println!("📧 Email sent: {} to {}", notification.title, notification.user_id);
         Ok(())
     }
 
     async fn send_push_notification(&self, notification: &Notification) -> Result<(), PortfolioError> {
         // Mock push notification implementation
         // In production, this would integrate with push notification services
-        ic_cdk::println!("📱 Push notification sent: {} to {}", notification.title, notification.user_id);
         Ok(())
     }
 
@@ -405,7 +403,6 @@ impl NotificationSystem {
         // Mock webhook implementation
         // In production, this would make HTTP requests to webhook endpoints
         if let Some(endpoint) = self.webhook_endpoints.get(&notification.user_id) {
-            ic_cdk::println!("🔗 Webhook sent to {}: {}", endpoint.url, notification.title);
         }
         Ok(())
     }

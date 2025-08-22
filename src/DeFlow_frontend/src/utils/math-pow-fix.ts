@@ -124,4 +124,3 @@ window.addEventListener('unhandledrejection', function(event) {
   }
 })
 
-console.log('✅ Math.pow and BigInt overrides applied for ICP compatibility')

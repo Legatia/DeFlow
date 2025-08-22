@@ -19,7 +19,6 @@ pub fn init_automated_strategies() {
     STRATEGY_MANAGER.with(|manager| {
         manager.borrow_mut().initialize();
     });
-    ic_cdk::println!("Automated DeFi Strategy system initialized");
 }
 
 /// Create a new automated strategy
@@ -83,7 +82,6 @@ pub async fn activate_strategy(strategy_id: String, capital_amount: f64) -> Resu
 pub async fn execute_strategies() -> Result<Vec<StrategyExecutionResult>, String> {
     // Due to async/borrow lifetime issues, we need to structure this differently
     // In a real implementation, we would use proper async coordination
-    ic_cdk::println!("Strategy execution requested - would execute eligible strategies");
     
     // Return empty result for now to avoid lifetime issues
     Ok(Vec::new())
@@ -217,7 +215,6 @@ pub fn get_strategy_recommendations(user_profile: UserProfile) -> Vec<StrategyRe
 #[ic_cdk::update]
 pub async fn scan_opportunities() -> Result<Vec<StrategyOpportunity>, String> {
     // Due to async/borrow lifetime issues, return mock data for now
-    ic_cdk::println!("Opportunity scan requested - would scan all available opportunities");
     
     // Return empty result for now to avoid lifetime issues
     Ok(Vec::new())
@@ -597,7 +594,6 @@ pub async fn trigger_strategy_coordination() -> Result<CoordinationResult, Strin
 pub async fn update_market_data() -> Result<(), String> {
     // Simply log that market data update was requested
     // In production, this would trigger real market data updates
-    ic_cdk::println!("Market data update requested");
     Ok(())
 }
 
@@ -711,7 +707,6 @@ pub async fn init_automated_strategy_system() -> Result<(), String> {
         manager.borrow_mut().initialize();
     });
     
-    ic_cdk::println!("🚀 Automated DeFi Strategy System initialized successfully");
     Ok(())
 }
 

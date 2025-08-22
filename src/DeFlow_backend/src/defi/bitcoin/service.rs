@@ -30,7 +30,6 @@ impl BitcoinDeFiService {
         let utxo_manager = UTXOManager::new(context.clone());
         let transaction_builder = BitcoinTransactionBuilder::new(context.clone());
         
-        ic_cdk::println!("Bitcoin DeFi service initialized successfully");
         
         Ok(Self {
             context,
@@ -82,7 +81,6 @@ impl BitcoinDeFiService {
                     total_satoshis = total_satoshis.saturating_add(balance);
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to get balance for address {}: {}", address.address, e);
                 }
             }
             
@@ -93,7 +91,6 @@ impl BitcoinDeFiService {
                     all_utxos.extend(utxos);
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to get UTXOs for address {}: {}", address.address, e);
                     address.utxo_count = 0;
                 }
             }
@@ -268,7 +265,6 @@ impl BitcoinDeFiService {
                     });
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to get UTXO stats for {}: {}", address.address, e);
                 }
             }
         }
@@ -413,7 +409,6 @@ impl BitcoinDeFiService {
                     balances.insert(address, balance);
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to get balance for {}: {}", address, e);
                     balances.insert(address, 0);
                 }
             }

@@ -77,7 +77,6 @@ class DeFiTemplateService {
     if (this.isInitialized) return;
 
     try {
-      console.log('Initializing DeFi Template service...');
 
       if (canisterId) {
         this.canisterId = canisterId;
@@ -116,7 +115,6 @@ class DeFiTemplateService {
       ) as any;
 
       this.isInitialized = true;
-      console.log('DeFi Template service initialized successfully');
     } catch (error) {
       console.error('Failed to initialize DeFi Template service:', error);
       throw error;

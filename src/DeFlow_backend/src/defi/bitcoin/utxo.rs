@@ -85,7 +85,6 @@ impl UTXOManager {
                     all_utxos.insert(address, utxos);
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to get UTXOs for address {}: {}", address, e);
                     all_utxos.insert(address, Vec::new());
                 }
             }
@@ -104,7 +103,6 @@ impl UTXOManager {
                     total_balance = total_balance.saturating_add(balance);
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to get balance for address {}: {}", address, e);
                 }
             }
         }
@@ -169,7 +167,6 @@ impl UTXOManager {
                     }
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to get UTXOs for address {}: {}", address, e);
                 }
             }
         }

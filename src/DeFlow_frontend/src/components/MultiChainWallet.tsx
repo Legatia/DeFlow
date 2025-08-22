@@ -6,7 +6,7 @@ import multiChainWalletService, {
   SUPPORTED_CHAINS,
   WalletAddress 
 } from '../services/multiChainWalletService'
-import performanceService from '../services/performanceOptimizationService'
+// import performanceService from '../services/performanceOptimizationService'
 
 interface MultiChainWalletProps {
   isOpen: boolean

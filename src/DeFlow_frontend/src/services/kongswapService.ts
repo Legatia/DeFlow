@@ -62,7 +62,6 @@ class KongSwapService {
     if (this.isInitialized) return;
 
     try {
-      console.log('Initializing KongSwap service...');
 
       if (canisterId) {
         this.canisterId = canisterId;
@@ -100,7 +99,6 @@ class KongSwapService {
       }
 
       this.isInitialized = true;
-      console.log('KongSwap service initialized successfully');
     } catch (error) {
       console.error('Failed to initialize KongSwap service:', error);
       // Don't throw error, just use mock mode
@@ -259,7 +257,6 @@ class KongSwapService {
   // Toggle between mock and real mode
   setMockMode(enabled: boolean): void {
     this.isMockMode = enabled;
-    console.log(`KongSwap service ${enabled ? 'mock' : 'real'} mode enabled`);
   }
 
   // Private helper methods
