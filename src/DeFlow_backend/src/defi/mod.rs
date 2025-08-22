@@ -31,6 +31,12 @@ pub mod price_oracle;
 // Live DeFi protocol integrations for real yield/arbitrage data
 pub mod protocol_integrations;
 pub mod real_protocol_integrations;
+// Price alert & social media integration system
+pub mod price_alert_service;
+// DeFi integration engine for price alert triggers
+pub mod price_alert_defi_integration;
+// Enhanced social media text formatting with DeFi context
+pub mod social_media_formatter;
 
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
@@ -201,9 +207,15 @@ pub async fn initialize_defi_system() -> Result<(), String> {
     // Initialize workflow template system
     simple_template_api::init_simple_workflow_template_system();
     
+    // Initialize price alert system
+    price_alert_service::init_price_alert_system();
+    
+    // Initialize DeFi trigger engine for price alerts
+    price_alert_defi_integration::init_defi_trigger_engine();
+    
     // Bitcoin service initialization will be handled on-demand in API calls
     // This avoids complex async lifetime issues during initialization
     
-    ic_cdk::println!("DeFi system components ready");
+    ic_cdk::println!("DeFi system components ready (including price alerts & DeFi triggers)");
     Ok(())
 }

@@ -119,7 +119,7 @@ export const NODE_TYPES: NodeType[] = [
   {
     id: 'schedule-trigger',
     name: 'Schedule Trigger',
-    description: 'Triggered on a schedule (cron)',
+    description: 'Schedule workflows with universal date format (dd/mm/yy hh:mm:ss) or cron expressions',
     category: 'triggers',
     icon: '⏰',
     color: '#3b82f6',
@@ -129,12 +129,74 @@ export const NODE_TYPES: NodeType[] = [
     ],
     configSchema: [
       {
+        key: 'schedule_mode',
+        name: 'Schedule Mode',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'One-time Execution', value: 'one_time' },
+          { label: 'Recurring Schedule', value: 'recurring' },
+          { label: 'Cron Expression', value: 'cron' }
+        ],
+        defaultValue: 'one_time',
+        description: 'Type of schedule to create'
+      },
+      {
+        key: 'datetime_format',
+        name: 'Date/Time Format',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Universal: dd/mm/yy hh:mm:ss', value: 'universal' },
+          { label: 'ISO: yyyy-mm-dd hh:mm:ss', value: 'iso' },
+          { label: 'Cron Expression', value: 'cron' }
+        ],
+        defaultValue: 'universal',
+        description: 'Choose your preferred date/time format'
+      },
+      {
+        key: 'datetime_string',
+        name: 'Date and Time',
+        type: 'text',
+        required: false,
+        placeholder: '25/12/24 09:30:00',
+        description: 'Enter date and time in selected format. Examples: 25/12/24 09:30:00, 2024-12-25 09:30:00'
+      },
+      {
         key: 'cron',
         name: 'Cron Expression',
         type: 'text',
-        required: true,
+        required: false,
         placeholder: '0 9 * * 1-5',
-        description: 'Cron expression for scheduling'
+        description: 'Advanced cron expression (only for Cron mode)'
+      },
+      {
+        key: 'recurring_interval',
+        name: 'Recurring Interval',
+        type: 'select',
+        required: false,
+        options: [
+          { label: 'Every 5 minutes', value: '300' },
+          { label: 'Every 15 minutes', value: '900' },
+          { label: 'Every 30 minutes', value: '1800' },
+          { label: 'Every hour', value: '3600' },
+          { label: 'Every 4 hours', value: '14400' },
+          { label: 'Every 12 hours', value: '43200' },
+          { label: 'Daily', value: '86400' },
+          { label: 'Weekly', value: '604800' },
+          { label: 'Custom (seconds)', value: 'custom' }
+        ],
+        defaultValue: '3600',
+        description: 'How often to repeat (for recurring schedules)'
+      },
+      {
+        key: 'custom_interval_seconds',
+        name: 'Custom Interval (seconds)',
+        type: 'number',
+        required: false,
+        placeholder: '7200',
+        validation: { min: 60, max: 2592000 },
+        description: 'Custom interval in seconds (60 sec to 30 days)'
       },
       {
         key: 'timezone',
@@ -142,15 +204,66 @@ export const NODE_TYPES: NodeType[] = [
         type: 'select',
         required: true,
         options: [
-          { label: 'UTC', value: 'UTC' },
-          { label: 'America/New_York', value: 'America/New_York' },
-          { label: 'Europe/London', value: 'Europe/London' },
-          { label: 'Asia/Tokyo', value: 'Asia/Tokyo' }
+          { label: 'UTC (Coordinated Universal Time)', value: 'UTC' },
+          { label: 'EST - Eastern Time (US)', value: 'America/New_York' },
+          { label: 'PST - Pacific Time (US)', value: 'America/Los_Angeles' },
+          { label: 'GMT - Greenwich Mean Time', value: 'Europe/London' },
+          { label: 'CET - Central European Time', value: 'Europe/Paris' },
+          { label: 'JST - Japan Standard Time', value: 'Asia/Tokyo' },
+          { label: 'CST - China Standard Time', value: 'Asia/Shanghai' },
+          { label: 'IST - India Standard Time', value: 'Asia/Kolkata' },
+          { label: 'AEST - Australian Eastern Time', value: 'Australia/Sydney' }
         ],
-        defaultValue: 'UTC'
+        defaultValue: 'UTC',
+        description: 'Timezone for schedule execution'
+      },
+      {
+        key: 'max_executions',
+        name: 'Max Executions',
+        type: 'number',
+        required: false,
+        placeholder: '10',
+        validation: { min: 1, max: 10000 },
+        description: 'Maximum number of executions (leave empty for unlimited)'
+      },
+      {
+        key: 'end_date',
+        name: 'End Date',
+        type: 'text',
+        required: false,
+        placeholder: '31/12/24 23:59:59',
+        description: 'Stop executing after this date (same format as start date)'
+      },
+      {
+        key: 'skip_weekends',
+        name: 'Skip Weekends',
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        description: 'Skip execution on Saturday and Sunday'
+      },
+      {
+        key: 'retry_on_failure',
+        name: 'Retry on Failure',
+        type: 'boolean',
+        required: false,
+        defaultValue: true,
+        description: 'Automatically retry if execution fails'
       }
     ],
-    defaultConfig: { cron: '0 9 * * 1-5', timezone: 'UTC' }
+    defaultConfig: { 
+      schedule_mode: 'one_time',
+      datetime_format: 'universal',
+      datetime_string: '',
+      cron: '0 9 * * 1-5',
+      recurring_interval: '3600',
+      custom_interval_seconds: null,
+      timezone: 'UTC',
+      max_executions: null,
+      end_date: '',
+      skip_weekends: false,
+      retry_on_failure: true
+    }
   },
 
   // Actions

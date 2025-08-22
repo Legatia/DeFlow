@@ -25,7 +25,9 @@ type Memory = VirtualMemory<DefaultMemoryImpl>;
 type StableStorage<K, V> = StableBTreeMap<K, V, Memory>;
 
 const POOL_STATE_MEMORY_ID: MemoryId = MemoryId::new(0);
+#[allow(dead_code)]
 const RESERVES_MEMORY_ID: MemoryId = MemoryId::new(1);
+#[allow(dead_code)]
 const BUSINESS_MODEL_MEMORY_ID: MemoryId = MemoryId::new(2);
 
 thread_local! {
@@ -469,6 +471,7 @@ fn validate_secure_confirmation_phrase(
 }
 
 /// SECURITY: Safe arithmetic operations to prevent integer overflow and precision loss
+#[allow(dead_code)]
 fn safe_add_u64(a: u64, b: u64) -> Result<u64, String> {
     a.checked_add(b)
         .ok_or_else(|| {
@@ -477,6 +480,7 @@ fn safe_add_u64(a: u64, b: u64) -> Result<u64, String> {
         })
 }
 
+#[allow(dead_code)]
 fn safe_sub_u64(a: u64, b: u64) -> Result<u64, String> {
     a.checked_sub(b)
         .ok_or_else(|| {
@@ -507,6 +511,7 @@ fn safe_add_f64(a: f64, b: f64) -> Result<f64, String> {
     Ok(result)
 }
 
+#[allow(dead_code)]
 fn safe_sub_f64(a: f64, b: f64) -> Result<f64, String> {
     if !a.is_finite() || !b.is_finite() {
         ic_cdk::println!("SECURITY: Non-finite numbers in subtraction - {} - {}", a, b);

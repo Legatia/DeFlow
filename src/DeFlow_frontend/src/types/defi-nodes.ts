@@ -441,59 +441,89 @@ export const DEFI_NODE_TYPES: NodeType[] = [
   },
 
   {
-    id: 'gas-optimizer',
-    name: 'Gas Optimizer',
-    description: 'Optimize transaction gas costs',
+    id: 'cycles-monitor',
+    name: 'Cycles Monitor',
+    description: 'Monitor and manage ICP canister cycles for workflow sustainability',
     category: 'utilities',
-    icon: '⛽',
+    icon: '🔋',
     color: '#8b5cf6',
     inputs: [
-      { id: 'transaction', name: 'Transaction', type: 'data', required: true }
+      { id: 'trigger', name: 'Check Cycles', type: 'trigger', required: true }
     ],
     outputs: [
-      { id: 'optimized', name: 'Optimized Tx', type: 'data', required: true }
+      { id: 'cycles_data', name: 'Cycles Data', type: 'data', required: true },
+      { id: 'low_cycles', name: 'Low Cycles Alert', type: 'condition', required: true }
     ],
     configSchema: [
       {
-        key: 'chain',
-        name: 'Target Chain',
-        type: 'select',
-        required: true,
-        options: [
-          { label: 'Ethereum', value: 'Ethereum' },
-          { label: 'Arbitrum', value: 'Arbitrum' },
-          { label: 'Polygon', value: 'Polygon' },
-          { label: 'Base', value: 'Base' },
-          { label: 'ICP', value: 'ICP' }
-        ],
-        defaultValue: 'Ethereum'
+        key: 'canister_id',
+        name: 'Canister ID',
+        type: 'text',
+        required: false,
+        placeholder: 'rdmx6-jaaaa-aaaah-qdrva-cai',
+        description: 'Leave empty to monitor current canister'
       },
       {
-        key: 'priority',
-        name: 'Priority',
-        type: 'select',
+        key: 'warning_threshold',
+        name: 'Warning Threshold (Cycles)',
+        type: 'number',
         required: true,
-        options: [
-          { label: 'Low (Cheapest)', value: 'low' },
-          { label: 'Medium', value: 'medium' },
-          { label: 'High (Fastest)', value: 'high' }
-        ],
-        defaultValue: 'medium'
+        validation: { min: 1000000000 }, // 1B cycles minimum
+        defaultValue: 10000000000000, // 10T cycles
+        description: 'Alert when cycles drop below this level'
       },
       {
-        key: 'max_gas_price',
-        name: 'Max Gas Price (Gwei)',
+        key: 'critical_threshold',
+        name: 'Critical Threshold (Cycles)',
+        type: 'number',
+        required: true,
+        validation: { min: 100000000 }, // 100M cycles minimum
+        defaultValue: 1000000000000, // 1T cycles
+        description: 'Critical alert threshold'
+      },
+      {
+        key: 'auto_topup',
+        name: 'Auto Top-up',
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        description: 'Automatically request cycles top-up when low'
+      },
+      {
+        key: 'topup_amount',
+        name: 'Top-up Amount (Cycles)',
         type: 'number',
         required: false,
-        validation: { min: 1 },
-        placeholder: 'Optional gas price limit'
+        validation: { min: 1000000000000 }, // 1T cycles minimum
+        defaultValue: 20000000000000, // 20T cycles
+        description: 'Amount to request for top-up'
+      },
+      {
+        key: 'notification_channels',
+        name: 'Notification Channels',
+        type: 'select',
+        required: false,
+        options: [
+          { label: 'Email', value: 'email' },
+          { label: 'Discord', value: 'discord' },
+          { label: 'Telegram', value: 'telegram' },
+          { label: 'Slack', value: 'slack' }
+        ],
+        description: 'Primary notification channel for cycle alerts'
       }
     ],
-    defaultConfig: { chain: 'Ethereum', priority: 'medium', max_gas_price: null },
+    defaultConfig: { 
+      canister_id: '', 
+      warning_threshold: 10000000000000,
+      critical_threshold: 1000000000000,
+      auto_topup: false,
+      topup_amount: 20000000000000,
+      notification_channels: 'email'
+    },
     tieredPricing: {
-      standard: { executionFee: 0.1, description: 'Basic execution with standard speed' },
-      premium: { executionFee: 0.05, description: 'Faster execution with priority processing' },
-      pro: { executionFee: 0.02, description: 'Fastest execution with advanced features' }
+      standard: { executionFee: 0.05, description: 'Basic cycles monitoring' },
+      premium: { executionFee: 0.02, description: 'Advanced monitoring with auto top-up' },
+      pro: { executionFee: 0.01, description: 'Enterprise monitoring with custom alerts' }
     }
   },
 

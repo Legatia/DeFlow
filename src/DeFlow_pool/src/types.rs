@@ -684,7 +684,7 @@ impl Storable for PoolState {
                 
                 // For migration, we'll just return a default state and let post_upgrade handle it
                 // This is a fallback - the actual migration should be handled in post_upgrade
-                let mut default_state = Self::default();
+                let default_state = Self::default();
                 
                 // Log the migration attempt
                 ic_cdk::println!("SECURITY: Using default state for migration - will be corrected in post_upgrade");
@@ -699,6 +699,7 @@ impl Storable for PoolState {
 // UPGRADE COMPATIBILITY FUNCTIONS
 // =============================================================================
 
+#[allow(dead_code)]
 fn default_state_version() -> u64 {
     1 // Start at version 1 for upgraded canisters
 }
