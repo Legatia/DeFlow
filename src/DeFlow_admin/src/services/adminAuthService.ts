@@ -11,6 +11,7 @@ interface TeamMember {
   addedAt: number;
   role: 'admin' | 'member';
   status: 'active' | 'inactive';
+  earningPercentage: number; // Percentage of earnings (0-100)
 }
 
 interface PendingApproval {
@@ -264,7 +265,8 @@ export class AdminAuthService {
       addedBy: session.principal,
       addedAt: Date.now(),
       role: approval.role,
-      status: 'active'
+      status: 'active',
+      earningPercentage: 0 // Default to 0%, owner will set custom percentage
     };
 
     teamMembers.push(newMember);
@@ -307,5 +309,39 @@ export class AdminAuthService {
     const teamMembers = this.getTeamMembers();
     const updatedMembers = teamMembers.filter(member => member.principal !== principal);
     localStorage.setItem(this.TEAM_MEMBERS_KEY, JSON.stringify(updatedMembers));
+  }
+
+  /**
+   * Update team member earning percentage (owner only)
+   */
+  static async updateTeamMemberEarning(principal: string, earningPercentage: number): Promise<void> {
+    const session = await this.getCurrentSession();
+    if (!session?.isOwner) {
+      throw new Error('Only the owner can update earning percentages');
+    }
+
+    if (earningPercentage < 0 || earningPercentage > 100) {
+      throw new Error('Earning percentage must be between 0 and 100');
+    }
+
+    const teamMembers = this.getTeamMembers();
+    const memberIndex = teamMembers.findIndex(member => member.principal === principal);
+    
+    if (memberIndex === -1) {
+      throw new Error('Team member not found');
+    }
+
+    teamMembers[memberIndex].earningPercentage = earningPercentage;
+    localStorage.setItem(this.TEAM_MEMBERS_KEY, JSON.stringify(teamMembers));
+  }
+
+  /**
+   * Get total earning percentage allocated to team members
+   */
+  static getTotalEarningPercentage(): number {
+    const teamMembers = this.getTeamMembers();
+    return teamMembers
+      .filter(member => member.status === 'active')
+      .reduce((total, member) => total + member.earningPercentage, 0);
   }
 }
