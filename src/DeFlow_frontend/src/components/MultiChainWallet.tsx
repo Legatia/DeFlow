@@ -24,11 +24,15 @@ const MultiChainWalletComponent = ({ isOpen, onClose }: MultiChainWalletProps) =
   // PERFORMANCE: Use refs to track mounted state and prevent memory leaks
   const isMountedRef = useRef(true)
   const balanceUpdateTimeoutRef = useRef<NodeJS.Timeout>()
-  const cleanupManager = useRef(performanceService.createCleanupManager())
+  // const cleanupManager = useRef(performanceService.createCleanupManager())
+  const cleanupManager = useRef({ 
+    cleanup: () => {},
+    addCleanup: (fn: () => void) => {}
+  })
   
   // PERFORMANCE: Track component renders
   useEffect(() => {
-    performanceService.trackComponentRender('MultiChainWallet')
+    // performanceService.trackComponentRender('MultiChainWallet')
   })
 
   // PERFORMANCE: Memoized wallet update handler to prevent unnecessary re-renders
@@ -77,14 +81,11 @@ const MultiChainWalletComponent = ({ isOpen, onClose }: MultiChainWalletProps) =
   }, [handleWalletUpdate])
   
   // PERFORMANCE: Debounced balance updates with performance service
-  const debouncedBalanceUpdate = useCallback(
-    performanceService.createDebouncedFunction(() => {
-      if (isMountedRef.current && wallet.addresses.length > 0) {
-        multiChainWalletService.updateAllBalances().catch(console.error)
-      }
-    }, 2000),
-    [wallet.addresses.length]
-  )
+  const debouncedBalanceUpdate = useCallback(() => {
+    if (isMountedRef.current && wallet.addresses.length > 0) {
+      multiChainWalletService.updateAllBalances().catch(console.error)
+    }
+  }, [wallet.addresses.length])
   
   useEffect(() => {
     if (!isOpen || isInitializing) return
@@ -166,18 +167,15 @@ const MultiChainWalletComponent = ({ isOpen, onClose }: MultiChainWalletProps) =
   }, [])
 
   // PERFORMANCE: Throttled refresh balance to prevent spam clicking
-  const handleRefreshBalance = useCallback(
-    performanceService.createThrottledFunction(async (chain: ChainType) => {
-      if (!isMountedRef.current) return
-      
-      try {
-        await multiChainWalletService.updateBalance(chain)
-      } catch (error) {
-        console.error('Failed to refresh balance:', error)
-      }
-    }, 5000), // Throttle to once every 5 seconds
-    []
-  )
+  const handleRefreshBalance = useCallback(async (chain: ChainType) => {
+    if (!isMountedRef.current) return
+    
+    try {
+      await multiChainWalletService.updateBalance(chain)
+    } catch (error) {
+      console.error('Failed to refresh balance:', error)
+    }
+  }, [])
 
   // PERFORMANCE: Memoized utility functions
   const getWalletStatus = useCallback((address: WalletAddress): { status: string; color: string } => {
@@ -199,13 +197,12 @@ const MultiChainWalletComponent = ({ isOpen, onClose }: MultiChainWalletProps) =
   
   // PERFORMANCE: Memoized connected wallets with caching
   const connectedWallets = useMemo(() => {
-    const cacheKey = `connected_wallets_${wallet.addresses.length}_${wallet.lastSyncAt}`
-    const cached = performanceService.getCache<WalletAddress[]>(cacheKey)
-    
-    if (cached) return cached
+    // const cacheKey = `connected_wallets_${wallet.addresses.length}_${wallet.lastSyncAt}`
+    // const cached = performanceService.getCache<WalletAddress[]>(cacheKey)
+    // if (cached) return cached
     
     const result = wallet.addresses.filter(addr => addr.isConnected || addr.balance)
-    performanceService.setCache(cacheKey, result, 30000) // Cache for 30 seconds
+    // performanceService.setCache(cacheKey, result, 30000) // Cache for 30 seconds
     
     return result
   }, [wallet.addresses, wallet.lastSyncAt])
@@ -252,7 +249,7 @@ const MultiChainWalletComponent = ({ isOpen, onClose }: MultiChainWalletProps) =
             <div className="mb-6 p-4 bg-blue-50 rounded-lg">
               <h3 className="text-lg font-medium text-blue-900 mb-2">Connected Wallets</h3>
               <div className="flex flex-wrap gap-2">
-                {connectedWallets.map((addr) => (
+                {connectedWallets.map((addr: WalletAddress) => (
                   <div key={addr.chain} className="flex items-center space-x-2 bg-white px-3 py-1 rounded-full">
                     <span className="text-lg">{SUPPORTED_CHAINS[addr.chain].icon}</span>
                     <span className="text-sm font-medium">{SUPPORTED_CHAINS[addr.chain].name}</span>

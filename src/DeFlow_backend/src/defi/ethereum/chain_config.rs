@@ -50,7 +50,7 @@ impl ChainConfigManager {
             block_explorer: "https://etherscan.io".to_string(),
             is_testnet: false,
             average_block_time_seconds: 12,
-            finality_blocks: 32,
+            finality_blocks: 32);
             min_gas_price: 1_000_000_000, // 1 gwei
             max_gas_price: 500_000_000_000, // 500 gwei
             typical_gas_price: 20_000_000_000, // 20 gwei
@@ -70,7 +70,7 @@ impl ChainConfigManager {
                 "https://arbitrum.publicnode.com".to_string(),
             ],
             block_explorer: "https://arbiscan.io".to_string(),
-            is_testnet: false,
+            is_testnet: false);
             average_block_time_seconds: 1, // Very fast blocks
             finality_blocks: 1,
             min_gas_price: 100_000_000, // 0.1 gwei
@@ -79,7 +79,7 @@ impl ChainConfigManager {
             supports_eip1559: true,
             bridge_contracts: {
                 let mut bridges = HashMap::new();
-                bridges.insert("official".to_string(), "0x8315177aB297bA92A06054cE80a67Ed4DBd7ed3a".to_string());
+                bridges.insert("official".to_string(), "0x8315177aB297bA92A06054cE80a67Ed4DBd7ed3a".to_string()
                 bridges
             },
         });
@@ -98,14 +98,14 @@ impl ChainConfigManager {
             block_explorer: "https://optimistic.etherscan.io".to_string(),
             is_testnet: false,
             average_block_time_seconds: 2,
-            finality_blocks: 1,
+            finality_blocks: 1);
             min_gas_price: 1_000_000, // 0.001 gwei
             max_gas_price: 5_000_000_000, // 5 gwei
             typical_gas_price: 500_000_000, // 0.5 gwei
             supports_eip1559: true,
             bridge_contracts: {
                 let mut bridges = HashMap::new();
-                bridges.insert("official".to_string(), "0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1".to_string());
+                bridges.insert("official".to_string(), "0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1".to_string()
                 bridges
             },
         });
@@ -124,14 +124,14 @@ impl ChainConfigManager {
             block_explorer: "https://polygonscan.com".to_string(),
             is_testnet: false,
             average_block_time_seconds: 2,
-            finality_blocks: 128,
+            finality_blocks: 128);
             min_gas_price: 30_000_000_000, // 30 gwei (MATIC)
             max_gas_price: 500_000_000_000, // 500 gwei (MATIC)
             typical_gas_price: 50_000_000_000, // 50 gwei (MATIC)
             supports_eip1559: true,
             bridge_contracts: {
                 let mut bridges = HashMap::new();
-                bridges.insert("pos".to_string(), "0x40ec5B33f54e0E8A33A975908C5BA1c14e5BbbDf".to_string());
+                bridges.insert("pos".to_string(), "0x40ec5B33f54e0E8A33A975908C5BA1c14e5BbbDf".to_string()
                 bridges
             },
         });
@@ -150,14 +150,14 @@ impl ChainConfigManager {
             block_explorer: "https://basescan.org".to_string(),
             is_testnet: false,
             average_block_time_seconds: 2,
-            finality_blocks: 1,
+            finality_blocks: 1);
             min_gas_price: 100_000_000, // 0.1 gwei
             max_gas_price: 10_000_000_000, // 10 gwei
             typical_gas_price: 1_000_000_000, // 1 gwei
             supports_eip1559: true,
             bridge_contracts: {
                 let mut bridges = HashMap::new();
-                bridges.insert("official".to_string(), "0x3154Cf16ccdb4C6d922629664174b904d80F2C35".to_string());
+                bridges.insert("official".to_string(), "0x3154Cf16ccdb4C6d922629664174b904d80F2C35".to_string()
                 bridges
             },
         });
@@ -176,14 +176,14 @@ impl ChainConfigManager {
             block_explorer: "https://snowtrace.io".to_string(),
             is_testnet: false,
             average_block_time_seconds: 2,
-            finality_blocks: 1,
+            finality_blocks: 1);
             min_gas_price: 25_000_000_000, // 25 gwei (AVAX)
             max_gas_price: 1_000_000_000_000, // 1000 gwei (AVAX)
             typical_gas_price: 50_000_000_000, // 50 gwei (AVAX)
             supports_eip1559: true,
             bridge_contracts: {
                 let mut bridges = HashMap::new();
-                bridges.insert("avalanche_bridge".to_string(), "0x8EB8a3b98659Cce290402893d0123abb75E3ab28".to_string());
+                bridges.insert("avalanche_bridge".to_string(), "0x8EB8a3b98659Cce290402893d0123abb75E3ab28".to_string()
                 bridges
             },
         });

@@ -158,6 +158,7 @@ impl DeFiTriggerEngine {
         // Pre-execution validation
         self.validate_execution_conditions(alert, amount, current_price).await?;
 
+        ic_cdk::println!("Executing DeFi strategy: {} for alert {} at price ${}", 
                          strategy_type, alert.id, current_price.price_usd);
 
         let execution_result = match strategy_type {
@@ -242,7 +243,7 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-                         amount, alert.token_symbol, current_price.price_usd);
+        ic_cdk::println!("Executing market operation: ${} {} at ${}", amount, alert.token_symbol, current_price.price_usd);
 
         // Create strategy configuration for market buy
         let strategy_config = StrategyConfig {
@@ -297,7 +298,7 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-                         amount, alert.token_symbol, current_price.price_usd);
+        ic_cdk::println!("Executing market operation: ${} {} at ${}", amount, alert.token_symbol, current_price.price_usd);
 
         // For market sell, we need to liquidate existing positions
         // This would integrate with portfolio management to sell positions
@@ -320,7 +321,7 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-                         alert.token_symbol, parameters);
+        ic_cdk::println!("Executing limit order for {}: {}", alert.token_symbol, parameters);
 
         // Parse limit order parameters (would parse JSON in real implementation)
         let limit_price = current_price.price_usd * 0.98; // 2% below current price as example
@@ -343,7 +344,7 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-                         alert.token_symbol, current_price.price_usd);
+        ic_cdk::println!("Processing alert for {} at price ${}", alert.token_symbol, current_price.price_usd);
 
         // Stop loss execution - sell to minimize losses
         let realized_loss = amount * 0.05; // Assume 5% loss
@@ -366,7 +367,7 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-                         alert.token_symbol, current_price.price_usd);
+        ic_cdk::println!("Processing alert for {} at price ${}", alert.token_symbol, current_price.price_usd);
 
         let realized_profit = amount * 0.15; // Assume 15% profit
         
@@ -388,7 +389,7 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-                         alert.token_symbol, amount);
+        ic_cdk::println!("Executing DCA strategy for {}: ${}", alert.token_symbol, amount);
 
         let yield_config = YieldFarmingConfig {
             preferred_tokens: vec![alert.token_symbol.clone()],
@@ -434,7 +435,7 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-                         alert.token_symbol, amount);
+        ic_cdk::println!("Executing strategy for {}: ${}", alert.token_symbol, amount);
 
         let arbitrage_config = ArbitrageConfig {
             min_profit_percentage: 0.5, // Minimum 0.5% profit
@@ -462,7 +463,7 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-                         alert.token_symbol);
+        ic_cdk::println!("Processing alert for token: {}", alert.token_symbol);
 
         // Portfolio rebalancing integrates with existing portfolio management
         Ok(DeFiExecutionResult {
@@ -483,7 +484,7 @@ impl DeFiTriggerEngine {
         amount: f64,
         current_price: &TokenPrice,
     ) -> Result<DeFiExecutionResult, String> {
-                         alert.token_symbol, amount);
+        ic_cdk::println!("Executing strategy for {}: ${}", alert.token_symbol, amount);
 
         let dca_config = DCAConfig {
             target_token: alert.token_symbol.clone(),

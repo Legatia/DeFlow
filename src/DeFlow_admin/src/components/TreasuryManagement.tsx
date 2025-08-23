@@ -38,13 +38,50 @@ interface TreasuryHealthReport {
   security_alerts: string[];
 }
 
+interface TokenBalance {
+  asset: string;
+  amount: number;
+  last_updated: bigint;
+  usd_value_at_time: number;
+}
+
+interface MemberEarnings {
+  balances: Record<string, TokenBalance>;
+  total_usd_value: number;
+  last_distribution_time: bigint;
+  withdrawal_addresses: Record<string, string>;
+}
+
+interface WithdrawalOption {
+  OriginalTokens?: null;
+  ConvertToICP?: null;
+  Mixed?: {
+    original_tokens: string[];
+    convert_to_icp: string[];
+  };
+}
+
 const TreasuryManagement: React.FC = () => {
   const [balances, setBalances] = useState<TreasuryBalance[]>([]);
   const [transactions, setTransactions] = useState<TreasuryTransaction[]>([]);
   const [healthReport, setHealthReport] = useState<TreasuryHealthReport | null>(null);
+  const [teamEarnings, setTeamEarnings] = useState<Record<string, MemberEarnings>>({});
+  const [myEarnings, setMyEarnings] = useState<MemberEarnings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<'overview' | 'balances' | 'transactions' | 'configure'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'balances' | 'transactions' | 'earnings' | 'configure'>('overview');
+  const [showMixedWithdrawal, setShowMixedWithdrawal] = useState(false);
+  const [mixedSelection, setMixedSelection] = useState<{
+    original_tokens: string[];
+    convert_to_icp: string[];
+  }>({
+    original_tokens: [],
+    convert_to_icp: []
+  });
+  const [withdrawalAddresses, setWithdrawalAddresses] = useState<Record<string, string>>({});
+  const [showAddressManager, setShowAddressManager] = useState(false);
+  const [newAddress, setNewAddress] = useState('');
+  const [selectedChain, setSelectedChain] = useState('Bitcoin');
 
   useEffect(() => {
     loadTreasuryData();
@@ -55,10 +92,13 @@ const TreasuryManagement: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const [healthData, balancesData, transactionsData] = await Promise.allSettled([
+      const [healthData, balancesData, transactionsData, teamEarningsData, myEarningsData, addressesData] = await Promise.allSettled([
         AdminPoolService.getTreasuryHealthReport(),
         AdminPoolService.getAllTreasuryBalances(),
-        AdminPoolService.getTreasuryTransactions(50)
+        AdminPoolService.getTreasuryTransactions(50),
+        AdminPoolService.getAllTeamEarnings(),
+        AdminPoolService.getMyDetailedEarnings(),
+        AdminPoolService.getMyWithdrawalAddresses()
       ]);
 
       if (healthData.status === 'fulfilled') {
@@ -69,6 +109,15 @@ const TreasuryManagement: React.FC = () => {
       }
       if (transactionsData.status === 'fulfilled') {
         setTransactions(transactionsData.value);
+      }
+      if (teamEarningsData.status === 'fulfilled') {
+        setTeamEarnings(teamEarningsData.value);
+      }
+      if (myEarningsData.status === 'fulfilled') {
+        setMyEarnings(myEarningsData.value);
+      }
+      if (addressesData.status === 'fulfilled') {
+        setWithdrawalAddresses(addressesData.value);
       }
 
     } catch (err) {
@@ -110,6 +159,91 @@ const TreasuryManagement: React.FC = () => {
       default: return 'text-gray-600';
     }
   };
+
+  const handleWithdrawal = async (option: WithdrawalOption) => {
+    try {
+      setLoading(true);
+      const transfers = await AdminPoolService.withdrawWithOptions(option);
+      
+      // Show success message
+      alert(`Withdrawal initiated! ${transfers.length} token transfers prepared.`);
+      
+      // Reload data to reflect changes
+      await loadTreasuryData();
+    } catch (error) {
+      console.error('Withdrawal failed:', error);
+      alert(`Withdrawal failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleTokenSelection = (asset: string, type: 'original' | 'convert') => {
+    setMixedSelection(prev => {
+      const newSelection = { ...prev };
+      
+      if (type === 'original') {
+        // Remove from convert list if exists
+        newSelection.convert_to_icp = newSelection.convert_to_icp.filter(a => a !== asset);
+        
+        // Toggle in original list
+        if (newSelection.original_tokens.includes(asset)) {
+          newSelection.original_tokens = newSelection.original_tokens.filter(a => a !== asset);
+        } else {
+          newSelection.original_tokens.push(asset);
+        }
+      } else {
+        // Remove from original list if exists
+        newSelection.original_tokens = newSelection.original_tokens.filter(a => a !== asset);
+        
+        // Toggle in convert list
+        if (newSelection.convert_to_icp.includes(asset)) {
+          newSelection.convert_to_icp = newSelection.convert_to_icp.filter(a => a !== asset);
+        } else {
+          newSelection.convert_to_icp.push(asset);
+        }
+      }
+      
+      return newSelection;
+    });
+  };
+
+  const handleSetAddress = async () => {
+    if (!newAddress.trim()) {
+      alert('Please enter a valid address');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await AdminPoolService.setWithdrawalAddress(selectedChain, newAddress.trim());
+      
+      // Update local state
+      setWithdrawalAddresses(prev => ({
+        ...prev,
+        [selectedChain]: newAddress.trim()
+      }));
+      
+      setNewAddress('');
+      alert(`Address set successfully for ${selectedChain}`);
+    } catch (error) {
+      console.error('Failed to set address:', error);
+      alert(`Failed to set address: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const supportedChains = [
+    { id: 'Bitcoin', name: 'Bitcoin', asset: 'BTC', example: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa' },
+    { id: 'Ethereum', name: 'Ethereum', asset: 'ETH', example: '0x742d35Cc6465C4F4c22c5e1e3e4AeGef3F2F3b1d' },
+    { id: 'Polygon', name: 'Polygon', asset: 'MATIC', example: '0x742d35Cc6465C4F4c22c5e1e3e4AeGef3F2F3b1d' },
+    { id: 'Arbitrum', name: 'Arbitrum', asset: 'ETH', example: '0x742d35Cc6465C4F4c22c5e1e3e4AeGef3F2F3b1d' },
+    { id: 'Optimism', name: 'Optimism', asset: 'ETH', example: '0x742d35Cc6465C4F4c22c5e1e3e4AeGef3F2F3b1d' },
+    { id: 'Base', name: 'Base', asset: 'ETH', example: '0x742d35Cc6465C4F4c22c5e1e3e4AeGef3F2F3b1d' },
+    { id: 'Solana', name: 'Solana', asset: 'SOL', example: '11111111111111111111111111111112' },
+    { id: 'Avalanche', name: 'Avalanche', asset: 'AVAX', example: '0x742d35Cc6465C4F4c22c5e1e3e4AeGef3F2F3b1d' }
+  ];
 
   if (loading) {
     return (
@@ -166,6 +300,7 @@ const TreasuryManagement: React.FC = () => {
               { id: 'overview', label: 'Overview', icon: '📊' },
               { id: 'balances', label: 'Balances', icon: '💰' },
               { id: 'transactions', label: 'Transactions', icon: '📋' },
+              { id: 'earnings', label: 'Team Earnings', icon: '💎' },
               { id: 'configure', label: 'Configure', icon: '⚙️' }
             ].map((tab) => (
               <button
@@ -344,6 +479,254 @@ const TreasuryManagement: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* Team Earnings Section */}
+          {activeSection === 'earnings' && (
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium text-white">Team Earnings & Withdrawals</h3>
+              
+              {/* My Earnings */}
+              {myEarnings && (
+                <div className="bg-blue-900/30 rounded-lg p-6 border border-blue-700">
+                  <h4 className="text-lg font-medium text-blue-300 mb-4">💰 My Earnings</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-sm text-gray-400">Total USD Value</p>
+                      <p className="text-2xl font-bold text-white">
+                        {formatCurrency(myEarnings.total_usd_value)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400">Last Distribution</p>
+                      <p className="text-white">
+                        {formatTimestamp(myEarnings.last_distribution_time)}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Token Breakdown */}
+                  <div className="mt-6">
+                    <h5 className="text-sm font-medium text-blue-300 mb-3">Token Breakdown</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {Object.entries(myEarnings.balances).map(([asset, balance]) => (
+                        <div key={asset} className="bg-gray-800 p-3 rounded-lg border border-gray-600">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-white uppercase">{asset}</span>
+                            <span className="text-xs text-gray-400">
+                              {formatTimestamp(balance.last_updated)}
+                            </span>
+                          </div>
+                          <p className="text-lg font-bold text-white mt-1">
+                            {balance.amount.toLocaleString()}
+                          </p>
+                          <p className="text-sm text-gray-400">
+                            {formatCurrency(balance.usd_value_at_time)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Withdrawal Addresses */}
+                  <div className="mt-6">
+                    <div className="flex justify-between items-center mb-3">
+                      <h5 className="text-sm font-medium text-blue-300">Withdrawal Addresses</h5>
+                      <button
+                        onClick={() => setShowAddressManager(!showAddressManager)}
+                        className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors"
+                      >
+                        {showAddressManager ? 'Hide' : 'Manage Addresses'}
+                      </button>
+                    </div>
+                    
+                    {/* Current Addresses */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                      {supportedChains.map((chain) => (
+                        <div key={chain.id} className="bg-gray-800 p-3 rounded-lg border border-gray-600">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <span className="text-sm font-medium text-white">{chain.name}</span>
+                              <span className="text-xs text-gray-400 ml-2">({chain.asset})</span>
+                            </div>
+                            <span className={`text-xs px-2 py-1 rounded ${
+                              withdrawalAddresses[chain.id] 
+                                ? 'bg-green-600 text-white' 
+                                : 'bg-red-600 text-white'
+                            }`}>
+                              {withdrawalAddresses[chain.id] ? 'Set' : 'Not Set'}
+                            </span>
+                          </div>
+                          {withdrawalAddresses[chain.id] && (
+                            <p className="text-xs text-gray-400 mt-1 font-mono truncate">
+                              {withdrawalAddresses[chain.id]}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Address Manager */}
+                    {showAddressManager && (
+                      <div className="bg-gray-800 p-4 rounded-lg border border-gray-600">
+                        <h6 className="text-sm font-medium text-white mb-3">Set Withdrawal Addresses</h6>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm text-gray-400 mb-2">Select Chain</label>
+                            <select
+                              value={selectedChain}
+                              onChange={(e) => setSelectedChain(e.target.value)}
+                              className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500"
+                            >
+                              {supportedChains.map((chain) => (
+                                <option key={chain.id} value={chain.id}>
+                                  {chain.name} ({chain.asset})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-400 mb-2">
+                              Address for {selectedChain}
+                            </label>
+                            <input
+                              type="text"
+                              value={newAddress}
+                              onChange={(e) => setNewAddress(e.target.value)}
+                              placeholder={supportedChains.find(c => c.id === selectedChain)?.example}
+                              className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 font-mono text-sm"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Current: {withdrawalAddresses[selectedChain] || 'Not set'}
+                            </p>
+                          </div>
+                          <button
+                            onClick={handleSetAddress}
+                            disabled={!newAddress.trim()}
+                            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-4 py-2 rounded transition-colors"
+                          >
+                            Set Address
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Withdrawal Options */}
+                  <div className="mt-6">
+                    <h5 className="text-sm font-medium text-blue-300 mb-3">Withdrawal Options</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <button 
+                        onClick={() => handleWithdrawal({ OriginalTokens: null })}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition-colors"
+                      >
+                        <div className="text-left">
+                          <p className="font-medium">Keep Original Tokens</p>
+                          <p className="text-sm opacity-90">Receive BTC, ETH, USDC, etc.</p>
+                        </div>
+                      </button>
+                      <button 
+                        onClick={() => handleWithdrawal({ ConvertToICP: null })}
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg transition-colors"
+                      >
+                        <div className="text-left">
+                          <p className="font-medium">Convert to ICP</p>
+                          <p className="text-sm opacity-90">Convert everything to ICP</p>
+                        </div>
+                      </button>
+                      <button 
+                        onClick={() => setShowMixedWithdrawal(!showMixedWithdrawal)}
+                        className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 rounded-lg transition-colors"
+                      >
+                        <div className="text-left">
+                          <p className="font-medium">Mixed Withdrawal</p>
+                          <p className="text-sm opacity-90">Custom per-token selection</p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Mixed Withdrawal Options */}
+                  {showMixedWithdrawal && (
+                    <div className="mt-4 p-4 bg-gray-800 rounded-lg border border-gray-600">
+                      <h6 className="text-sm font-medium text-white mb-3">Select withdrawal method for each token:</h6>
+                      <div className="space-y-2">
+                        {Object.keys(myEarnings.balances).map((asset) => (
+                          <div key={asset} className="flex items-center justify-between">
+                            <span className="text-white uppercase font-medium">{asset}</span>
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => toggleTokenSelection(asset, 'original')}
+                                className={`px-3 py-1 rounded text-sm ${
+                                  mixedSelection.original_tokens.includes(asset)
+                                    ? 'bg-green-600 text-white' 
+                                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                }`}
+                              >
+                                Keep Original
+                              </button>
+                              <button
+                                onClick={() => toggleTokenSelection(asset, 'convert')}
+                                className={`px-3 py-1 rounded text-sm ${
+                                  mixedSelection.convert_to_icp.includes(asset)
+                                    ? 'bg-purple-600 text-white' 
+                                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                }`}
+                              >
+                                Convert to ICP
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => handleWithdrawal({ Mixed: mixedSelection })}
+                        className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                      >
+                        Execute Mixed Withdrawal
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* All Team Earnings (Owner Only) */}
+              <div className="bg-gray-900/50 rounded-lg p-6 border border-gray-700">
+                <h4 className="text-lg font-medium text-white mb-4">👥 All Team Member Earnings</h4>
+                {Object.keys(teamEarnings).length > 0 ? (
+                  <div className="space-y-4">
+                    {Object.entries(teamEarnings).map(([principal, earnings]) => (
+                      <div key={principal} className="bg-gray-800 p-4 rounded-lg border border-gray-600">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <p className="text-white font-medium">Team Member</p>
+                            <p className="text-xs text-gray-400 font-mono">{principal}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-white">
+                              {formatCurrency(earnings.total_usd_value)}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {Object.keys(earnings.balances).length} tokens
+                            </p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          {Object.entries(earnings.balances).map(([asset, balance]) => (
+                            <div key={asset} className="bg-gray-700 p-2 rounded text-center">
+                              <p className="text-xs text-gray-300 uppercase">{asset}</p>
+                              <p className="text-sm font-medium text-white">{balance.amount.toLocaleString()}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-400">No team earnings data available.</p>
+                )}
               </div>
             </div>
           )}

@@ -316,7 +316,7 @@ mod risk_manager_tests {
         let strategy = create_high_risk_strategy();
         
         // Trigger emergency stop
-        let result = risk_manager.trigger_emergency_stop(&strategy.id, "Manual emergency stop for testing".to_string());
+        let result = risk_manager.trigger_emergency_stop(&strategy.id, "Manual emergency stop for testing".to_string()
         assert!(result.is_ok());
         
         // Verify emergency stop was recorded

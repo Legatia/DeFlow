@@ -126,95 +126,26 @@ impl SocialMediaFormatter {
     fn initialize_default_templates(&mut self) {
         // Twitter Price Alert Templates
         self.add_template(SocialPlatform::Twitter, SocialMessageType::PriceAlert, 
-            "🚨 {token} Alert! 
-📈 Price: ${price} ({change_24h:+.2}% 24h)
-⚡ Condition: {condition}
-🎯 Strategy: {defi_action}
-💰 P&L: {profit_loss}
-
-{hashtags} 
-
-🤖 via @DeFlowProtocol".to_string()
+            "📈 Price: ${price} ({change_24h:+.2}% 24h)\n⚡ Condition: {condition}\n🎯 Strategy: {defi_action}\n💰 P&L: {profit_loss}\n\n{hashtags}\n\n🤖 via @DeFlowProtocol".to_string()
         );
 
         self.add_template(SocialPlatform::Twitter, SocialMessageType::DeFiExecution,
-            "⚡ DeFi Execution Alert!
-
-🎯 Strategy: {strategy_type}
-💎 Token: {token}
-💰 Amount: ${amount}
-📊 Result: {execution_status}
-🔥 ROI: {roi_percentage:+.2}%
-
-{hashtags}
-
-🤖 Automated via @DeFlowProtocol".to_string()
+            "🎯 Strategy: {strategy_type}\n💎 Token: {token}\n💰 Amount: ${amount}\n📊 Result: {execution_status}\n🔥 ROI: {roi_percentage:+.2}%\n\n{hashtags}\n\n🤖 Automated via @DeFlowProtocol".to_string()
         );
 
         // Discord Price Alert Templates
         self.add_template(SocialPlatform::Discord, SocialMessageType::PriceAlert,
-            "🚨 **PRICE ALERT TRIGGERED** 🚨
-
-**{token}** has reached your target!
-📈 **Current Price:** ${price}
-📊 **24h Change:** {change_24h:+.2}%
-⚡ **Condition Met:** {condition}
-🎯 **DeFi Action:** {defi_action}
-💰 **Estimated P&L:** {profit_loss}
-⏰ **Time:** {timestamp}
-
-{execution_details}
-
-🤖 *Automated alert from DeFlow Protocol*".to_string()
+            "**{token}** has reached your target!\n📈 **Current Price:** ${price}\n📊 **24h Change:** {change_24h:+.2}%\n⚡ **Condition Met:** {condition}\n🎯 **DeFi Action:** {defi_action}\n💰 **Estimated P&L:** {profit_loss}\n⏰ **Time:** {timestamp}\n\n{execution_details}\n\n🤖 *Automated alert from DeFlow Protocol*".to_string()
         );
 
         // Telegram Templates
         self.add_template(SocialPlatform::Telegram, SocialMessageType::PriceAlert,
-            "🚨 <b>DeFlow Price Alert</b> 🚨
-
-💎 <b>{token}</b> → <code>${price}</code>
-📊 24h Change: <b>{change_24h:+.2}%</b>
-⚡ Trigger: <i>{condition}</i>
-
-🎯 <b>DeFi Strategy Executed:</b>
-• Type: {strategy_type}
-• Amount: ${amount}
-• Status: {execution_status}
-• P&L: <b>{profit_loss}</b>
-
-⏰ {timestamp}
-
-{hashtags}".to_string()
+            "💎 <b>{token}</b> → <code>${price}</code>\n📊 24h Change: <b>{change_24h:+.2}%</b>\n⚡ Trigger: <i>{condition}</i>\n\n🎯 <b>DeFi Strategy Executed:</b>\n• Type: {strategy_type}\n• Amount: ${amount}\n• Status: {execution_status}\n• P&L: <b>{profit_loss}</b>\n\n⏰ {timestamp}\n\n{hashtags}".to_string()
         );
 
         // Reddit Templates (more detailed)
         self.add_template(SocialPlatform::Reddit, SocialMessageType::PriceAlert,
-            "# 🚨 DeFlow Price Alert & DeFi Execution Report
-
-## Price Action Summary
-- **Token:** {token}
-- **Current Price:** ${price}
-- **24h Change:** {change_24h:+.2}%
-- **Condition Met:** {condition}
-
-## Automated DeFi Execution
-- **Strategy Type:** {strategy_type}
-- **Execution Amount:** ${amount}
-- **Execution Status:** {execution_status}
-- **Transaction Hash:** {tx_hash}
-- **Estimated ROI:** {roi_percentage:+.2}%
-- **Gas Cost:** ${gas_cost}
-
-## Portfolio Impact
-{portfolio_summary}
-
-## Market Context
-{market_analysis}
-
----
-*This alert was generated automatically by [DeFlow Protocol](https://deflow.ai) - Automated DeFi strategies triggered by price conditions.*
-
-{hashtags}".to_string()
+            "## Price Action Summary\n- **Token:** {token}\n- **Current Price:** ${price}\n- **24h Change:** {change_24h:+.2}%\n- **Condition Met:** {condition}\n\n## Automated DeFi Execution\n- **Strategy Type:** {strategy_type}\n- **Execution Amount:** ${amount}\n- **Execution Status:** {execution_status}\n- **Transaction Hash:** {tx_hash}\n- **Estimated ROI:** {roi_percentage:+.2}%\n- **Gas Cost:** ${gas_cost}\n\n## Portfolio Impact\n{portfolio_summary}\n\n## Market Context\n{market_analysis}\n\n---\n*This alert was generated automatically by [DeFlow Protocol](https://deflow.ai) - Automated DeFi strategies triggered by price conditions.*\n\n{hashtags}".to_string()
         );
     }
 

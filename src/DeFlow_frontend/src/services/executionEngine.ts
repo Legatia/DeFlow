@@ -329,7 +329,7 @@ class WebhookTriggerExecutor implements NodeExecutor {
   nodeType = 'webhook-trigger'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     return {
       success: true,
       data: { 
@@ -349,7 +349,7 @@ class ScheduleTriggerExecutor implements NodeExecutor {
   nodeType = 'schedule-trigger'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     return {
       success: true,
       data: { 
@@ -369,7 +369,7 @@ class EmailExecutor implements NodeExecutor {
   nodeType = 'send-email'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       // Simulate email sending with template processing
@@ -420,7 +420,7 @@ class HttpRequestExecutor implements NodeExecutor {
   nodeType = 'http-request'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       // Simulate HTTP request
@@ -478,7 +478,7 @@ class DataTransformExecutor implements NodeExecutor {
   nodeType = 'transform-data'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       let transformedData = context.currentData
@@ -533,7 +533,7 @@ class ConditionExecutor implements NodeExecutor {
   nodeType = 'condition'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       const fieldValue = this.getValueByPath(context.currentData, config.field)
@@ -593,7 +593,7 @@ class DelayExecutor implements NodeExecutor {
   nodeType = 'delay'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     const delayMs = this.calculateDelayMs(config.duration, config.unit)
     
     try {
@@ -642,7 +642,7 @@ class PriceTriggerExecutor implements NodeExecutor {
   nodeType = 'price-trigger'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       // Get real price data from protocols
@@ -705,7 +705,7 @@ class YieldFarmingExecutor implements NodeExecutor {
   nodeType = 'yield-farming'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       // Get real yield opportunities to find the best option
@@ -773,7 +773,7 @@ class ArbitrageExecutor implements NodeExecutor {
   nodeType = 'arbitrage'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       // Get real arbitrage opportunities
@@ -867,7 +867,7 @@ class DCAStrategyExecutor implements NodeExecutor {
   nodeType = 'dca-strategy'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       await new Promise(resolve => setTimeout(resolve, 600))
@@ -908,7 +908,7 @@ class RebalanceExecutor implements NodeExecutor {
   nodeType = 'rebalance'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       const targetAllocations = JSON.parse(config.target_allocations)
@@ -969,7 +969,7 @@ class YieldConditionExecutor implements NodeExecutor {
   nodeType = 'yield-condition'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       // Get real yield data from protocols
@@ -1018,7 +1018,7 @@ class PriceCheckExecutor implements NodeExecutor {
   nodeType = 'price-check'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       // Get real price data
@@ -1066,7 +1066,7 @@ class GasOptimizerExecutor implements NodeExecutor {
   nodeType = 'gas-optimizer'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       // Mock gas optimization
@@ -1119,7 +1119,7 @@ class DAOGovernanceExecutor implements NodeExecutor {
   nodeType = 'dao-governance'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       await new Promise(resolve => setTimeout(resolve, 800))

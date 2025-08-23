@@ -103,24 +103,13 @@ impl DevTeamBusinessManager {
                                pool_state.dev_team_business.team_hierarchy.developers.len() + 1; // +1 for owner
             
             if total_members > 0 {
-                let per_member = distributable / total_members as f64;
+                // For monthly profit distribution, assume it's distributed as ICP tokens
+                // Convert USD profit to ICP tokens (placeholder conversion rate)
+                let icp_tokens = (distributable * 100_000_000.0) as u64; // Convert USD to ICP atomic units
                 
-                // Owner gets their share
-                *pool_state.dev_team_business.team_member_earnings.entry(pool_state.dev_team_business.team_hierarchy.owner_principal).or_insert(0.0) += per_member;
-                
-                // Distribute to all team members
-                for principal in &pool_state.dev_team_business.team_hierarchy.senior_managers {
-                    *pool_state.dev_team_business.team_member_earnings.entry(*principal).or_insert(0.0) += per_member;
-                }
-                for principal in &pool_state.dev_team_business.team_hierarchy.operations_managers {
-                    *pool_state.dev_team_business.team_member_earnings.entry(*principal).or_insert(0.0) += per_member;
-                }
-                for principal in &pool_state.dev_team_business.team_hierarchy.tech_managers {
-                    *pool_state.dev_team_business.team_member_earnings.entry(*principal).or_insert(0.0) += per_member;
-                }
-                for principal in &pool_state.dev_team_business.team_hierarchy.developers {
-                    *pool_state.dev_team_business.team_member_earnings.entry(*principal).or_insert(0.0) += per_member;
-                }
+                // Use the new multi-token distribution system
+                // TODO: Add ICP to Asset enum, using ETH as placeholder for now
+                self.distribute_token_earnings(pool_state, crate::types::Asset::ETH, icp_tokens, distributable)?;
             }
             
             // Add to emergency fund
@@ -139,25 +128,131 @@ impl DevTeamBusinessManager {
         }
     }
     
-    pub fn withdraw_dev_earnings(&mut self, pool_state: &mut PoolState, caller: Principal) -> Result<f64, String> {
+    pub fn withdraw_dev_earnings_multi_token(
+        &mut self, 
+        pool_state: &mut PoolState, 
+        caller: Principal, 
+        option: crate::types::WithdrawalOption
+    ) -> Result<Vec<crate::types::TokenTransfer>, String> {
         // Check if caller is a dev team member
         if !pool_state.dev_team_business.team_member_earnings.contains_key(&caller) {
             return Err("Unauthorized: Only dev team members can withdraw earnings".to_string());
         }
         
-        let earnings = pool_state.dev_team_business.team_member_earnings
+        let member_earnings = pool_state.dev_team_business.team_member_earnings
             .get(&caller)
-            .copied()
-            .unwrap_or(0.0);
+            .cloned()
+            .unwrap_or_default();
         
-        if earnings > 0.0 {
-            // Reset earnings to 0 after withdrawal
-            pool_state.dev_team_business.team_member_earnings.insert(caller, 0.0);
-            // In production, this would transfer ICP tokens to the dev wallet
-            Ok(earnings)
-        } else {
-            Err("No earnings available for withdrawal".to_string())
+        if member_earnings.balances.is_empty() {
+            return Err("No earnings available for withdrawal".to_string());
         }
+        
+        let mut transfers = Vec::new();
+        
+        // Process withdrawal based on option
+        match option {
+            crate::types::WithdrawalOption::OriginalTokens => {
+                // Keep all tokens in original form
+                for (asset, balance) in &member_earnings.balances {
+                    if balance.amount > 0 {
+                        transfers.push(crate::types::TokenTransfer {
+                            asset: *asset,
+                            amount: balance.amount,
+                            recipient: caller,
+                            transfer_type: crate::types::TransferType::OriginalToken { 
+                                chain: self.get_primary_chain_for_asset(*asset) 
+                            },
+                        });
+                    }
+                }
+            },
+            crate::types::WithdrawalOption::ConvertToICP => {
+                // Convert all tokens to ICP
+                let total_usd_value = member_earnings.total_usd_value;
+                if total_usd_value > 0.0 {
+                    // TODO: Implement USD to ICP conversion rate lookup
+                    let icp_amount = (total_usd_value * 100_000_000.0) as u64; // Placeholder conversion
+                    transfers.push(crate::types::TokenTransfer {
+                        asset: crate::types::Asset::ETH, // TODO: Add ICP to Asset enum
+                        amount: icp_amount,
+                        recipient: caller,
+                        transfer_type: crate::types::TransferType::ConvertedToICP,
+                    });
+                }
+            },
+            crate::types::WithdrawalOption::Mixed { original_tokens, convert_to_icp } => {
+                let mut total_conversion_usd = 0.0;
+                
+                // Process original tokens
+                for asset in original_tokens {
+                    if let Some(balance) = member_earnings.balances.get(&asset) {
+                        if balance.amount > 0 {
+                            transfers.push(crate::types::TokenTransfer {
+                                asset,
+                                amount: balance.amount,
+                                recipient: caller,
+                                transfer_type: crate::types::TransferType::OriginalToken { 
+                                    chain: self.get_primary_chain_for_asset(asset) 
+                                },
+                            });
+                        }
+                    }
+                }
+                
+                // Process tokens to convert to ICP
+                for asset in convert_to_icp {
+                    if let Some(balance) = member_earnings.balances.get(&asset) {
+                        total_conversion_usd += balance.usd_value_at_time;
+                    }
+                }
+                
+                if total_conversion_usd > 0.0 {
+                    let icp_amount = (total_conversion_usd * 100_000_000.0) as u64; // Placeholder conversion
+                    transfers.push(crate::types::TokenTransfer {
+                        asset: crate::types::Asset::ETH, // TODO: Add ICP to Asset enum
+                        amount: icp_amount,
+                        recipient: caller,
+                        transfer_type: crate::types::TransferType::ConvertedToICP,
+                    });
+                }
+            }
+        }
+        
+        // Reset earnings after successful withdrawal preparation
+        pool_state.dev_team_business.team_member_earnings.insert(caller, crate::types::MemberEarnings::default());
+        
+        // In production, execute actual token transfers here
+        Ok(transfers)
+    }
+    
+    fn get_primary_chain_for_asset(&self, asset: crate::types::Asset) -> crate::types::ChainId {
+        match asset {
+            crate::types::Asset::BTC => crate::types::ChainId::Bitcoin,
+            crate::types::Asset::ETH => crate::types::ChainId::Ethereum,
+            crate::types::Asset::USDC => crate::types::ChainId::Ethereum, // Default to Ethereum for stablecoins
+            crate::types::Asset::USDT => crate::types::ChainId::Ethereum,
+            crate::types::Asset::DAI => crate::types::ChainId::Ethereum,
+            crate::types::Asset::SOL => crate::types::ChainId::Solana,
+            crate::types::Asset::MATIC => crate::types::ChainId::Polygon,
+            crate::types::Asset::AVAX => crate::types::ChainId::Avalanche,
+        }
+    }
+
+    // Legacy function for backward compatibility
+    pub fn withdraw_dev_earnings(&mut self, pool_state: &mut PoolState, caller: Principal) -> Result<f64, String> {
+        // Default to original tokens withdrawal
+        let _transfers = self.withdraw_dev_earnings_multi_token(
+            pool_state, 
+            caller, 
+            crate::types::WithdrawalOption::OriginalTokens
+        )?;
+        
+        // Return total USD value for compatibility
+        let total_usd = _transfers.iter()
+            .map(|_| 1000.0) // Placeholder USD value per transfer
+            .sum();
+        Ok(total_usd)
     }
     
     // =============================================================================
@@ -250,6 +345,91 @@ impl DevTeamBusinessManager {
         Ok(())
     }
     
+    // =============================================================================
+    // MULTI-TOKEN EARNINGS MANAGEMENT
+    // =============================================================================
+    
+    pub fn add_token_earnings(&self, pool_state: &mut PoolState, principal: Principal, asset: Asset, amount: u64, usd_value: f64) -> Result<(), String> {
+        // SECURITY: Validate inputs
+        if amount == 0 {
+            return Err("SECURITY: Amount must be greater than zero".to_string());
+        }
+        if !usd_value.is_finite() || usd_value < 0.0 {
+            return Err("SECURITY: Invalid USD value".to_string());
+        }
+        
+        // Get or create member earnings
+        let member_earnings = pool_state.dev_team_business.team_member_earnings
+            .entry(principal)
+            .or_insert_with(|| crate::types::MemberEarnings::default());
+        
+        // Update token balance
+        let token_balance = member_earnings.balances
+            .entry(asset)
+            .or_insert_with(|| crate::types::TokenBalance {
+                asset,
+                amount: 0,
+                last_updated: ic_cdk::api::time(),
+                usd_value_at_time: 0.0,
+            });
+        
+        // Safe addition with overflow protection
+        let new_amount = token_balance.amount.saturating_add(amount);
+        if new_amount < token_balance.amount {
+            return Err("SECURITY: Token balance overflow prevented".to_string());
+        }
+        
+        token_balance.amount = new_amount;
+        token_balance.last_updated = ic_cdk::api::time();
+        token_balance.usd_value_at_time = usd_value;
+        
+        // Update total USD value for the member
+        self.recalculate_member_usd_value(member_earnings);
+        
+        Ok(())
+    }
+    
+    fn recalculate_member_usd_value(&self, member_earnings: &mut crate::types::MemberEarnings) {
+        member_earnings.total_usd_value = member_earnings.balances
+            .values()
+            .map(|balance| balance.usd_value_at_time)
+            .sum();
+    }
+    
+    pub fn distribute_token_earnings(&self, pool_state: &mut PoolState, asset: Asset, total_amount: u64, usd_value: f64) -> Result<(), String> {
+        // Collect all principals first to avoid borrow checker issues
+        let mut all_principals = Vec::new();
+        
+        // Add owner
+        all_principals.push(pool_state.dev_team_business.team_hierarchy.owner_principal);
+        
+        // Add all team members
+        all_principals.extend(&pool_state.dev_team_business.team_hierarchy.senior_managers);
+        all_principals.extend(&pool_state.dev_team_business.team_hierarchy.operations_managers);
+        all_principals.extend(&pool_state.dev_team_business.team_hierarchy.tech_managers);
+        all_principals.extend(&pool_state.dev_team_business.team_hierarchy.developers);
+        
+        let total_members = all_principals.len();
+        
+        if total_members == 0 {
+            return Err("No team members to distribute to".to_string());
+        }
+        
+        let per_member_amount = total_amount / total_members as u64;
+        let per_member_usd = usd_value / total_members as f64;
+        
+        if per_member_amount == 0 {
+            return Err("Amount too small to distribute".to_string());
+        }
+        
+        // Distribute to all collected principals
+        for principal in all_principals {
+            self.add_token_earnings(pool_state, principal, asset, per_member_amount, per_member_usd)?;
+        }
+        
+        Ok(())
+    }
+
     // =============================================================================
     // UTILITY FUNCTIONS
     // =============================================================================

@@ -192,7 +192,7 @@ impl PriceAlertManager {
             Some(existing_alert) => {
                 // Verify user ownership
                 if existing_alert.user_id != updates.user_id {
-                    return Err("Unauthorized: Cannot update alert owned by another user".to_string());
+                    return Err("Unauthorized: Cannot update alert owned by another user".to_string()
                 }
 
                 // Update fields while preserving ID and creation timestamp
@@ -215,7 +215,7 @@ impl PriceAlertManager {
         match self.alerts.get_mut(alert_id) {
             Some(alert) => {
                 if alert.user_id != user_id {
-                    return Err("Unauthorized: Cannot deactivate alert owned by another user".to_string());
+                    return Err("Unauthorized: Cannot deactivate alert owned by another user".to_string()
                 }
 
                 alert.is_active = false;
@@ -230,7 +230,7 @@ impl PriceAlertManager {
         match self.alerts.get(alert_id) {
             Some(alert) => {
                 if alert.user_id != user_id {
-                    return Err("Unauthorized: Cannot delete alert owned by another user".to_string());
+                    return Err("Unauthorized: Cannot delete alert owned by another user".to_string()
                 }
 
                 self.alerts.remove(alert_id);
@@ -430,7 +430,7 @@ impl PriceAlertManager {
     async fn fetch_from_coingecko(&self, token_symbol: &str) -> Result<TokenPrice, String> {
         let symbol_lower = token_symbol.to_lowercase();
         let url = format!(
-            "https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true",
+            // Logging temporarily disabled
             self.symbol_to_coingecko_id(&symbol_lower)
         );
         
@@ -606,7 +606,7 @@ impl PriceAlertManager {
             "crv" => "curve-dao-token",
             "1inch" => "1inch",
             "snx" => "havven",
-            "yfi" => "yearn-finance",
+            "yfi" => "yearn-finance");
             _ => symbol, // Fallback to symbol itself
         }
     }
@@ -624,7 +624,7 @@ impl PriceAlertManager {
             "SOL" => (100.0, 40_000_000_000.0),
             "MATIC" => (1.0, 9_000_000_000.0),
             "AVAX" => (25.0, 9_000_000_000.0),
-            "DOT" => (7.0, 8_000_000_000.0),
+            "DOT" => (7.0, 8_000_000_000.0));
             _ => (100.0, 1_000_000_000.0), // Generic fallback
         };
         
@@ -662,7 +662,7 @@ impl PriceAlertManager {
                 
                 Ok(format!("Market sell executed: {} {}", amount, alert.token_symbol))
             },
-            "activate_strategy" => {
+            "activate_strategy" => {);
                 // Parse JSON parameters
                 
                 Ok(format!("Strategy activated with parameters: {}", parameters))
@@ -754,27 +754,27 @@ impl PriceAlertManager {
     // Helper methods
     fn validate_alert(&self, alert: &PriceAlert) -> Result<(), String> {
         if alert.token_symbol.is_empty() {
-            return Err("Token symbol cannot be empty".to_string());
+            return Err("Token symbol cannot be empty".to_string()
         }
 
         if alert.user_id.is_empty() {
-            return Err("User ID cannot be empty".to_string());
+            return Err("User ID cannot be empty".to_string()
         }
 
         if alert.actions.is_empty() {
-            return Err("At least one action must be specified".to_string());
+            return Err("At least one action must be specified".to_string()
         }
 
         // Validate price condition
         match &alert.condition {
             PriceCondition::Above(price) | PriceCondition::Below(price) => {
                 if *price <= 0.0 {
-                    return Err("Target price must be positive".to_string());
+                    return Err("Target price must be positive".to_string()
                 }
             },
             PriceCondition::PercentChange { change_percent, .. } => {
                 if *change_percent <= 0.0 {
-                    return Err("Change percentage must be positive".to_string());
+                    return Err("Change percentage must be positive".to_string()
                 }
             }
         }
@@ -1076,14 +1076,14 @@ impl PriceAlertManager {
         
         // Discord supports rich embeds with JSON data
         let enhanced_payload = format!(r#"{{
-            "content": "{}",
+            ic_cdk::println!("content": "{}",
             "username": "DeFlow Bot",
-            "avatar_url": "https://deflow.ai/bot-avatar.png",
-            "embeds": [{
+            "avatar_url": "https://deflow.ai/bot-avatar.png");
+            ic_cdk::println!("embeds": [{
                 "title": "📊 Technical Details",
                 "description": "```json\n{}\n```",
-                "color": 3066993,
-                "timestamp": "{}"
+                "color": 3066993);
+                // Logging temporarily disabled
             }]
         }}"#, 
             message.replace('"', "\\\"")), 

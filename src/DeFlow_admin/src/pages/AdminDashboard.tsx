@@ -47,13 +47,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminSession, onLogout 
               {/* Session Info */}
               <div className="text-right">
                 <p className="text-sm text-white">
-                  Owner Session
-                  <span className="inline-flex items-center ml-2 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Active
+                  {adminSession.isOwner ? 'Owner Session' : 'Setup Mode'}
+                  <span className={`inline-flex items-center ml-2 px-2 py-1 rounded-full text-xs font-medium ${
+                    adminSession.isOwner ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {adminSession.isOwner ? 'Active' : 'Setup'}
                   </span>
                 </p>
                 <p className="text-xs text-gray-400">
-                  Started {formatSessionTime(adminSession.sessionStart)}
+                  {adminSession.isOwner ? `Started ${formatSessionTime(adminSession.sessionStart)}` : `Principal: ${adminSession.principal.slice(0, 8)}...${adminSession.principal.slice(-8)}`}
                 </p>
               </div>
 

@@ -50,6 +50,39 @@ interface PoolState {
   bootstrap_progress: number;
 }
 
+interface TokenBalance {
+  asset: string;
+  amount: number;
+  last_updated: bigint;
+  usd_value_at_time: number;
+}
+
+interface MemberEarnings {
+  balances: Record<string, TokenBalance>;
+  total_usd_value: number;
+  last_distribution_time: bigint;
+  withdrawal_addresses: Record<string, string>;
+}
+
+interface WithdrawalOption {
+  OriginalTokens?: null;
+  ConvertToICP?: null;
+  Mixed?: {
+    original_tokens: string[];
+    convert_to_icp: string[];
+  };
+}
+
+interface TokenTransfer {
+  asset: string;
+  amount: number;
+  recipient: string;
+  transfer_type: {
+    OriginalToken?: { chain: string };
+    ConvertedToICP?: null;
+  };
+}
+
 interface CanisterHealth {
   canister_id: string;
   name: string;
@@ -559,6 +592,168 @@ export class AdminPoolService {
     } catch (error) {
       console.error('Failed to get termination history:', error);
       return [];
+    }
+  }
+
+  // =============================================================================
+  // MULTI-TOKEN EARNINGS METHODS
+  // =============================================================================
+
+  /**
+   * Get detailed earnings for a team member (owner/team member only)
+   */
+  static async getDetailedEarnings(principalId: string): Promise<MemberEarnings> {
+    try {
+      const actor = await this.getPoolActor();
+      
+      const result = await actor.get_dev_earnings_detailed(principalId) as any;
+      
+      if ('Err' in result) {
+        throw new Error(`Failed to get detailed earnings: ${result.Err}`);
+      }
+      
+      return result.Ok;
+    } catch (error) {
+      console.error('Failed to get detailed earnings:', error);
+      throw new Error(`Failed to get detailed earnings: ${error}`);
+    }
+  }
+
+  /**
+   * Get earnings for current authenticated user
+   */
+  static async getMyDetailedEarnings(): Promise<MemberEarnings> {
+    try {
+      const actor = await this.getPoolActor();
+      
+      // Use the authenticated principal
+      const authClient = await AuthClient.create();
+      const identity = authClient.getIdentity();
+      const principal = identity.getPrincipal().toString();
+      
+      return await this.getDetailedEarnings(principal);
+    } catch (error) {
+      console.error('Failed to get my detailed earnings:', error);
+      throw new Error(`Failed to get my detailed earnings: ${error}`);
+    }
+  }
+
+  /**
+   * Get all team members and their earnings (owner only)
+   */
+  static async getAllTeamEarnings(): Promise<Record<string, MemberEarnings>> {
+    try {
+      const actor = await this.getPoolActor();
+      
+      // First get pool state to get team member list
+      const poolState = await actor.get_pool_state() as any;
+      
+      if ('Err' in poolState) {
+        throw new Error('Failed to get pool state');
+      }
+      
+      const state = poolState.Ok;
+      const teamEarnings: Record<string, MemberEarnings> = {};
+      
+      // TODO: Get actual team member list from state
+      // For now, just get owner earnings
+      const ownerPrincipal = state.dev_team_business?.team_hierarchy?.owner_principal;
+      if (ownerPrincipal) {
+        try {
+          teamEarnings[ownerPrincipal] = await this.getDetailedEarnings(ownerPrincipal);
+        } catch (e) {
+          console.warn('Failed to get owner earnings:', e);
+        }
+      }
+      
+      return teamEarnings;
+    } catch (error) {
+      console.error('Failed to get all team earnings:', error);
+      throw new Error(`Failed to get all team earnings: ${error}`);
+    }
+  }
+
+  /**
+   * Withdraw earnings with token selection options
+   */
+  static async withdrawWithOptions(option: WithdrawalOption): Promise<TokenTransfer[]> {
+    try {
+      const actor = await this.getPoolActor();
+      
+      const result = await actor.withdraw_dev_earnings_with_options(option) as any;
+      
+      if ('Err' in result) {
+        throw new Error(`Withdrawal failed: ${result.Err}`);
+      }
+      
+      return result.Ok;
+    } catch (error) {
+      console.error('Failed to withdraw with options:', error);
+      throw new Error(`Failed to withdraw with options: ${error}`);
+    }
+  }
+
+  // =============================================================================
+  // WITHDRAWAL ADDRESS MANAGEMENT
+  // =============================================================================
+
+  /**
+   * Set withdrawal address for a specific chain
+   */
+  static async setWithdrawalAddress(chain: string, address: string): Promise<string> {
+    try {
+      const actor = await this.getPoolActor();
+      
+      const result = await actor.set_withdrawal_address(chain, address) as any;
+      
+      if ('Err' in result) {
+        throw new Error(`Failed to set withdrawal address: ${result.Err}`);
+      }
+      
+      return result.Ok;
+    } catch (error) {
+      console.error('Failed to set withdrawal address:', error);
+      throw new Error(`Failed to set withdrawal address: ${error}`);
+    }
+  }
+
+  /**
+   * Get all withdrawal addresses for current user
+   */
+  static async getMyWithdrawalAddresses(): Promise<Record<string, string>> {
+    try {
+      const actor = await this.getPoolActor();
+      
+      const result = await actor.get_my_withdrawal_addresses() as any;
+      
+      if ('Err' in result) {
+        throw new Error(`Failed to get withdrawal addresses: ${result.Err}`);
+      }
+      
+      return result.Ok;
+    } catch (error) {
+      console.error('Failed to get withdrawal addresses:', error);
+      throw new Error(`Failed to get withdrawal addresses: ${error}`);
+    }
+  }
+
+  /**
+   * Get withdrawal address for a specific chain
+   */
+  static async getWithdrawalAddress(chain: string): Promise<string> {
+    try {
+      const actor = await this.getPoolActor();
+      
+      const result = await actor.get_withdrawal_address(chain) as any;
+      
+      if ('Err' in result) {
+        throw new Error(`Failed to get withdrawal address: ${result.Err}`);
+      }
+      
+      return result.Ok;
+    } catch (error) {
+      console.error('Failed to get withdrawal address:', error);
+      throw new Error(`Failed to get withdrawal address: ${error}`);
     }
   }
 }

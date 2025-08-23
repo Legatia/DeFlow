@@ -362,6 +362,7 @@ impl AutomatedStrategyManager {
 
         // Coordinate strategies before execution
         let coordination_result = self.coordination_engine.coordinate_strategies(&mut self.active_strategies)?;
+        ic_cdk::println!("Applied {} optimizations during strategy coordination", 
             coordination_result.optimizations_applied);
 
         // Scan for opportunities

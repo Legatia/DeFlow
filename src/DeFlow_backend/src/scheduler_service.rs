@@ -546,16 +546,16 @@ impl SchedulerService {
 SCHEDULER SERVICE EXAMPLES:
 
 1. One-time execution:
-   "25/12/24 09:30:00" -> Christmas Day at 9:30 AM
-   "01/01/2025 00:00:00" -> New Year midnight
+   // Logging temporarily disabled
+   // Logging temporarily disabled
 
 2. Recurring schedule:
    Start: "26/08/24 10:00:00"
    Interval: 3600 seconds (every hour)
    
 3. Cron expressions:
-   "0 9 * * 1-5" -> Weekdays at 9 AM
-   "0 0 1 * *" -> First day of each month
+   // Logging temporarily disabled
+   // Logging temporarily disabled
 
 4. Supported formats:
    - dd/mm/yy hh:mm:ss

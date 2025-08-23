@@ -411,24 +411,28 @@ impl NotificationSystem {
         let mut templates = HashMap::new();
         
         templates.insert(NotificationType::RiskAlert, EmailTemplate {
-            subject: "🚨 Portfolio Risk Alert".to_string(),
+            subject: "Portfolio Risk Alert".to_string(),
             html_body: r#"
                 <h2>Risk Alert</h2>
                 <p>{{message}}</p>
                 <p><strong>Current Risk Level:</strong> {{risk_level}}</p>
                 <p><strong>Recommendation:</strong> {{recommendation}}</p>
             "#.to_string(),
-            text_body: "Risk Alert: {{message}}\n\nRecommendation: {{recommendation}}".to_string(),
+            text_body: r"Risk Alert: {{message}}
+
+Recommendation: {{recommendation}}".to_string(),
         });
 
         templates.insert(NotificationType::PerformanceAlert, EmailTemplate {
-            subject: "📈 Portfolio Performance Update".to_string(),
+            subject: "Portfolio Performance Update".to_string(),
             html_body: r#"
                 <h2>Performance Alert</h2>
                 <p>{{message}}</p>
                 <p><strong>Current Portfolio Value:</strong> ${{portfolio_value}}</p>
             "#.to_string(),
-            text_body: "Performance Alert: {{message}}\n\nCurrent Portfolio Value: ${{portfolio_value}}".to_string(),
+            text_body: r"Performance Alert: {{message}}
+
+Current Portfolio Value: ${{portfolio_value}}".to_string(),
         });
 
         templates
@@ -473,11 +477,11 @@ impl Default for NotificationPreferences {
             rebalancing_alerts: vec![NotificationChannel::InApp],
             yield_alerts: vec![NotificationChannel::InApp],
             system_alerts: vec![NotificationChannel::InApp, NotificationChannel::Email],
-            quiet_hours_start: Some(22), // 10 PM
-            quiet_hours_end: Some(8),    // 8 AM
-            timezone: "UTC".to_string(),
+            quiet_hours_start: Some(22),
+            quiet_hours_end: Some(8),
+            timezone: String::from("UTC"),
             email_frequency: EmailFrequency::Immediate,
-            minimum_alert_threshold: 100.0, // $100 minimum
+            minimum_alert_threshold: 100.0
         }
     }
 }

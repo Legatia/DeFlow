@@ -89,16 +89,19 @@ impl BitcoinAddressManager {
         // Generate P2PKH (Legacy)
         match self.get_p2pkh_address(user).await {
             Ok(addr) => addresses.push(addr),
+            Err(_) => {},
         }
         
         // Generate P2WPKH (SegWit)
         match self.get_p2wpkh_address(user).await {
             Ok(addr) => addresses.push(addr),
+            Err(_) => {},
         }
         
         // Generate P2TR (Taproot)
         match self.get_p2tr_address(user).await {
             Ok(addr) => addresses.push(addr),
+            Err(_) => {},
         }
         
         if addresses.is_empty() {

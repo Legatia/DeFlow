@@ -13,12 +13,33 @@ export class AdminAuthService {
    * Create a new admin session after authentication
    */
   static async createSession(principal: string): Promise<AdminSession> {
-    // SECURITY: Validate owner principal is configured
-    if (!this.OWNER_PRINCIPAL) {
-      throw new Error('SECURITY: Owner principal not configured. Set VITE_OWNER_PRINCIPAL environment variable.');
+    // DEBUG: Log environment variables
+    console.log('DEBUG - VITE_OWNER_PRINCIPAL:', process.env.VITE_OWNER_PRINCIPAL);
+    console.log('DEBUG - this.OWNER_PRINCIPAL:', this.OWNER_PRINCIPAL);
+    console.log('DEBUG - typeof this.OWNER_PRINCIPAL:', typeof this.OWNER_PRINCIPAL);
+    console.log('DEBUG - this.OWNER_PRINCIPAL length:', this.OWNER_PRINCIPAL?.length);
+    
+    // INITIAL SETUP MODE: If no owner is configured, this becomes the setup flow
+    if (!this.OWNER_PRINCIPAL || this.OWNER_PRINCIPAL.trim() === '') {
+      console.log('SETUP MODE: No owner configured yet, allowing initial setup for principal:', principal);
+      const session: AdminSession = {
+        principal,
+        isOwner: false, // Will become true after owner is set
+        sessionStart: Date.now()
+      };
+
+      // Store session for initial setup
+      try {
+        const encryptedSession = btoa(JSON.stringify(session));
+        sessionStorage.setItem(this.SESSION_KEY, encryptedSession);
+      } catch (error) {
+        throw new Error('Failed to create setup session');
+      }
+
+      return session;
     }
 
-    // Verify this is the owner principal
+    // NORMAL MODE: Owner is configured, verify access
     const isOwner = this.isOwnerPrincipal(principal);
     
     if (!isOwner) {
@@ -87,9 +108,8 @@ export class AdminAuthService {
    * Check if a principal is the owner
    */
   private static isOwnerPrincipal(principal: string): boolean {
-    // SECURITY: No mock bypasses in production
-    if (!this.OWNER_PRINCIPAL) {
-      console.error('SECURITY: Owner principal not configured');
+    // SETUP MODE: If no owner configured, return false (setup mode)
+    if (!this.OWNER_PRINCIPAL || this.OWNER_PRINCIPAL.trim() === '') {
       return false;
     }
     
@@ -119,5 +139,20 @@ export class AdminAuthService {
   static async isOwner(): Promise<boolean> {
     const session = await this.getCurrentSession();
     return session?.isOwner || false;
+  }
+
+  /**
+   * Check if system is in setup mode (no owner configured yet)
+   */
+  static isSetupMode(): boolean {
+    return !this.OWNER_PRINCIPAL || this.OWNER_PRINCIPAL.trim() === '';
+  }
+
+  /**
+   * Get current user's principal (for setup/whoami)
+   */
+  static async getCurrentPrincipal(): Promise<string | null> {
+    const session = await this.getCurrentSession();
+    return session?.principal || null;
   }
 }

@@ -131,7 +131,7 @@ pub fn get_workflow_templates() -> TemplateApiResponse<TemplateListResponse> {
             "Rebalancing".to_string(),
             "DCA".to_string(),
             "RiskManagement".to_string(),
-            "Composite".to_string(),
+            "Composite".to_string()
         ];
         
         let response = TemplateListResponse {
@@ -157,7 +157,7 @@ pub fn get_templates_by_category(category: String) -> TemplateApiResponse<Templa
             "DCA" => WorkflowCategory::DCA,
             "RiskManagement" => WorkflowCategory::RiskManagement,
             "Composite" => WorkflowCategory::Composite,
-            _ => return TemplateApiResponse::error(format!("Invalid category: {}", category)),
+            _ => return TemplateApiResponse::error(format!("Invalid category: {}", category)));
         };
         
         let templates = mgr.get_templates_by_category(&category_enum);
@@ -264,11 +264,11 @@ pub fn validate_template_inputs(template_id: String, user_inputs: HashMap<String
                 
                 // Risk warnings
                 if template.risk_score >= 7 {
-                    risk_warnings.push("This is a high-risk strategy. Only invest what you can afford to lose.".to_string());
+                    risk_warnings.push("This is a high-risk strategy. Only invest what you can afford to lose.".to_string()
                 }
                 
                 if template.min_capital_usd >= 10000.0 {
-                    risk_warnings.push("This strategy requires significant capital. Consider starting with a smaller amount.".to_string());
+                    risk_warnings.push("This strategy requires significant capital. Consider starting with a smaller amount.".to_string()
                 }
                 
                 let response = TemplateValidationResponse {
@@ -310,7 +310,7 @@ async fn generate_strategy_from_template(request: StrategyCreationRequest) -> Re
             "Wallet connections established".to_string(),
             "Initial capital allocation ready".to_string(),
             "Monitoring systems activated".to_string(),
-            "Ready for deployment".to_string(),
+            "Ready for deployment".to_string()
         ];
         
         let response = StrategyCreationResponse {
@@ -341,7 +341,7 @@ pub fn get_template_recommendations(
             "Intermediate" => DifficultyLevel::Intermediate,
             "Advanced" => DifficultyLevel::Advanced,
             "Expert" => DifficultyLevel::Expert,
-            _ => DifficultyLevel::Beginner,
+            _ => DifficultyLevel::Beginner);
         };
         
         // Filter templates based on user profile

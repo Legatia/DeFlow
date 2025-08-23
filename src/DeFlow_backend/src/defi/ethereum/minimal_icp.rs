@@ -250,7 +250,7 @@ mod tests {
     fn test_minimal_service_creation() {
         let service = MinimalIcpEthereumService::new(
             "test_key".to_string(),
-            Principal::anonymous(),
+            Principal::anonymous()
         );
         assert_eq!(service.supported_chains.len(), 8);
         assert_eq!(service.key_name, "test_key");
@@ -266,7 +266,7 @@ mod tests {
     fn test_hash_consistency() {
         let service = MinimalIcpEthereumService::new(
             "test_key".to_string(),
-            Principal::anonymous(),
+            Principal::anonymous()
         );
         
         let hash1 = service.hash_string("test");
@@ -281,7 +281,7 @@ mod tests {
     fn test_deterministic_address_generation() {
         let service = MinimalIcpEthereumService::new(
             "test_key".to_string(),
-            Principal::anonymous(),
+            Principal::anonymous()
         );
         
         let user = Principal::anonymous();
@@ -324,7 +324,7 @@ mod tests {
     fn test_l2_optimization_logic() {
         let service = MinimalIcpEthereumService::new(
             "test_key".to_string(),
-            Principal::anonymous(),
+            Principal::anonymous()
         );
         
         // Test L2 recommendation logic
@@ -346,7 +346,7 @@ mod tests {
     fn test_mock_balance_generation() {
         let service = MinimalIcpEthereumService::new(
             "test_key".to_string(),
-            Principal::anonymous(),
+            Principal::anonymous()
         );
         
         let address = "0x1234567890123456789012345678901234567890";
@@ -395,7 +395,7 @@ mod tests {
     fn test_minimal_context_creation() {
         let context = MinimalIcpEthereumContext::new(
             "test_key".to_string(),
-            Principal::anonymous(),
+            Principal::anonymous()
         );
         
         assert_eq!(context.key_name, "test_key");

@@ -777,7 +777,7 @@ impl WorkflowTemplateManager {
                         "conservative_yield_farming".to_string(),
                         "cross_chain_arbitrage".to_string(),
                         "portfolio_rebalancing".to_string(),
-                    ],
+                    ]);
                     coordination_rules: vec![
                         "max_risk_allocation_50_percent".to_string(),
                         "yield_farming_priority_high".to_string(),
@@ -785,7 +785,7 @@ impl WorkflowTemplateManager {
                     ],
                     rebalancing_frequency: super::automated_strategies::RebalanceFrequency::Daily,
                 }),
-                default_chains: vec![ChainId::Ethereum, ChainId::Arbitrum, ChainId::Polygon],
+                default_chains: vec![ChainId::Ethereum, ChainId::Arbitrum, ChainId::Polygon]);
                 recommended_protocols: vec![
                     DeFiProtocol::Aave, 
                     DeFiProtocol::Uniswap(UniswapVersion::V3), 

@@ -4,7 +4,7 @@
 // Import BigInt polyfill FIRST to prevent conversion errors
 import '../utils/bigint-polyfill'
 import secureStorageService from './secureStorageService'
-import performanceService from './performanceOptimizationService'
+// performanceOptimizationService was removed - using local optimization
 
 export interface WalletAddress {
   chain: ChainType
@@ -164,13 +164,16 @@ class MultiChainWalletService {
     
     // PERFORMANCE: Setup cleanup on page unload
     if (typeof window !== 'undefined') {
-      const cleanup = performanceService.addEventListenerSafely(
-        window,
-        'beforeunload',
-        () => {
-          this.cleanup()
-        }
-      )
+      // const cleanup = performanceService.addEventListenerSafely(
+      //   window,
+      //   'beforeunload',
+      //   () => {
+      //     this.cleanup()
+      //   }
+      // );
+      const cleanup = window.addEventListener('beforeunload', () => {
+        this.cleanup()
+      });
       
       // Store cleanup function for manual cleanup
       ;(this as any)._cleanup = cleanup
@@ -214,17 +217,26 @@ class MultiChainWalletService {
   // PERFORMANCE: Optimized listener notification with error handling
   private notifyListeners() {
     // PERFORMANCE: Use requestAnimationFrame for DOM updates
-    performanceService.batchDomOperations([
-      () => {
-        this.listeners.forEach(callback => {
-          try {
-            callback(this.wallet)
-          } catch (error) {
-            console.error('Wallet listener callback failed:', error)
-          }
-        })
+    // performanceService.batchDomOperations([
+    //   () => {
+    //     this.listeners.forEach(callback => {
+    //       try {
+    //         callback(this.wallet)
+    //       } catch (error) {
+    //         console.error('Wallet listener callback failed:', error)
+    //       }
+    //     })
+    //   }
+    // ]);
+    
+    // Direct execution without performance service
+    this.listeners.forEach(callback => {
+      try {
+        callback(this.wallet)
+      } catch (error) {
+        console.error('Wallet listener callback failed:', error)
       }
-    ])
+    });
   }
 
   // Get current wallet state
@@ -381,7 +393,8 @@ class MultiChainWalletService {
 
     // PERFORMANCE: Check cache first to avoid unnecessary API calls
     const cacheKey = `balance_${chain}_${walletAddress.address}`
-    const cachedBalance = performanceService.getCache<string>(cacheKey)
+    // const cachedBalance = performanceService.getCache<string>(cacheKey)
+    const cachedBalance = null;
     
     if (cachedBalance && Date.now() - walletAddress.lastUpdated < 30000) {
       // Use cached balance if less than 30 seconds old
@@ -391,13 +404,13 @@ class MultiChainWalletService {
     }
 
     try {
-      performanceService.trackApiCall()
+      //performanceService.trackApiCall()
       const balance = await this.fetchBalance(chain, walletAddress.address)
       
       // Update balance and cache
       walletAddress.balance = balance
       walletAddress.lastUpdated = Date.now()
-      performanceService.setCache(cacheKey, balance, 60000) // Cache for 1 minute
+      //performanceService.setCache(cacheKey, balance, 60000) // Cache for 1 minute
 
       await this.saveWalletToStorage()
       this.notifyListeners()
@@ -662,7 +675,7 @@ class MultiChainWalletService {
       // PERFORMANCE: Clear cached balance data
       this.wallet.addresses.forEach(addr => {
         const cacheKey = `balance_${addr.chain}_${addr.address}`
-        performanceService.setCache(cacheKey, null, 0) // Expire cache immediately
+        //performanceService.setCache(cacheKey, null, 0) // Expire cache immediately
       })
       
       // Reset wallet state
@@ -682,7 +695,7 @@ class MultiChainWalletService {
     // Clear any cached data
     this.wallet.addresses.forEach(addr => {
       const cacheKey = `balance_${addr.chain}_${addr.address}`
-      performanceService.setCache(cacheKey, null, 0)
+      //performanceService.setCache(cacheKey, null, 0)
     })
     
     // Clear listeners

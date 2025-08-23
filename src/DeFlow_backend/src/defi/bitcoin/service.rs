@@ -154,10 +154,11 @@ impl BitcoinDeFiService {
         let total_needed = amount_satoshis.saturating_add(estimated_fee);
         
         if source_address.balance_satoshis < total_needed {
+            ic_cdk::println!("Insufficient balance: need {} satoshis, have {} satoshis",
+                            total_needed, source_address.balance_satoshis);
             return Err(format!(
                 "Insufficient balance: need {} satoshis, have {} satoshis",
-                total_needed,
-                source_address.balance_satoshis
+                total_needed, source_address.balance_satoshis
             ));
         }
         

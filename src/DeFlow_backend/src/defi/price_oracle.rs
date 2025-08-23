@@ -643,7 +643,7 @@ impl BinanceOracle {
             "ETHUSDT".to_string(),
             "SOLUSDT".to_string(),
             "MATICUSDT".to_string(),
-            "AVAXUSDT".to_string(),
+            "AVAXUSDT".to_string()
         ];
         
         Ok(())

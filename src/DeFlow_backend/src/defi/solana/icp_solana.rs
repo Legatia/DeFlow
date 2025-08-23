@@ -167,7 +167,7 @@ impl IcpSolanaService {
             },
             Err((code, msg)) => {
                 Err(SolanaError::ThresholdEcdsaError(format!(
-                    "Failed to get Secp256k1 public key: {} - {}", code as u8, msg
+                    "Threshold ECDSA error: {:?} - {}", code, msg
                 )))
             }
         }
@@ -291,7 +291,7 @@ impl IcpSolanaService {
             Ok((response,)) => Ok(response.signature),
             Err((code, msg)) => {
                 Err(SolanaError::ThresholdEcdsaError(format!(
-                    "Failed to sign transaction: {} - {}", code as u8, msg
+                    "Threshold ECDSA error: {:?} - {}", code, msg
                 )))
             }
         }
@@ -415,7 +415,7 @@ mod tests {
         let service = IcpSolanaService::new(
             "deflow_solana_key".to_string(),
             Principal::anonymous(),
-            SolanaNetwork::Devnet,
+            SolanaNetwork::Devnet
         );
         assert_eq!(service.key_name, "deflow_solana_key");
         assert_eq!(service.network, SolanaNetwork::Devnet);
@@ -427,7 +427,7 @@ mod tests {
         let service = IcpSolanaService::new(
             "test_key".to_string(),
             Principal::anonymous(),
-            SolanaNetwork::Mainnet,
+            SolanaNetwork::Mainnet
         );
         
         let user = Principal::anonymous();
@@ -444,7 +444,7 @@ mod tests {
         let service = IcpSolanaService::new(
             "test_key".to_string(),
             Principal::anonymous(),
-            SolanaNetwork::Mainnet,
+            SolanaNetwork::Mainnet
         );
         
         let amount = 1_000_000_000u64; // 1 SOL
@@ -469,7 +469,7 @@ mod tests {
         let service = IcpSolanaService::new(
             "test_key".to_string(),
             Principal::anonymous(),
-            SolanaNetwork::Mainnet,
+            SolanaNetwork::Mainnet
         );
         
         let test_data = b"test_data";

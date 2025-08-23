@@ -184,7 +184,7 @@ pub fn get_template_categories() -> SimpleApiResponse<Vec<String>> {
         "YieldFarming".to_string(),
         "Arbitrage".to_string(),
         "Rebalancing".to_string(),
-        "DCA".to_string(),
+        "DCA".to_string()
     ];
     
     SimpleApiResponse::success(categories)

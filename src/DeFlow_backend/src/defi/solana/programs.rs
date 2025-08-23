@@ -513,7 +513,7 @@ mod tests {
     fn test_program_manager_creation() {
         let manager = SolanaProgramManager::new(
             "test_key".to_string(),
-            SolanaNetwork::Devnet,
+            SolanaNetwork::Devnet
         );
         assert_eq!(manager.key_name, "test_key");
         assert_eq!(manager.network, SolanaNetwork::Devnet);

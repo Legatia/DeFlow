@@ -300,15 +300,17 @@ fn prepare_node_input(
             if let Some(source_output) = node_outputs.get(&connection.source_node_id) {
                 if let Some(value) = source_output.get(&connection.source_output) {
                     input_data.insert(connection.target_input.clone(), value.clone());
+                    ic_cdk::println!("Using connection: output {} from node {}", 
+                                    connection.source_output, connection.source_node_id);
                 } else {
                     return Err(format!(
-                        "Output {} not found from node {}",
+                        "Missing output {} from node {}", 
                         connection.source_output, connection.source_node_id
                     ));
                 }
             } else {
                 return Err(format!(
-                    "No output found from node {}",
+                    "Missing source node: {}", 
                     connection.source_node_id
                 ));
             }
@@ -436,6 +438,7 @@ async fn execute_with_recovery(
                     let delay = recovery.retry_delay_ms * (2_u64.pow(attempts - 1));
                     let delay_ns = Duration::from_millis(delay);
                     
+                    ic_cdk::println!(
                         "Node {} failed (attempt {}), retrying in {}ms: {}",
                         node.id, attempts, delay, error
                     );
@@ -458,14 +461,15 @@ async fn execute_with_recovery(
                     }
                 } else {
                     // Max retries exceeded - execute emergency actions
-                        "Node {} failed after {} retries, executing emergency actions",
+                    ic_cdk::println!(
+                        "Node {} max retries ({}) exceeded, executing emergency actions", 
                         node.id, attempts
                     );
                     
                     execute_emergency_actions(&recovery.emergency_actions, execution_id, &node.id).await;
                     
                     return Err(format!(
-                        "Node {} failed after {} retries with self-healing recovery: {}",
+                        "Node {} failed after {} attempts: {}", 
                         node.id, attempts, last_error
                     ));
                 }
@@ -531,6 +535,7 @@ async fn execute_emergency_actions(
     for action in actions {
         match action {
             EmergencyAction::SendNotification { recipient, message } => {
+                ic_cdk::println!(
                     "Emergency notification to {}: {} (execution: {}, node: {})",
                     recipient, message, execution_id, node_id
                 );
@@ -545,6 +550,7 @@ async fn execute_emergency_actions(
                 }
             }
             EmergencyAction::LiquidatePosition { asset, percentage } => {
+                ic_cdk::println!(
                     "Emergency liquidation: {} of {} (execution: {})",
                     percentage, asset, execution_id
                 );
@@ -562,7 +568,8 @@ async fn execute_emergency_actions(
 
 async fn send_failure_notification(execution_id: &str, node_id: &str) {
     // In a real implementation, this would send notifications via email, webhook, etc.
-        "Notification: Node {} failed in execution {}",
+    ic_cdk::println!(
+        "Sending critical alert for node {} in execution {}", 
         node_id, execution_id
     );
 }
@@ -576,7 +583,8 @@ async fn enable_safe_mode() {
 }
 
 fn log_execution_failure(execution_id: &str, node_id: &str, error: &str, attempt: u32) {
-        "Execution failure: {} | Node: {} | Attempt: {} | Error: {}",
+    ic_cdk::println!(
+        "Execution {} failed at node {} (attempt {}): {}", 
         execution_id, node_id, attempt, error
     );
     

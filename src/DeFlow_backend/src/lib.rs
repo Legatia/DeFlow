@@ -770,12 +770,15 @@ async fn test_complete_price_alert_flow(
     // Create the alert
     let alert_id = create_price_alert(test_alert)?;
     
-    Ok(format!(
+    let result_message = format!(
         "🎯 Test completed successfully!\n- Alert ID: {}\n- Token: {}\n- Target Price: ${}\n- DeFi Actions: {}\n- Social Posts: {}\n\n✨ Complete flow: Price Monitor → Alert Trigger → DeFi Execution → JSON Formatting → Social Media Posts",
         alert_id, token_symbol, target_price,
         if enable_defi { "Enabled" } else { "Disabled" },
         if enable_social { "Enabled" } else { "Disabled" }
-    ))
+    );
+    
+    ic_cdk::println!("{}", result_message);
+    Ok(result_message)
 }
 
 /// Get system status for price alerts and social media integration

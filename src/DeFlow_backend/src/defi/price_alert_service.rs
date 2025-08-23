@@ -183,6 +183,7 @@ impl PriceAlertManager {
         let alert_id = alert.id.clone();
         self.alerts.insert(alert_id.clone(), alert.clone());
         
+        ic_cdk::println!("Created price alert {} for {} with condition: {}", 
                          alert_id, alert.token_symbol, self.format_condition(&alert.condition));
         
         Ok(alert_id)
@@ -293,11 +294,13 @@ impl PriceAlertManager {
         // Try CoinGecko first
         match self.fetch_from_coingecko(token_symbol).await {
             Ok(price) => return Ok(price),
+            Err(_) => {},
         }
         
         // Fallback to Binance
         match self.fetch_from_binance(token_symbol).await {
             Ok(price) => return Ok(price),
+            Err(_) => {},
         }
         
         // Final fallback - return cached or estimated price
@@ -308,7 +311,7 @@ impl PriceAlertManager {
     async fn fetch_from_coingecko(&self, token_symbol: &str) -> Result<TokenPrice, String> {
         let symbol_lower = token_symbol.to_lowercase();
         let url = format!(
-            "https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true",
+            "https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=usd&include_24hr_change=true",
             self.symbol_to_coingecko_id(&symbol_lower)
         );
         

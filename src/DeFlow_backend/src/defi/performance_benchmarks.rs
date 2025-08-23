@@ -32,7 +32,7 @@ mod performance_benchmarks {
         
         // Performance target: Should execute in under 100ms per strategy
         assert!(avg_execution_time < Duration::from_millis(100), 
-               "Strategy execution too slow: {:?}", avg_execution_time);
+               ic_cdk::println!("Strategy execution too slow: {:?}", avg_execution_time));
     }
 
     #[test]
@@ -54,7 +54,7 @@ mod performance_benchmarks {
         
         // Performance target: Should calculate large portfolio in under 50ms
         assert!(avg_calculation_time < Duration::from_millis(50),
-               "Portfolio calculation too slow: {:?}", avg_calculation_time);
+               ic_cdk::println!("Portfolio calculation too slow: {:?}", avg_calculation_time));
     }
 
     #[test]
@@ -75,7 +75,7 @@ mod performance_benchmarks {
         
         // Performance target: Should scan 1000 pairs in under 500ms
         assert!(avg_scan_time < Duration::from_millis(500),
-               "Arbitrage scanning too slow: {:?}", avg_scan_time);
+               ic_cdk::println!("Arbitrage scanning too slow: {:?}", avg_scan_time));
     }
 
     #[test]
@@ -99,7 +99,7 @@ mod performance_benchmarks {
         
         // Performance target: Should calculate risk metrics in under 10ms per strategy
         assert!(avg_risk_calc_time < Duration::from_millis(10),
-               "Risk calculation too slow: {:?}", avg_risk_calc_time);
+               ic_cdk::println!("Risk calculation too slow: {:?}", avg_risk_calc_time));
     }
 
     #[test]
@@ -126,7 +126,7 @@ mod performance_benchmarks {
         
         // Performance target: Should coordinate 50 strategies in under 200ms
         assert!(avg_coordination_time < Duration::from_millis(200),
-               "Strategy coordination too slow: {:?}", avg_coordination_time);
+               ic_cdk::println!("Strategy coordination too slow: {:?}", avg_coordination_time));
     }
 
     // =============================================================================
@@ -137,7 +137,7 @@ mod performance_benchmarks {
     fn benchmark_memory_usage_portfolio() {
         let initial_memory = get_estimated_memory_usage();
         
-        let mut portfolio_manager = PortfolioManager::new("benchmark_user".to_string());
+        let mut portfolio_manager = PortfolioManager::new("benchmark_user".to_string()
         
         // Add progressively more positions and measure memory growth
         let position_counts = vec![100, 500, 1000, 2000];
@@ -145,7 +145,7 @@ mod performance_benchmarks {
         
         for &count in &position_counts {
             // Clear and rebuild portfolio with target count
-            portfolio_manager = PortfolioManager::new("benchmark_user".to_string());
+            portfolio_manager = PortfolioManager::new("benchmark_user".to_string()
             
             for i in 0..count {
                 portfolio_manager.add_position(create_benchmark_position(i));
@@ -161,7 +161,7 @@ mod performance_benchmarks {
         // Memory should scale linearly and be reasonable per position
         for (count, memory_per_position) in memory_measurements {
             assert!(memory_per_position < 1000.0, // Less than 1KB per position
-                   "Memory usage too high: {:.2} bytes per position with {} positions", 
+                   ic_cdk::println!("Memory usage too high: {:.2} bytes per position with {} positions",
                    memory_per_position, count);
         }
     }
@@ -187,7 +187,7 @@ mod performance_benchmarks {
             
             
             assert!(memory_per_strategy < 5000.0, // Less than 5KB per strategy
-                   "Strategy memory usage too high: {:.2} bytes", memory_per_strategy);
+                   ic_cdk::println!("Strategy memory usage too high: {:.2} bytes", memory_per_strategy));
         }
     }
 
@@ -222,7 +222,7 @@ mod performance_benchmarks {
         
         // Should handle at least 100 operations per second
         assert!(operations_per_second >= 100.0,
-               "Throughput too low: {:.2} ops/sec", operations_per_second);
+               ic_cdk::println!("Throughput too low: {:.2} ops/sec", operations_per_second));
     }
 
     #[test]
@@ -251,7 +251,7 @@ mod performance_benchmarks {
             
             // All API operations should respond within 50ms
             assert!(avg_response_time < Duration::from_millis(50),
-                   "{} response too slow: {:?}", operation_name, avg_response_time);
+                   ic_cdk::println!("{} response too slow: {:?}", operation_name, avg_response_time));
         }
     }
 
@@ -261,7 +261,7 @@ mod performance_benchmarks {
 
     #[test]
     fn stress_test_high_frequency_updates() {
-        let mut portfolio_manager = PortfolioManager::new("stress_test_user".to_string());
+        let mut portfolio_manager = PortfolioManager::new("stress_test_user".to_string()
         
         // Add initial positions
         for i in 0..100 {
@@ -287,7 +287,7 @@ mod performance_benchmarks {
         // Should handle at least 1000 updates per second
         let updates_per_second = iterations as f64 / elapsed.as_secs_f64();
         assert!(updates_per_second >= 1000.0,
-               "Update throughput too low: {:.2} updates/sec", updates_per_second);
+               ic_cdk::println!("Update throughput too low: {:.2} updates/sec", updates_per_second));
     }
 
     #[test]
@@ -324,7 +324,7 @@ mod performance_benchmarks {
             
             // Time growth should be less than quadratic
             assert!(time_ratio < count_ratio.powi(2),
-                   "Performance degradation too severe: {}x strategies took {}x time",
+                   ic_cdk::println!("Performance degradation too severe: {}x strategies took {}x time",
                    count_ratio, time_ratio);
         }
     }
@@ -372,7 +372,7 @@ mod performance_benchmarks {
     }
 
     fn create_large_portfolio() -> PortfolioManager {
-        let mut portfolio_manager = PortfolioManager::new("benchmark_user".to_string());
+        let mut portfolio_manager = PortfolioManager::new("benchmark_user".to_string()
         
         // Add 500 positions across different chains and assets
         for i in 0..500 {

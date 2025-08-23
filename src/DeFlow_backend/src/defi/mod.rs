@@ -144,7 +144,7 @@ impl DeFiChainManager {
     pub async fn initialize_ethereum(&mut self) -> Result<(), String> {
         let ethereum_service = ethereum::minimal_icp::MinimalIcpEthereumService::new(
             "deflow_ethereum_key".to_string(),
-            ic_cdk::api::id(),
+            ic_cdk::api::id()
         );
         
         self.ethereum_service = Some(ethereum_service);

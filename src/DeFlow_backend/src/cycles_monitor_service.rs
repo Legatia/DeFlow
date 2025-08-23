@@ -286,28 +286,28 @@ impl CyclesMonitorService {
 
         match alert.alert_type {
             AlertType::Warning => {
-                format!(
-                    "🟡 CYCLES WARNING: Canister {} has {:.2}T cycles remaining (below {:.2}T threshold)",
-                    alert.canister_id, cycles_in_t, threshold_in_t
-                )
+                ic_cdk::println!("🟡 CYCLES WARNING: Canister {} has {:.2}T cycles remaining (below {:.2}T threshold)", 
+                    alert.canister_id, cycles_in_t, threshold_in_t);
+                format!("CYCLES WARNING: Canister {} has {:.2}T cycles remaining (below {:.2}T threshold)",
+                    alert.canister_id, cycles_in_t, threshold_in_t)
             },
             AlertType::Critical => {
-                format!(
-                    "🔴 CYCLES CRITICAL: Canister {} has only {:.2}T cycles remaining (below {:.2}T threshold)! Immediate top-up required.",
-                    alert.canister_id, cycles_in_t, threshold_in_t
-                )
+                ic_cdk::println!("🔴 CYCLES CRITICAL: Canister {} has only {:.2}T cycles remaining (below {:.2}T threshold)! Immediate top-up required.", 
+                    alert.canister_id, cycles_in_t, threshold_in_t);
+                format!("CYCLES CRITICAL: Canister {} has only {:.2}T cycles remaining (below {:.2}T threshold)! Immediate top-up required.",
+                    alert.canister_id, cycles_in_t, threshold_in_t)
             },
             AlertType::TopupRequested => {
-                format!(
-                    "🔄 CYCLES TOP-UP: Requested {:.2}T cycles for canister {}",
-                    threshold_in_t, alert.canister_id
-                )
+                ic_cdk::println!("📤 CYCLES TOPUP: Requesting topup for canister {} (current: {:.2}T cycles, threshold: {:.2}T)", 
+                    alert.canister_id, cycles_in_t, threshold_in_t);
+                format!("CYCLES TOPUP: Requesting topup for canister {} (current: {:.2}T cycles, threshold: {:.2}T)",
+                    alert.canister_id, cycles_in_t, threshold_in_t)
             },
             AlertType::TopupCompleted => {
-                format!(
-                    "✅ CYCLES TOP-UP COMPLETE: Canister {} now has {:.2}T cycles",
-                    alert.canister_id, cycles_in_t
-                )
+                ic_cdk::println!("✅ CYCLES TOPUP: Completed topup for canister {} (current: {:.2}T cycles)", 
+                    alert.canister_id, cycles_in_t);
+                format!("CYCLES TOPUP: Completed topup for canister {} (current: {:.2}T cycles)",
+                    alert.canister_id, cycles_in_t)
             },
         }
     }
@@ -342,9 +342,7 @@ impl CyclesMonitorService {
         // 2. Use the cycles management API to send cycles
         // 3. For external canisters, might need to notify the owner
         
-            "TOP-UP REQUESTED: {} cycles for canister {}",
-            amount, canister_id
-        );
+        ic_cdk::println!("Requesting top-up of {} cycles for canister: {}", amount, canister_id);
 
         // Placeholder for actual top-up logic
         // This would involve cycles management APIs

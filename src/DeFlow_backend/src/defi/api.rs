@@ -62,7 +62,7 @@ pub async fn send_bitcoin(
         &user,
         amount_satoshis,
         &to_address,
-        "bitcoin",
+        "bitcoin", // Chain identifier
         None, // tx_hash not available for outgoing transactions
         21_000_000 * 100_000_000, // Max 21M BTC in satoshis
         &[], // No specific authorized principals for regular users
@@ -415,7 +415,7 @@ pub async fn resume_defi_operations() -> Result<(), String> {
 fn create_icp_ethereum_service() -> MinimalIcpEthereumService {
     MinimalIcpEthereumService::new(
         "deflow_ethereum_key".to_string(),
-        ic_cdk::api::id(),
+        ic_cdk::api::id()
     )
 }
 
@@ -475,7 +475,7 @@ pub async fn send_ethereum(
         &user,
         amount_u64,
         &to_address,
-        "ethereum",
+        "ethereum", // Chain identifier
         None, // tx_hash not available for outgoing transactions
         1_000_000 * 1_000_000_000_000_000_000, // Max 1M ETH in wei
         &[], // No specific authorized principals for regular users
@@ -637,7 +637,7 @@ pub async fn get_bridge_options(
     Ok(vec![
         "Official Bridge".to_string(),
         "Third-party Bridge".to_string(),
-        "Multi-hop via Ethereum".to_string(),
+        "Multi-hop via Ethereum".to_string()
     ])
 }
 
@@ -782,7 +782,7 @@ pub fn validate_address_universal(address: String, chain: String) -> Result<bool
                 Err(_) => Ok(false),
             }
         },
-        "ethereum" | "arbitrum" | "optimism" | "polygon" | "base" | "avalanche" => {
+        "ethereum" => {
             match crate::security::EthereumValidator::validate_address(&address) {
                 Ok(_) => Ok(true),
                 Err(_) => Ok(false),
@@ -807,7 +807,7 @@ use crate::defi::solana::{
 fn create_pure_icp_solana_service() -> crate::defi::solana::pure_icp::PureIcpSolanaService {
     crate::defi::solana::pure_icp::PureIcpSolanaService::new(
         SolanaNetwork::Devnet, // Start with Devnet for development
-        "deflow_solana_key".to_string(),
+        "deflow_solana_key".to_string()
     )
 }
 
@@ -883,7 +883,7 @@ pub async fn get_spl_token_balance(mint_address: String) -> Result<crate::defi::
     // Create token manager
     let token_manager = crate::defi::solana::SolanaTokenManager::new(
         "deflow_solana_key".to_string(),
-        SolanaNetwork::Devnet,
+        SolanaNetwork::Devnet
     );
     
     token_manager.get_token_balance(user, mint_address)
@@ -927,7 +927,7 @@ pub async fn transfer_spl_tokens(
     // Create token manager
     let token_manager = crate::defi::solana::SolanaTokenManager::new(
         "deflow_solana_key".to_string(),
-        SolanaNetwork::Devnet,
+        SolanaNetwork::Devnet
     );
     
     token_manager.transfer_tokens(user, mint_address, to_address, amount)
@@ -980,7 +980,7 @@ pub async fn create_spl_token(
     // Create token manager
     let token_manager = crate::defi::solana::SolanaTokenManager::new(
         "deflow_solana_key".to_string(),
-        SolanaNetwork::Devnet,
+        SolanaNetwork::Devnet
     );
     
     token_manager.create_token(user, name, symbol, decimals, initial_supply)

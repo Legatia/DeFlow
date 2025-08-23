@@ -289,7 +289,7 @@ impl Default for RetryPolicy {
             max_delay_ms: 30000,
             retry_on_errors: vec![
                 "NetworkError".to_string(),
-                "TimeoutError".to_string(),
+                "TimeoutError".to_string(), 
                 "TemporaryError".to_string(),
             ],
         }

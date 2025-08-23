@@ -34,7 +34,7 @@ impl PoolAnalytics {
             
             // Business metrics
             monthly_revenue: self.calculate_monthly_revenue(&pool_state.dev_team_business),
-            dev_1_pending: pool_state.dev_team_business.team_member_earnings.get(&pool_state.dev_team_business.team_hierarchy.owner_principal).copied().unwrap_or(0.0),
+            dev_1_pending: pool_state.dev_team_business.team_member_earnings.get(&pool_state.dev_team_business.team_hierarchy.owner_principal).map(|e| e.total_usd_value).unwrap_or(0.0),
             dev_2_pending: pool_state.dev_team_business.total_distributed_profits, // Show total distributed to all team members
             emergency_fund: pool_state.dev_team_business.emergency_fund,
             
@@ -217,7 +217,7 @@ impl PoolAnalytics {
     
     pub fn assess_business_health(&self, business_model: &DevTeamBusinessModel) -> String {
         let monthly_profit = self.calculate_monthly_profit(business_model);
-        let total_pending: f64 = business_model.team_member_earnings.values().sum();
+        let total_pending: f64 = business_model.team_member_earnings.values().map(|e| e.total_usd_value).sum();
         
         if monthly_profit >= 100_000.0 {
             "Excellent".to_string()

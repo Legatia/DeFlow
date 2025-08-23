@@ -73,7 +73,7 @@ impl EthereumAddressManager {
     fn public_key_to_ethereum_address(&self, public_key: &[u8]) -> Result<String, EthereumError> {
         if public_key.len() != 65 {
             return Err(EthereumError::ThresholdEcdsaError(
-                "Invalid public key length".to_string()
+                ic_cdk::println!("Invalid public key length".to_string()
             ));
         }
         
@@ -92,7 +92,7 @@ impl EthereumAddressManager {
         // Validate the generated address
         if !super::utils::validate_ethereum_address(&address) {
             return Err(EthereumError::InvalidAddress(
-                "Generated invalid Ethereum address".to_string()
+                ic_cdk::println!("Generated invalid Ethereum address".to_string()
             ));
         }
         
@@ -223,7 +223,7 @@ pub mod signature_utils {
     pub fn format_ethereum_signature(signature: &[u8], message_hash: &[u8], address: &str) -> Result<Vec<u8>, EthereumError> {
         if signature.len() != 64 {
             return Err(EthereumError::SerializationError(
-                "Invalid signature length".to_string()
+                ic_cdk::println!("Invalid signature length".to_string()
             ));
         }
         
@@ -246,7 +246,7 @@ pub mod signature_utils {
         }
         
         Err(EthereumError::SerializationError(
-            "Could not determine recovery ID".to_string()
+            ic_cdk::println!("Could not determine recovery ID".to_string()
         ))
     }
     

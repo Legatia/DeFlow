@@ -465,9 +465,9 @@ impl PriceOracle {
     async fn fetch_price_from_chain(&self, asset: &str) -> Result<f64, ArbitrageError> {
         // DEMO: Enhanced mock prices with realistic variations
         let base_price = match asset {
-            "USDC" | "USDT" => 1.0,
-            "ETH" | "WETH" => 3200.0,  // Updated to more realistic current price
-            "BTC" | "WBTC" => 67000.0, // Updated to more realistic current price
+            "USDC" | "USDT" => 1.0,    // Stablecoins
+            "ETH" | "WETH" => 2400.0,  // Updated to more realistic current price
+            "BTC" | "WBTC" => 45000.0, // Updated to more realistic current price
             "SOL" => 140.0,            // Updated to more realistic current price
             "AVAX" => 32.0,            // Updated to more realistic current price
             "MATIC" => 0.92,           // Updated to more realistic current price

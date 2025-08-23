@@ -496,7 +496,7 @@ impl YieldOpportunityScanner {
             "USDT".to_string(),
             "DAI".to_string(),
             "ETH".to_string(),
-            "BTC".to_string(),
+            "BTC".to_string()
         ];
     }
 
@@ -612,7 +612,7 @@ impl ArbitrageOpportunityScanner {
         self.monitored_dexes = vec![
             "Uniswap".to_string(),
             "SushiSwap".to_string(),
-            "QuickSwap".to_string(),
+            "QuickSwap".to_string()
         ];
         
         self.token_pairs = vec![
@@ -720,7 +720,7 @@ impl LiquidityOpportunityScanner {
             "ETH_USDC_3000".to_string(),
             "ETH_USDC_500".to_string(),
             "BTC_ETH_3000".to_string(),
-            "MATIC_USDC_500".to_string(),
+            "MATIC_USDC_500".to_string()
         ];
     }
 
@@ -794,7 +794,7 @@ impl RebalancingOpportunityScanner {
             "BTC".to_string(),
             "ETH".to_string(),
             "Stablecoins".to_string(),
-            "Alts".to_string(),
+            "Alts".to_string()
         ];
     }
 
