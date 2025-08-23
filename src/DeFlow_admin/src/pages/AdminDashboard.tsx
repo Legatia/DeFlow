@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import TreasuryManagement from '../components/TreasuryManagement';
 import PoolManagement from '../components/PoolManagement';
 import SystemHealth from '../components/SystemHealth';
+import TeamManagement from '../components/TeamManagement';
 
 interface AdminSession {
   principal: string;
   isOwner: boolean;
+  isTeamMember: boolean;
   sessionStart: number;
 }
 
@@ -15,7 +17,7 @@ interface AdminDashboardProps {
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminSession, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'treasury' | 'pool' | 'system'>('treasury');
+  const [activeTab, setActiveTab] = useState<'treasury' | 'pool' | 'system' | 'team'>('treasury');
 
   const formatSessionTime = (timestamp: number) => {
     const hours = Math.floor((Date.now() - timestamp) / (1000 * 60 * 60));
@@ -47,15 +49,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminSession, onLogout 
               {/* Session Info */}
               <div className="text-right">
                 <p className="text-sm text-white">
-                  {adminSession.isOwner ? 'Owner Session' : 'Setup Mode'}
+                  {adminSession.isOwner ? 'Owner Session' : adminSession.isTeamMember ? 'Team Member' : 'Setup Mode'}
                   <span className={`inline-flex items-center ml-2 px-2 py-1 rounded-full text-xs font-medium ${
-                    adminSession.isOwner ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                    adminSession.isOwner ? 'bg-green-100 text-green-800' : 
+                    adminSession.isTeamMember ? 'bg-blue-100 text-blue-800' : 
+                    'bg-yellow-100 text-yellow-800'
                   }`}>
-                    {adminSession.isOwner ? 'Active' : 'Setup'}
+                    {adminSession.isOwner ? 'Owner' : adminSession.isTeamMember ? 'Member' : 'Setup'}
                   </span>
                 </p>
                 <p className="text-xs text-gray-400">
-                  {adminSession.isOwner ? `Started ${formatSessionTime(adminSession.sessionStart)}` : `Principal: ${adminSession.principal.slice(0, 8)}...${adminSession.principal.slice(-8)}`}
+                  {(adminSession.isOwner || adminSession.isTeamMember) ? `Started ${formatSessionTime(adminSession.sessionStart)}` : `Principal: ${adminSession.principal.slice(0, 8)}...${adminSession.principal.slice(-8)}`}
                 </p>
               </div>
 
@@ -81,7 +85,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminSession, onLogout 
             {[
               { id: 'treasury', label: 'Treasury Management', icon: '💰' },
               { id: 'pool', label: 'Pool Management', icon: '🏊' },
-              { id: 'system', label: 'System Health', icon: '📊' }
+              { id: 'system', label: 'System Health', icon: '📊' },
+              { id: 'team', label: 'Team Management', icon: '👥' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -105,6 +110,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminSession, onLogout 
         {activeTab === 'treasury' && <TreasuryManagement />}
         {activeTab === 'pool' && <PoolManagement />}
         {activeTab === 'system' && <SystemHealth />}
+        {activeTab === 'team' && (
+          <TeamManagement 
+            isOwner={adminSession.isOwner}
+            currentPrincipal={adminSession.principal}
+          />
+        )}
       </main>
     </div>
   );

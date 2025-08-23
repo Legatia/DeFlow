@@ -8,6 +8,7 @@ import { AdminAuthService } from './services/adminAuthService';
 interface AdminSession {
   principal: string;
   isOwner: boolean;
+  isTeamMember: boolean;
   sessionStart: number;
 }
 

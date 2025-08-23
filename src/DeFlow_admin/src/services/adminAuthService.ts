@@ -1,30 +1,45 @@
 interface AdminSession {
   principal: string;
   isOwner: boolean;
+  isTeamMember: boolean;
   sessionStart: number;
+}
+
+interface TeamMember {
+  principal: string;
+  addedBy: string;
+  addedAt: number;
+  role: 'admin' | 'member';
+  status: 'active' | 'inactive';
+}
+
+interface PendingApproval {
+  id: string;
+  candidatePrincipal: string;
+  requestedBy: string;
+  requestedAt: number;
+  role: 'admin' | 'member';
+  status: 'pending' | 'approved' | 'rejected';
 }
 
 export class AdminAuthService {
   private static readonly OWNER_PRINCIPAL = process.env.VITE_OWNER_PRINCIPAL;
   private static readonly SESSION_KEY = 'deflow_admin_session';
+  private static readonly TEAM_MEMBERS_KEY = 'deflow_team_members';
+  private static readonly PENDING_APPROVALS_KEY = 'deflow_pending_approvals';
   private static readonly SESSION_DURATION = 4 * 60 * 60 * 1000; // 4 hours
 
   /**
    * Create a new admin session after authentication
    */
   static async createSession(principal: string): Promise<AdminSession> {
-    // DEBUG: Log environment variables
-    console.log('DEBUG - VITE_OWNER_PRINCIPAL:', process.env.VITE_OWNER_PRINCIPAL);
-    console.log('DEBUG - this.OWNER_PRINCIPAL:', this.OWNER_PRINCIPAL);
-    console.log('DEBUG - typeof this.OWNER_PRINCIPAL:', typeof this.OWNER_PRINCIPAL);
-    console.log('DEBUG - this.OWNER_PRINCIPAL length:', this.OWNER_PRINCIPAL?.length);
-    
     // INITIAL SETUP MODE: If no owner is configured, this becomes the setup flow
     if (!this.OWNER_PRINCIPAL || this.OWNER_PRINCIPAL.trim() === '') {
       console.log('SETUP MODE: No owner configured yet, allowing initial setup for principal:', principal);
       const session: AdminSession = {
         principal,
         isOwner: false, // Will become true after owner is set
+        isTeamMember: false,
         sessionStart: Date.now()
       };
 
@@ -41,14 +56,16 @@ export class AdminAuthService {
 
     // NORMAL MODE: Owner is configured, verify access
     const isOwner = this.isOwnerPrincipal(principal);
+    const isTeamMember = !isOwner ? this.isTeamMember(principal) : false;
     
-    if (!isOwner) {
-      throw new Error('Access denied. Only the project owner can access the admin dashboard.');
+    if (!isOwner && !isTeamMember) {
+      throw new Error('Access denied. Only the project owner and approved team members can access the admin dashboard.');
     }
 
     const session: AdminSession = {
       principal,
-      isOwner: true,
+      isOwner,
+      isTeamMember,
       sessionStart: Date.now()
     };
 
@@ -154,5 +171,141 @@ export class AdminAuthService {
   static async getCurrentPrincipal(): Promise<string | null> {
     const session = await this.getCurrentSession();
     return session?.principal || null;
+  }
+
+  /**
+   * Check if a principal is a team member
+   */
+  private static isTeamMember(principal: string): boolean {
+    const teamMembers = this.getTeamMembers();
+    return teamMembers.some(member => member.principal === principal && member.status === 'active');
+  }
+
+  /**
+   * Get all team members
+   */
+  static getTeamMembers(): TeamMember[] {
+    try {
+      const data = localStorage.getItem(this.TEAM_MEMBERS_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Add a new team member (requires owner approval)
+   */
+  static async requestTeamMemberAddition(candidatePrincipal: string, role: 'admin' | 'member' = 'member'): Promise<void> {
+    const session = await this.getCurrentSession();
+    if (!session) throw new Error('No active session');
+
+    // Validate principal format
+    if (!candidatePrincipal || candidatePrincipal.length < 20) {
+      throw new Error('Invalid principal format');
+    }
+
+    // Check if already a member
+    if (this.isTeamMember(candidatePrincipal) || this.isOwnerPrincipal(candidatePrincipal)) {
+      throw new Error('Principal is already a team member or owner');
+    }
+
+    // Check if already has pending request
+    const pending = this.getPendingApprovals();
+    if (pending.some(p => p.candidatePrincipal === candidatePrincipal && p.status === 'pending')) {
+      throw new Error('There is already a pending request for this principal');
+    }
+
+    const approval: PendingApproval = {
+      id: Date.now().toString(),
+      candidatePrincipal,
+      requestedBy: session.principal,
+      requestedAt: Date.now(),
+      role,
+      status: 'pending'
+    };
+
+    const approvals = [...pending, approval];
+    localStorage.setItem(this.PENDING_APPROVALS_KEY, JSON.stringify(approvals));
+  }
+
+  /**
+   * Get pending approvals (owner only)
+   */
+  static getPendingApprovals(): PendingApproval[] {
+    try {
+      const data = localStorage.getItem(this.PENDING_APPROVALS_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Approve team member addition (owner only)
+   */
+  static async approveTeamMember(approvalId: string): Promise<void> {
+    const session = await this.getCurrentSession();
+    if (!session?.isOwner) {
+      throw new Error('Only the owner can approve team members');
+    }
+
+    const approvals = this.getPendingApprovals();
+    const approval = approvals.find(a => a.id === approvalId && a.status === 'pending');
+    
+    if (!approval) {
+      throw new Error('Approval request not found or already processed');
+    }
+
+    // Add to team members
+    const teamMembers = this.getTeamMembers();
+    const newMember: TeamMember = {
+      principal: approval.candidatePrincipal,
+      addedBy: session.principal,
+      addedAt: Date.now(),
+      role: approval.role,
+      status: 'active'
+    };
+
+    teamMembers.push(newMember);
+    localStorage.setItem(this.TEAM_MEMBERS_KEY, JSON.stringify(teamMembers));
+
+    // Update approval status
+    approval.status = 'approved';
+    localStorage.setItem(this.PENDING_APPROVALS_KEY, JSON.stringify(approvals));
+  }
+
+  /**
+   * Reject team member addition (owner only)
+   */
+  static async rejectTeamMember(approvalId: string): Promise<void> {
+    const session = await this.getCurrentSession();
+    if (!session?.isOwner) {
+      throw new Error('Only the owner can reject team members');
+    }
+
+    const approvals = this.getPendingApprovals();
+    const approval = approvals.find(a => a.id === approvalId && a.status === 'pending');
+    
+    if (!approval) {
+      throw new Error('Approval request not found or already processed');
+    }
+
+    approval.status = 'rejected';
+    localStorage.setItem(this.PENDING_APPROVALS_KEY, JSON.stringify(approvals));
+  }
+
+  /**
+   * Remove team member (owner only)
+   */
+  static async removeTeamMember(principal: string): Promise<void> {
+    const session = await this.getCurrentSession();
+    if (!session?.isOwner) {
+      throw new Error('Only the owner can remove team members');
+    }
+
+    const teamMembers = this.getTeamMembers();
+    const updatedMembers = teamMembers.filter(member => member.principal !== principal);
+    localStorage.setItem(this.TEAM_MEMBERS_KEY, JSON.stringify(updatedMembers));
   }
 }
