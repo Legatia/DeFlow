@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import simpleDefiTemplateService, { DeFiWorkflowTemplate, StrategyFromTemplateResponse } from '../services/defiTemplateServiceSimple';
+import { AuthClient } from '@dfinity/auth-client';
 
 interface StrategyCreationFlowProps {
   template: DeFiWorkflowTemplate;
@@ -26,8 +27,14 @@ const StrategyCreationFlow = ({ template, onStrategyCreated, onCancel }: Strateg
       setLoading(true);
       setError(null);
 
-      // In a real app, you'd get the user ID from authentication
-      const userId = 'demo_user_' + Date.now();
+      // Get authenticated user ID from Internet Identity
+      const authClient = await AuthClient.create();
+      const identity = authClient.getIdentity();
+      const userId = identity.getPrincipal().toString();
+      
+      if (identity.getPrincipal().isAnonymous()) {
+        throw new Error('Please authenticate with Internet Identity first');
+      }
       
       const strategy = await simpleDefiTemplateService.createStrategyFromTemplate(
         template.id,

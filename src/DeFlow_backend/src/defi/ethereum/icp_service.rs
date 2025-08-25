@@ -61,7 +61,7 @@ impl IcpEthereumDeFiService {
         // Get balance using EVM RPC canister with consensus validation
         let balance_wei = self.evm_rpc.eth_get_balance(&address, &chain, Some(BlockTag::Latest))
             .await
-            .unwrap_or_else(|_| "0x0".to_string());
+            .unwrap_or_else(|_| "0x0".to_string()
 
         // Get nonce using EVM RPC canister
         let nonce = self.evm_rpc.eth_get_transaction_count(&address, &chain, Some(BlockTag::Pending))
@@ -104,7 +104,6 @@ impl IcpEthereumDeFiService {
                     addresses.push(address);
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to get address for chain {:?}: {}", chain, e);
                     // Continue with other chains
                     chain_balances.insert(chain.name().to_string(), 0.0);
                 }

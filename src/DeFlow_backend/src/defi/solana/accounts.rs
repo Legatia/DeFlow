@@ -231,7 +231,7 @@ mod tests {
     fn test_account_manager_creation() {
         let manager = SolanaAccountManager::new(
             "test_key".to_string(),
-            SolanaNetwork::Devnet,
+            SolanaNetwork::Devnet
         );
         assert_eq!(manager.key_name, "test_key");
         assert_eq!(manager.network, SolanaNetwork::Devnet);
@@ -241,7 +241,7 @@ mod tests {
     fn test_address_generation_consistency() {
         let manager = SolanaAccountManager::new(
             "test_key".to_string(),
-            SolanaNetwork::Mainnet,
+            SolanaNetwork::Mainnet
         );
 
         let seed = "test_seed";
@@ -260,7 +260,7 @@ mod tests {
         let token_account = SolanaAccountType::TokenAccount("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v".to_string());
         let pda_account = SolanaAccountType::ProgramDerived(
             "11111111111111111111111111111112".to_string(),
-            vec!["seed1".to_string(), "seed2".to_string()],
+            vec!["seed1".to_string(), "seed2".to_string()]
         );
 
         // Test that different account types produce different derivation paths

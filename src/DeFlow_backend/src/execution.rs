@@ -300,15 +300,17 @@ fn prepare_node_input(
             if let Some(source_output) = node_outputs.get(&connection.source_node_id) {
                 if let Some(value) = source_output.get(&connection.source_output) {
                     input_data.insert(connection.target_input.clone(), value.clone());
+                    ic_cdk::println!("Using connection: output {} from node {}", 
+                                    connection.source_output, connection.source_node_id);
                 } else {
                     return Err(format!(
-                        "Output {} not found from node {}",
+                        "Missing output {} from node {}", 
                         connection.source_output, connection.source_node_id
                     ));
                 }
             } else {
                 return Err(format!(
-                    "No output found from node {}",
+                    "Missing source node: {}", 
                     connection.source_node_id
                 ));
             }
@@ -415,7 +417,6 @@ async fn execute_with_recovery(
                 }
                 update_execution(execution_id, execution).ok();
                 
-                ic_cdk::println!("Node {} executed successfully after {} attempts", node.id, attempts + 1);
                 return Ok(output);
             }
             Err(error) => {
@@ -455,21 +456,20 @@ async fn execute_with_recovery(
                             execution_id,
                             execution
                         ).await {
-                            ic_cdk::println!("Fallback strategy succeeded for node {}", node.id);
                             return Ok(fallback_result);
                         }
                     }
                 } else {
                     // Max retries exceeded - execute emergency actions
                     ic_cdk::println!(
-                        "Node {} failed after {} retries, executing emergency actions",
+                        "Node {} max retries ({}) exceeded, executing emergency actions", 
                         node.id, attempts
                     );
                     
                     execute_emergency_actions(&recovery.emergency_actions, execution_id, &node.id).await;
                     
                     return Err(format!(
-                        "Node {} failed after {} retries with self-healing recovery: {}",
+                        "Node {} failed after {} attempts: {}", 
                         node.id, attempts, last_error
                     ));
                 }
@@ -494,7 +494,6 @@ async fn execute_fallback_strategy(
 ) -> Result<NodeOutput, String> {
     match fallback {
         FallbackStrategy::UseAlternativeNode { node_id } => {
-            ic_cdk::println!("Using alternative node {} for {}", node_id, node.id);
             // In a real implementation, we would execute the alternative node
             // For now, return a simulated success
             Ok(NodeOutput {
@@ -503,25 +502,21 @@ async fn execute_fallback_strategy(
             })
         }
         FallbackStrategy::SkipNode => {
-            ic_cdk::println!("Skipping failed node {}", node.id);
             Ok(NodeOutput {
                 data: [("skipped".to_string(), ConfigValue::Boolean(true))].into(),
                 next_nodes: vec![],
             })
         }
         FallbackStrategy::StopExecution => {
-            ic_cdk::println!("Stopping execution due to node {} failure", node.id);
             Err("Execution stopped by fallback strategy".to_string())
         }
         FallbackStrategy::UseDefaultValue { value } => {
-            ic_cdk::println!("Using default value for failed node {}", node.id);
             Ok(NodeOutput {
                 data: [("default".to_string(), value.clone())].into(),
                 next_nodes: vec![],
             })
         }
         FallbackStrategy::NotifyAndContinue => {
-            ic_cdk::println!("Notifying failure and continuing for node {}", node.id);
             // Send notification (simulated)
             send_failure_notification(execution_id, &node.id).await;
             Ok(NodeOutput {
@@ -547,13 +542,11 @@ async fn execute_emergency_actions(
                 // In a real implementation, this would send actual notifications
             }
             EmergencyAction::ExecuteWorkflow { workflow_id } => {
-                ic_cdk::println!("Executing emergency workflow: {}", workflow_id);
                 // Execute emergency workflow
                 if let Ok(emergency_execution_id) = crate::execution::start_execution(
                     workflow_id.clone(), 
                     Some([("emergency".to_string(), ConfigValue::Boolean(true))].into())
                 ).await {
-                    ic_cdk::println!("Started emergency workflow execution: {}", emergency_execution_id);
                 }
             }
             EmergencyAction::LiquidatePosition { asset, percentage } => {
@@ -564,11 +557,9 @@ async fn execute_emergency_actions(
                 // In a real DeFi implementation, this would trigger liquidation
             }
             EmergencyAction::PauseAllWorkflows => {
-                ic_cdk::println!("Emergency: Pausing all workflows");
                 pause_all_workflows().await;
             }
             EmergencyAction::EnableSafeMode => {
-                ic_cdk::println!("Emergency: Enabling safe mode");
                 enable_safe_mode().await;
             }
         }
@@ -578,24 +569,22 @@ async fn execute_emergency_actions(
 async fn send_failure_notification(execution_id: &str, node_id: &str) {
     // In a real implementation, this would send notifications via email, webhook, etc.
     ic_cdk::println!(
-        "Notification: Node {} failed in execution {}",
+        "Sending critical alert for node {} in execution {}", 
         node_id, execution_id
     );
 }
 
 async fn pause_all_workflows() {
     // In a real implementation, this would pause all active workflows
-    ic_cdk::println!("All workflows paused due to emergency");
 }
 
 async fn enable_safe_mode() {
     // In a real implementation, this would enable system-wide safe mode
-    ic_cdk::println!("Safe mode enabled - only critical operations allowed");
 }
 
 fn log_execution_failure(execution_id: &str, node_id: &str, error: &str, attempt: u32) {
     ic_cdk::println!(
-        "Execution failure: {} | Node: {} | Attempt: {} | Error: {}",
+        "Execution {} failed at node {} (attempt {}): {}", 
         execution_id, node_id, attempt, error
     );
     
@@ -700,12 +689,10 @@ pub fn resume_active_workflows() {
     let mut state = get_workflow_state();
     let current_time = api::time();
     
-    ic_cdk::println!("Resuming {} active workflows after upgrade", state.active_workflows.len());
     
     for (workflow_id, mut execution) in state.active_workflows.clone() {
         match execution.status {
             ExecutionStatus::Running | ExecutionStatus::Pending => {
-                ic_cdk::println!("Resuming workflow execution: {}", execution.id);
                 
                 // Update execution to indicate it was resumed
                 execution.error_message = Some("Execution resumed after canister upgrade".to_string());
@@ -727,7 +714,6 @@ pub fn resume_active_workflows() {
                 let retry_threshold = 5 * 60 * 1_000_000_000; // 5 minutes in nanoseconds
                 
                 if time_since_failure < retry_threshold {
-                    ic_cdk::println!("Retrying recently failed workflow: {}", execution.id);
                     execution.status = ExecutionStatus::Pending;
                     execution.error_message = Some("Retrying after canister upgrade".to_string());
                     
@@ -754,5 +740,4 @@ pub fn resume_active_workflows() {
     
     update_workflow_state(state);
     
-    ic_cdk::println!("Workflow resumption complete");
 }

@@ -14,16 +14,18 @@ const AdminAuth: React.FC<AdminAuthProps> = ({ onLogin }) => {
       setIsLoading(true);
       setError(null);
 
-      // DEVELOPMENT: Only allow development bypass for local network
-      if (process.env.DFX_NETWORK === "local" && !process.env.VITE_INTERNET_IDENTITY_CANISTER_ID) {
+      // DEVELOPMENT: For local replica, use development principal
+      if (process.env.DFX_NETWORK === "local") {
         console.warn('DEVELOPMENT: Using development principal for local testing');
-        const devPrincipal = process.env.VITE_OWNER_PRINCIPAL || prompt('Enter your owner principal for development testing:');
-        if (devPrincipal && devPrincipal.length > 20) {
-          await onLogin(devPrincipal);
-          return;
-        } else {
-          throw new Error('Invalid development principal provided');
-        }
+        
+        // Use the current dfx identity principal for local development
+        const devPrincipal = 'npfah-vwoik-mflcp-omami-34o5z-blm5n-zsvsh-hxfog-lbis4-4ghxs-qqe';
+        
+        // Simulate Internet Identity flow with a short delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        await onLogin(devPrincipal);
+        return;
       }
 
       // PRODUCTION: Ensure Internet Identity is properly configured

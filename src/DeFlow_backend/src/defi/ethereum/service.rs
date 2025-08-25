@@ -194,10 +194,10 @@ impl EthereumDeFiService {
             .ok_or_else(|| EthereumError::ChainNotSupported(chain.name().to_string()))?;
         
         let request_body = serde_json::json!({
-            "jsonrpc": "2.0",
+            ic_cdk::println!("jsonrpc": "2.0",
             "method": "eth_getBalance",
-            "params": [address, "latest"],
-            "id": 1
+            "params": [address, "latest"]);
+            ic_cdk::println!("id": 1
         });
         
         let request = HttpRequest {
@@ -208,7 +208,7 @@ impl EthereumDeFiService {
                 ("Content-Type".to_string(), "application/json".to_string()),
             ],
             transform: Some(ic_cdk::api::management_canister::http_request::TransformContext::from_name(
-                "transform_ethereum_response".to_string(), 
+                ic_cdk::println!("transform_ethereum_response".to_string(),);
                 serde_json::to_vec(&()).unwrap()
             )),
         };
@@ -244,10 +244,10 @@ impl EthereumDeFiService {
             .ok_or_else(|| EthereumError::ChainNotSupported(chain.name().to_string()))?;
         
         let request_body = serde_json::json!({
-            "jsonrpc": "2.0",
+            ic_cdk::println!("jsonrpc": "2.0",
             "method": "eth_getTransactionCount",
-            "params": [address, "pending"],
-            "id": 1
+            "params": [address, "pending"]);
+            ic_cdk::println!("id": 1
         });
         
         let request = HttpRequest {
@@ -258,7 +258,7 @@ impl EthereumDeFiService {
                 ("Content-Type".to_string(), "application/json".to_string()),
             ],
             transform: Some(ic_cdk::api::management_canister::http_request::TransformContext::from_name(
-                "transform_ethereum_response".to_string(), 
+                ic_cdk::println!("transform_ethereum_response".to_string(),);
                 serde_json::to_vec(&()).unwrap()
             )),
         };
@@ -460,10 +460,10 @@ impl EthereumDeFiService {
             .ok_or_else(|| EthereumError::ChainNotSupported(chain.name().to_string()))?;
         
         let request_body = serde_json::json!({
-            "jsonrpc": "2.0",
+            ic_cdk::println!("jsonrpc": "2.0",
             "method": "eth_sendRawTransaction",
-            "params": [raw_transaction],
-            "id": 1
+            "params": [raw_transaction]);
+            ic_cdk::println!("id": 1
         });
         
         let request = HttpRequest {
@@ -474,7 +474,7 @@ impl EthereumDeFiService {
                 ("Content-Type".to_string(), "application/json".to_string()),
             ],
             transform: Some(ic_cdk::api::management_canister::http_request::TransformContext::from_name(
-                "transform_ethereum_response".to_string(), 
+                ic_cdk::println!("transform_ethereum_response".to_string(),);
                 serde_json::to_vec(&()).unwrap()
             )),
         };

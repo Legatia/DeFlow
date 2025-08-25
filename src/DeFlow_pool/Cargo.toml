@@ -7,9 +7,9 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-candid = "0.10"
-ic-cdk = "0.13"
-ic-cdk-timers = "0.7"
+candid = "0.10.17"
+ic-cdk = "0.17.2"
+ic-cdk-timers = "0.11.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 hex = "0.4"
@@ -25,7 +25,7 @@ tiny-keccak = { version = "2.0", features = ["keccak"] }
 num-traits = { version = "0.2", default-features = false }
 
 [dependencies.ic-cdk-macros]
-version = "0.9"
+version = "0.17.2"
 
 [features]
 default = []

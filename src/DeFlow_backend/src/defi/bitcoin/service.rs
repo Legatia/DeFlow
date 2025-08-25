@@ -30,7 +30,6 @@ impl BitcoinDeFiService {
         let utxo_manager = UTXOManager::new(context.clone());
         let transaction_builder = BitcoinTransactionBuilder::new(context.clone());
         
-        ic_cdk::println!("Bitcoin DeFi service initialized successfully");
         
         Ok(Self {
             context,
@@ -82,7 +81,6 @@ impl BitcoinDeFiService {
                     total_satoshis = total_satoshis.saturating_add(balance);
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to get balance for address {}: {}", address.address, e);
                 }
             }
             
@@ -93,7 +91,6 @@ impl BitcoinDeFiService {
                     all_utxos.extend(utxos);
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to get UTXOs for address {}: {}", address.address, e);
                     address.utxo_count = 0;
                 }
             }
@@ -157,10 +154,11 @@ impl BitcoinDeFiService {
         let total_needed = amount_satoshis.saturating_add(estimated_fee);
         
         if source_address.balance_satoshis < total_needed {
+            ic_cdk::println!("Insufficient balance: need {} satoshis, have {} satoshis",
+                            total_needed, source_address.balance_satoshis);
             return Err(format!(
                 "Insufficient balance: need {} satoshis, have {} satoshis",
-                total_needed,
-                source_address.balance_satoshis
+                total_needed, source_address.balance_satoshis
             ));
         }
         
@@ -234,6 +232,11 @@ impl BitcoinDeFiService {
             BitcoinAddressType::P2PKH => {
                 self.address_manager.get_p2pkh_address(user).await
             },
+            BitcoinAddressType::P2SH => {
+                // For now, return P2PKH address for P2SH requests
+                // In production, implement proper P2SH address generation
+                self.address_manager.get_p2pkh_address(user).await
+            },
             BitcoinAddressType::P2WPKH => {
                 self.address_manager.get_p2wpkh_address(user).await
             },
@@ -263,7 +266,6 @@ impl BitcoinDeFiService {
                     });
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to get UTXO stats for {}: {}", address.address, e);
                 }
             }
         }
@@ -408,7 +410,6 @@ impl BitcoinDeFiService {
                     balances.insert(address, balance);
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to get balance for {}: {}", address, e);
                     balances.insert(address, 0);
                 }
             }

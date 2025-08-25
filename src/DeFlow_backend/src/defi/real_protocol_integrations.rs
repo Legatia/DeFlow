@@ -38,7 +38,6 @@ impl RealProtocolIntegrationManager {
 
     /// Initialize all protocol integrations
     pub async fn initialize(&mut self) -> Result<(), IntegrationError> {
-        ic_cdk::println!("Initializing real-world DeFi protocol integrations...");
 
         // Initialize each protocol integration
         self.aave_integration.initialize().await?;
@@ -47,7 +46,6 @@ impl RealProtocolIntegrationManager {
         self.curve_integration.initialize().await?;
         self.price_oracle.initialize()?;
 
-        ic_cdk::println!("All protocol integrations initialized successfully");
         Ok(())
     }
 
@@ -254,7 +252,6 @@ impl AaveIntegration {
     }
 
     pub async fn initialize(&mut self) -> Result<(), IntegrationError> {
-        ic_cdk::println!("Initializing Aave integration...");
         // In production, would set up API keys and validate connection
         Ok(())
     }
@@ -291,7 +288,6 @@ impl AaveIntegration {
 
     pub async fn supply_tokens(&self, token: &str, amount: f64) -> Result<ExecutionResult, IntegrationError> {
         // Mock execution - in production would interact with Aave smart contracts
-        ic_cdk::println!("Supplying {} {} to Aave", amount, token);
         
         Ok(ExecutionResult {
             success: true,
@@ -404,7 +400,6 @@ impl UniswapIntegration {
     }
 
     pub async fn initialize(&mut self) -> Result<(), IntegrationError> {
-        ic_cdk::println!("Initializing Uniswap integration...");
         Ok(())
     }
 
@@ -478,7 +473,6 @@ impl UniswapIntegration {
     }
 
     pub async fn add_liquidity(&self, token_a: &str, token_b: &str, amount: f64) -> Result<ExecutionResult, IntegrationError> {
-        ic_cdk::println!("Adding liquidity: {} {} / {}", amount, token_a, token_b);
         
         Ok(ExecutionResult {
             success: true,
@@ -490,7 +484,6 @@ impl UniswapIntegration {
     }
 
     pub async fn swap_tokens(&self, token_in: &str, token_out: &str, amount: f64) -> Result<ExecutionResult, IntegrationError> {
-        ic_cdk::println!("Swapping {} {} for {}", amount, token_in, token_out);
         
         // Mock swap calculation
         let swap_rate = 0.998; // Account for slippage and fees
@@ -599,7 +592,6 @@ impl CompoundIntegration {
     }
 
     pub async fn initialize(&mut self) -> Result<(), IntegrationError> {
-        ic_cdk::println!("Initializing Compound integration...");
         Ok(())
     }
 
@@ -622,7 +614,6 @@ impl CompoundIntegration {
     }
 
     pub async fn supply_tokens(&self, token: &str, amount: f64) -> Result<ExecutionResult, IntegrationError> {
-        ic_cdk::println!("Supplying {} {} to Compound", amount, token);
         
         Ok(ExecutionResult {
             success: true,
@@ -655,7 +646,6 @@ impl CurveIntegration {
     }
 
     pub async fn initialize(&mut self) -> Result<(), IntegrationError> {
-        ic_cdk::println!("Initializing Curve integration...");
         Ok(())
     }
 
@@ -689,7 +679,6 @@ impl CurveIntegration {
     }
 
     pub async fn add_liquidity(&self, pool_address: &str, amount: f64) -> Result<ExecutionResult, IntegrationError> {
-        ic_cdk::println!("Adding {} liquidity to Curve pool {}", amount, pool_address);
         
         Ok(ExecutionResult {
             success: true,
@@ -701,7 +690,6 @@ impl CurveIntegration {
     }
 
     pub async fn swap_tokens(&self, token_in: &str, token_out: &str, amount: f64) -> Result<ExecutionResult, IntegrationError> {
-        ic_cdk::println!("Curve swap: {} {} for {}", amount, token_in, token_out);
         
         Ok(ExecutionResult {
             success: true,

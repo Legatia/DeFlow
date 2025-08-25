@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import AdminAuth from './components/AdminAuth';
 import AdminDashboard from './pages/AdminDashboard';
 import SecurityGuard from './components/SecurityGuard';
+import SetupMode from './components/SetupMode';
 import { AdminAuthService } from './services/adminAuthService';
 
 interface AdminSession {
   principal: string;
   isOwner: boolean;
+  isTeamMember: boolean;
   sessionStart: number;
 }
 
@@ -14,6 +16,7 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
+  const [isSetupMode, setIsSetupMode] = useState(false);
 
   useEffect(() => {
     checkAuthentication();
@@ -26,6 +29,7 @@ const App: React.FC = () => {
       if (session) {
         setAdminSession(session);
         setIsAuthenticated(true);
+        setIsSetupMode(!session.isOwner); // Setup mode if not owner yet
       }
     } catch (error) {
       console.error('Authentication check failed:', error);
@@ -39,6 +43,7 @@ const App: React.FC = () => {
       const session = await AdminAuthService.createSession(principal);
       setAdminSession(session);
       setIsAuthenticated(true);
+      setIsSetupMode(!session.isOwner); // Setup mode if not owner yet
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
@@ -68,6 +73,19 @@ const App: React.FC = () => {
 
   if (!isAuthenticated) {
     return <AdminAuth onLogin={handleLogin} />;
+  }
+
+  // Setup mode: Show setup interface for initial owner configuration
+  if (isSetupMode && adminSession) {
+    return (
+      <SetupMode
+        userPrincipal={adminSession.principal}
+        onSetupComplete={() => {
+          // After setup, the user needs to refresh or redeploy
+          window.location.reload();
+        }}
+      />
+    );
   }
 
   return (

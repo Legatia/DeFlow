@@ -250,9 +250,9 @@ impl SolanaTokenManager {
     async fn get_token_price(&self, mint_address: &str) -> Result<f64, SolanaError> {
         // Mock prices for popular tokens
         let price = match mint_address {
-            "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" => 1.00, // USDC
-            "So11111111111111111111111111111111111111112" => 100.0, // WSOL (mock SOL price)
-            "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So" => 110.0, // mSOL (slightly higher than SOL)
+            "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" => 1.00, // USDC);
+            "So11111111111111111111111111111111111111112" => 100.0, // WSOL (mock SOL price));
+            "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So" => 110.0, // mSOL (slightly higher than SOL));
             _ => 0.0, // Unknown tokens
         };
         Ok(price)
@@ -364,7 +364,7 @@ mod tests {
     fn test_token_manager_creation() {
         let manager = SolanaTokenManager::new(
             "test_key".to_string(),
-            SolanaNetwork::Devnet,
+            SolanaNetwork::Devnet
         );
         assert_eq!(manager.key_name, "test_key");
         assert_eq!(manager.network, SolanaNetwork::Devnet);
@@ -374,7 +374,7 @@ mod tests {
     fn test_popular_tokens_list() {
         let manager = SolanaTokenManager::new(
             "test_key".to_string(),
-            SolanaNetwork::Mainnet,
+            SolanaNetwork::Mainnet
         );
         let tokens = manager.get_popular_tokens();
         assert!(tokens.len() >= 3);

@@ -160,8 +160,8 @@ pub struct DevTeamBusinessModel {
     pub monthly_enterprise_revenue: f64,
     pub monthly_operating_costs: f64,
     
-    // Team earnings (distributed by role and contribution)
-    pub team_member_earnings: HashMap<Principal, f64>,
+    // Team earnings (multi-token support with original token preservation)
+    pub team_member_earnings: HashMap<Principal, MemberEarnings>,
     pub total_distributed_profits: f64,
     
     // Business reserves
@@ -297,6 +297,61 @@ impl Default for PoolState {
             // SECURITY: Race condition prevention
             state_version: 1, // Start at version 1
             termination_nonce: 0, // Start at 0
+        }
+    }
+}
+
+// =============================================================================
+// MULTI-TOKEN EARNINGS SYSTEM
+// =============================================================================
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct TokenBalance {
+    pub asset: Asset,
+    pub amount: u64, // Atomic units (e.g., satoshis for BTC, wei for ETH)
+    pub last_updated: u64,
+    pub usd_value_at_time: f64, // For analytics/reporting
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct MemberEarnings {
+    pub balances: HashMap<Asset, TokenBalance>, // BTC, ETH, USDC, etc.
+    pub total_usd_value: f64, // Calculated from all token balances
+    pub last_distribution_time: u64,
+    pub withdrawal_addresses: HashMap<ChainId, String>, // Chain-specific withdrawal addresses
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum WithdrawalOption {
+    OriginalTokens, // Keep as received (BTC, ETH, USDC, etc.)
+    ConvertToICP,   // Convert everything to ICP at withdrawal
+    Mixed {         // Custom selection per token
+        original_tokens: Vec<Asset>,
+        convert_to_icp: Vec<Asset>,
+    }
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct TokenTransfer {
+    pub asset: Asset,
+    pub amount: u64,
+    pub recipient: Principal,
+    pub transfer_type: TransferType,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum TransferType {
+    OriginalToken { chain: ChainId },
+    ConvertedToICP,
+}
+
+impl Default for MemberEarnings {
+    fn default() -> Self {
+        MemberEarnings {
+            balances: HashMap::new(),
+            total_usd_value: 0.0,
+            last_distribution_time: 0,
+            withdrawal_addresses: HashMap::new(),
         }
     }
 }
@@ -684,7 +739,7 @@ impl Storable for PoolState {
                 
                 // For migration, we'll just return a default state and let post_upgrade handle it
                 // This is a fallback - the actual migration should be handled in post_upgrade
-                let mut default_state = Self::default();
+                let default_state = Self::default();
                 
                 // Log the migration attempt
                 ic_cdk::println!("SECURITY: Using default state for migration - will be corrected in post_upgrade");
@@ -699,6 +754,7 @@ impl Storable for PoolState {
 // UPGRADE COMPATIBILITY FUNCTIONS
 // =============================================================================
 
+#[allow(dead_code)]
 fn default_state_version() -> u64 {
     1 // Start at version 1 for upgraded canisters
 }

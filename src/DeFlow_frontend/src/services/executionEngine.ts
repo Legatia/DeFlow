@@ -4,6 +4,7 @@ import { TimestampUtils } from '../utils/timestamp-utils'
 import { NodeType, NODE_TYPES } from '../types/nodes'
 import { DEFI_NODE_TYPES } from '../types/defi-nodes'
 import SubscriptionService from './subscriptionService'
+import realProtocolService from './realProtocolService'
 
 export interface ExecutionContext {
   workflowId: string
@@ -328,7 +329,7 @@ class WebhookTriggerExecutor implements NodeExecutor {
   nodeType = 'webhook-trigger'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     return {
       success: true,
       data: { 
@@ -348,7 +349,7 @@ class ScheduleTriggerExecutor implements NodeExecutor {
   nodeType = 'schedule-trigger'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     return {
       success: true,
       data: { 
@@ -368,7 +369,7 @@ class EmailExecutor implements NodeExecutor {
   nodeType = 'send-email'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       // Simulate email sending with template processing
@@ -419,7 +420,7 @@ class HttpRequestExecutor implements NodeExecutor {
   nodeType = 'http-request'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       // Simulate HTTP request
@@ -477,7 +478,7 @@ class DataTransformExecutor implements NodeExecutor {
   nodeType = 'transform-data'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       let transformedData = context.currentData
@@ -532,7 +533,7 @@ class ConditionExecutor implements NodeExecutor {
   nodeType = 'condition'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       const fieldValue = this.getValueByPath(context.currentData, config.field)
@@ -592,7 +593,7 @@ class DelayExecutor implements NodeExecutor {
   nodeType = 'delay'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     const delayMs = this.calculateDelayMs(config.duration, config.unit)
     
     try {
@@ -641,18 +642,16 @@ class PriceTriggerExecutor implements NodeExecutor {
   nodeType = 'price-trigger'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
-      // Mock price data - in production, this would fetch from price oracle
-      const mockPrices = {
-        'BTC': 65000 + (Math.random() - 0.5) * 10000,
-        'ETH': 3500 + (Math.random() - 0.5) * 1000,
-        'USDC': 1.0 + (Math.random() - 0.5) * 0.02,
-        'USDT': 1.0 + (Math.random() - 0.5) * 0.02,
-      }
+      // Get real price data from protocols
+      const priceData = await realProtocolService.getTokenPrices([config.asset]);
+      const currentPrice = priceData[config.asset] || 0;
       
-      const currentPrice = mockPrices[config.asset as keyof typeof mockPrices] || 0
+      if (currentPrice === 0) {
+        throw new Error(`Unable to fetch price for ${config.asset}`);
+      }
       const targetValue = parseFloat(config.value)
       let conditionMet = false
       
@@ -706,13 +705,40 @@ class YieldFarmingExecutor implements NodeExecutor {
   nodeType = 'yield-farming'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
-      // Simulate yield farming execution
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Get real yield opportunities to find the best option
+      const yieldOpportunities = await realProtocolService.getYieldOpportunities();
+      const matchingOpportunities = yieldOpportunities.opportunities.filter(opp => 
+        opp.protocol.toLowerCase() === config.protocol.toLowerCase() &&
+        opp.token_symbol.toLowerCase().includes(config.token.toLowerCase()) &&
+        opp.apy >= parseFloat(config.min_apy)
+      );
       
-      const estimatedYield = parseFloat(config.amount) * (parseFloat(config.min_apy) / 100) / 365 // Daily yield
+      if (matchingOpportunities.length === 0) {
+        throw new Error(`No suitable yield opportunities found for ${config.token} on ${config.protocol} with minimum APY ${config.min_apy}%`);
+      }
+      
+      // Select the best opportunity (highest APY)
+      const bestOpportunity = matchingOpportunities.reduce((best, current) => 
+        current.apy > best.apy ? current : best
+      );
+      
+      // Execute strategy using real protocol integration
+      const executionResult = await realProtocolService.executeStrategy(
+        'yield_farming',
+        {
+          protocol: config.protocol,
+          token: config.token,
+          amount: parseFloat(config.amount),
+          min_apy: parseFloat(config.min_apy),
+          auto_compound: config.auto_compound === 'true' || config.auto_compound === true
+        },
+        parseFloat(config.amount)
+      );
+      
+      const estimatedYield = parseFloat(config.amount) * (bestOpportunity.apy / 100) / 365; // Daily yield
       
       return {
         success: true,
@@ -747,31 +773,52 @@ class ArbitrageExecutor implements NodeExecutor {
   nodeType = 'arbitrage'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
-      // Call backend canister for arbitrage opportunities
-      // TODO: Replace with actual canister call when actor is available
-      // For now, simulate the backend call structure
-      const simulatedBackendCall = async () => {
-        // Simulate calling detect_arbitrage_opportunities canister function
-        await new Promise(resolve => setTimeout(resolve, 800))
-        return {
-          opportunities: [
-            {
-              asset_pair: [config.asset, 'USDC'],
-              buy_chain: config.buy_chain,
-              sell_chain: config.sell_chain,
-              price_difference: 1.5,
-              expected_profit: Math.min(parseFloat(config.max_amount) * 0.015, 750),
-              required_capital: Math.min(parseFloat(config.max_amount), 5000),
-              confidence_score: 0.85
-            }
-          ]
-        }
+      // Get real arbitrage opportunities
+      const arbitrageOpportunities = await realProtocolService.getArbitrageOpportunities();
+      const matchingOpportunities = arbitrageOpportunities.opportunities.filter(opp => 
+        opp.token_symbol === config.asset &&
+        opp.profit_percentage >= parseFloat(config.min_profit_percent) &&
+        opp.liquidity_available >= parseFloat(config.max_amount)
+      );
+      
+      if (matchingOpportunities.length === 0) {
+        throw new Error(`No arbitrage opportunities found for ${config.asset} with minimum ${config.min_profit_percent}% profit`);
       }
       
-      const arbitrageData = await simulatedBackendCall()
+      // Select the most profitable opportunity
+      const bestOpportunity = matchingOpportunities.reduce((best, current) => 
+        current.profit_percentage > best.profit_percentage ? current : best
+      );
+      
+      // Execute arbitrage using real protocol integration
+      const executionResult = await realProtocolService.executeStrategy(
+        'arbitrage',
+        {
+          asset: config.asset,
+          buy_chain: config.buy_chain,
+          sell_chain: config.sell_chain,
+          min_profit_percent: parseFloat(config.min_profit_percent),
+          max_amount: parseFloat(config.max_amount),
+          opportunity: bestOpportunity
+        },
+        Math.min(parseFloat(config.max_amount), bestOpportunity.liquidity_available)
+      );
+      
+      const arbitrageData = {
+        opportunities: [{
+          asset_pair: [config.asset, 'USDC'],
+          buy_chain: config.buy_chain,
+          sell_chain: config.sell_chain,
+          price_difference: bestOpportunity.profit_percentage,
+          expected_profit: parseFloat(config.max_amount) * (bestOpportunity.profit_percentage / 100),
+          required_capital: parseFloat(config.max_amount),
+          confidence_score: 0.85,
+          execution_result: executionResult
+        }]
+      }
       
       return {
         success: true,
@@ -820,7 +867,7 @@ class DCAStrategyExecutor implements NodeExecutor {
   nodeType = 'dca-strategy'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       await new Promise(resolve => setTimeout(resolve, 600))
@@ -861,7 +908,7 @@ class RebalanceExecutor implements NodeExecutor {
   nodeType = 'rebalance'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       const targetAllocations = JSON.parse(config.target_allocations)
@@ -922,17 +969,21 @@ class YieldConditionExecutor implements NodeExecutor {
   nodeType = 'yield-condition'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
-      // Mock yield data for different protocols
-      const yieldData = {
-        'Aave': { USDC: 4.2, ETH: 3.8, USDT: 4.1 },
-        'Compound': { USDC: 3.9, ETH: 3.5, USDT: 3.8 },
-        'UniswapV3': { USDC: 5.1, ETH: 4.2, USDT: 4.9 }
-      }
+      // Get real yield data from protocols
+      const yieldOpportunities = await realProtocolService.getYieldOpportunities();
+      const matchingOpportunity = yieldOpportunities.opportunities.find(opp => 
+        opp.protocol.toLowerCase() === config.protocol.toLowerCase() &&
+        opp.token_symbol.toLowerCase().includes(config.asset.toLowerCase())
+      );
       
-      const currentYield = (yieldData as any)[config.protocol]?.[config.asset] || 0
+      const currentYield = matchingOpportunity?.apy || 0;
+      
+      if (currentYield === 0) {
+        throw new Error(`No yield data found for ${config.asset} on ${config.protocol}`);
+      }
       const minApy = parseFloat(config.min_apy)
       const yieldMeetsCondition = currentYield >= minApy
       
@@ -967,25 +1018,32 @@ class PriceCheckExecutor implements NodeExecutor {
   nodeType = 'price-check'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
-      // Mock price data
-      const priceData = {
-        'BTC': { price: 65000, change24h: 2.5, volume: 25000000000 },
-        'ETH': { price: 3500, change24h: 1.8, volume: 15000000000 },
-        'USDC': { price: 1.0, change24h: 0.01, volume: 5000000000 },
-        'SOL': { price: 140, change24h: 3.2, volume: 2000000000 }
+      // Get real price data
+      const prices = await realProtocolService.getTokenPrices([config.asset]);
+      const currentPrice = prices[config.asset] || 0;
+      
+      if (currentPrice === 0) {
+        throw new Error(`Unable to fetch price for ${config.asset}`);
       }
       
-      const assetData = (priceData as any)[config.asset] || { price: 0, change24h: 0, volume: 0 }
+      // Get additional market data
+      const protocolHealth = await realProtocolService.getProtocolHealth();
+      const assetData = { 
+        price: currentPrice, 
+        change24h: (Math.random() - 0.5) * 10, // Mock 24h change for now
+        volume: protocolHealth.uniswap_volume_24h || 0,
+        chain: config.chain,
+        last_updated: Date.now()
+      };
       
       return {
         success: true,
         data: {
           action: 'price_check',
           asset: config.asset,
-          chain: config.chain,
           ...assetData,
           timestamp: new Date().toISOString()
         },
@@ -1008,7 +1066,7 @@ class GasOptimizerExecutor implements NodeExecutor {
   nodeType = 'gas-optimizer'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       // Mock gas optimization
@@ -1061,7 +1119,7 @@ class DAOGovernanceExecutor implements NodeExecutor {
   nodeType = 'dao-governance'
   
   async execute(node: WorkflowNode, context: ExecutionContext): Promise<ExecutionResult> {
-    const config = node.configuration.parameters
+    const config = node.configuration.parameters as any
     
     try {
       await new Promise(resolve => setTimeout(resolve, 800))

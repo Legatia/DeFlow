@@ -85,16 +85,13 @@ class NFIDAuthService {
 
   // Authenticate with NFID Google login
   async authenticate(): Promise<boolean> {
-    console.log("Starting NFID authentication...")
     
     try {
       const authClient = await this.initializeAuthClient()
       const isAuthenticated = await authClient.isAuthenticated()
       
-      console.log("Is Authenticated:", isAuthenticated)
 
       if (!isAuthenticated) {
-        console.log("Authenticating...")
         
         this.updateState({
           ...this.currentState,
@@ -119,7 +116,6 @@ class NFIDAuthService {
         })
       }
 
-      console.log("Authenticated successfully")
 
       const identity = authClient.getIdentity()
       const principal = identity.getPrincipal()
@@ -173,7 +169,6 @@ class NFIDAuthService {
       // Clear stored auth state
       localStorage.removeItem('deflow_auth_state')
       
-      console.log("Logged out successfully")
     } catch (error) {
       console.error('Logout failed:', error)
       this.updateState({

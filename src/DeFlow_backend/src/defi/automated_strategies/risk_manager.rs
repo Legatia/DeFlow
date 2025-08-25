@@ -44,7 +44,7 @@ impl StrategyRiskManager {
         // Check global limits
         if capital_amount > self.global_limits.max_single_strategy_allocation {
             return Err(StrategyError::RiskLimitExceeded(format!(
-                "Capital allocation ${:.2} exceeds global limit of ${:.2}",
+                "Capital amount {} exceeds max single strategy allocation {}",
                 capital_amount, self.global_limits.max_single_strategy_allocation
             )));
         }
@@ -54,15 +54,15 @@ impl StrategyRiskManager {
             let current_user_allocation = self.calculate_user_total_allocation(&strategy.user_id);
             if current_user_allocation + capital_amount > user_limits.max_total_allocation {
                 return Err(StrategyError::RiskLimitExceeded(format!(
-                    "User total allocation would exceed limit: ${:.2}",
-                    user_limits.max_total_allocation
+                    "User allocation {} exceeds max total allocation {}",
+                    current_user_allocation + capital_amount, user_limits.max_total_allocation
                 )));
             }
 
             if capital_amount > user_limits.max_single_strategy_allocation {
                 return Err(StrategyError::RiskLimitExceeded(format!(
-                    "Single strategy allocation exceeds user limit: ${:.2}",
-                    user_limits.max_single_strategy_allocation
+                    "Capital amount {} exceeds user max single strategy allocation {}",
+                    capital_amount, user_limits.max_single_strategy_allocation
                 )));
             }
         }
@@ -71,7 +71,7 @@ impl StrategyRiskManager {
         let strategy_risk_score = self.calculate_strategy_risk_score(strategy)?;
         if strategy_risk_score > self.global_limits.max_strategy_risk_score {
             return Err(StrategyError::RiskLimitExceeded(format!(
-                "Strategy risk score {} exceeds maximum allowed {}",
+                "Strategy risk score {} exceeds max allowed {}",
                 strategy_risk_score, self.global_limits.max_strategy_risk_score
             )));
         }
@@ -237,7 +237,6 @@ impl StrategyRiskManager {
         self.emergency_controls.trigger_stop(strategy_id, reason, self.get_current_time())?;
         
         // Log emergency stop
-        ic_cdk::println!("🚨 EMERGENCY STOP triggered for strategy {}: {}", strategy_id, reason_clone);
         
         Ok(())
     }
@@ -273,7 +272,7 @@ impl StrategyRiskManager {
             let current_risk_score = self.calculate_strategy_risk_score(strategy)?;
             if current_risk_score > limits.max_risk_score {
                 return Err(StrategyError::RiskLimitExceeded(format!(
-                    "Strategy risk score {} exceeds limit {}",
+                    "Current risk score {} exceeds limit {}",
                     current_risk_score, limits.max_risk_score
                 )));
             }
@@ -287,7 +286,7 @@ impl StrategyRiskManager {
         
         if market_volatility > self.global_limits.max_market_volatility {
             return Err(StrategyError::RiskLimitExceeded(format!(
-                "Market volatility {} exceeds maximum {}",
+                "Market volatility {} exceeds max allowed {}",
                 market_volatility, self.global_limits.max_market_volatility
             )));
         }
@@ -301,7 +300,7 @@ impl StrategyRiskManager {
             let concentration_percentage = (strategy.allocated_capital / user_total) * 100.0;
             if concentration_percentage > self.global_limits.max_single_strategy_percentage {
                 return Err(StrategyError::RiskLimitExceeded(format!(
-                    "Strategy concentration {}% exceeds limit {}%",
+                    "Concentration percentage {} exceeds max allowed {}",
                     concentration_percentage, self.global_limits.max_single_strategy_percentage
                 )));
             }
@@ -348,7 +347,7 @@ impl StrategyRiskManager {
             let failure_rate = self.calculate_recent_failure_rate(strategy);
             if failure_rate > self.global_limits.max_failure_rate {
                 return Err(StrategyError::RiskLimitExceeded(format!(
-                    "Strategy failure rate {}% exceeds limit {}%",
+                    "Failure rate {}% exceeds max allowed {}%",
                     failure_rate * 100.0, self.global_limits.max_failure_rate * 100.0
                 )));
             }
@@ -358,7 +357,7 @@ impl StrategyRiskManager {
         let current_drawdown = self.calculate_current_drawdown(strategy);
         if current_drawdown > self.global_limits.max_drawdown_percentage {
             return Err(StrategyError::RiskLimitExceeded(format!(
-                "Strategy drawdown {}% exceeds limit {}%",
+                "Current drawdown {} exceeds max allowed {}",
                 current_drawdown, self.global_limits.max_drawdown_percentage
             )));
         }
@@ -467,7 +466,7 @@ impl StrategyRiskManager {
         Ok(vec![
             "High market volatility detected".to_string(),
             "Concentrated exposure to single protocol".to_string(),
-            "Cross-chain bridge risk present".to_string(),
+            "Cross-chain bridge risk present".to_string()
         ])
     }
 
@@ -475,7 +474,7 @@ impl StrategyRiskManager {
         Ok(vec![
             "Consider diversifying across more protocols".to_string(),
             "Reduce position size during high volatility periods".to_string(),
-            "Implement dynamic stop-loss based on VaR calculations".to_string(),
+            "Implement dynamic stop-loss based on VaR calculations".to_string()
         ])
     }
 

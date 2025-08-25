@@ -194,7 +194,7 @@ impl EvmRpcService {
 
         let call_result = call_raw(
             self.canister_id,
-            "request",
+            // Logging temporarily disabled
             &candid::encode_one(&rpc_request)
                 .map_err(|e| EthereumError::SerializationError(format!("Request encoding error: {}", e)))?,
             cycles,
@@ -255,10 +255,10 @@ impl EvmRpcService {
     /// Calculate cycles needed for RPC call
     fn calculate_cycles_for_call(&self, method: &str) -> u64 {
         match method {
-            "eth_getBalance" | "eth_getTransactionCount" | "eth_gasPrice" => 1_000_000_000, // 1B cycles
-            "eth_feeHistory" => 2_000_000_000, // 2B cycles
-            "eth_estimateGas" => 1_500_000_000, // 1.5B cycles
-            "eth_sendRawTransaction" => 3_000_000_000, // 3B cycles
+            // Logging temporarily disabled
+            "eth_feeHistory" => 2_000_000_000, // 2B cycles);
+            "eth_estimateGas" => 1_500_000_000, // 1.5B cycles);
+            "eth_sendRawTransaction" => 3_000_000_000, // 3B cycles);
             _ => 1_000_000_000, // Default 1B cycles
         }
     }

@@ -544,7 +544,7 @@ pub fn get_cross_chain_arbitrage_assets() -> Vec<String> {
         "WETH".to_string(),
         "BTC".to_string(),
         "WBTC".to_string(),
-        "SOL".to_string(),
+        "SOL".to_string()
     ]
 }
 

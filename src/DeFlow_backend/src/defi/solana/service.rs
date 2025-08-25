@@ -316,7 +316,7 @@ mod tests {
         let service = SolanaDeFiService::new(
             "deflow_solana_key".to_string(),
             Principal::anonymous(),
-            SolanaNetwork::Devnet,
+            SolanaNetwork::Devnet
         );
         assert_eq!(service.key_name, "deflow_solana_key");
         assert_eq!(service.network, SolanaNetwork::Devnet);
@@ -328,7 +328,7 @@ mod tests {
         let service = SolanaDeFiService::new(
             "test_key".to_string(),
             Principal::anonymous(),
-            SolanaNetwork::Mainnet,
+            SolanaNetwork::Mainnet
         );
         
         let seed = "test_seed";
@@ -346,7 +346,7 @@ mod tests {
         let service = SolanaDeFiService::new(
             "test_key".to_string(),
             Principal::anonymous(),
-            SolanaNetwork::Mainnet,
+            SolanaNetwork::Mainnet
         );
         
         let hash1 = service.hash_string("test");

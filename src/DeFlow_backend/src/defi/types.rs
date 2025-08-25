@@ -46,6 +46,7 @@ pub enum BitcoinNetwork {
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
 pub enum BitcoinAddressType {
     P2PKH,   // Legacy (1...)
+    P2SH,    // Script Hash (3...)
     P2WPKH,  // SegWit (bc1q...)
     P2TR,    // Taproot (bc1p...)
 }

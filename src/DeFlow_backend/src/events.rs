@@ -14,7 +14,6 @@ use std::time::Duration;
 #[update]
 pub async fn emit_event(event: WorkflowEvent) -> Result<Vec<String>, String> {
     let triggered_executions = process_event(&event).await?;
-    ic_cdk::println!("Event {} triggered {} executions", event.id, triggered_executions.len());
     Ok(triggered_executions)
 }
 
@@ -121,10 +120,8 @@ async fn process_event(event: &WorkflowEvent) -> Result<Vec<String>, String> {
             let execution_result = start_execution(workflow_id, Some(event_data)).await;
             match execution_result {
                 Ok(execution_id) => {
-                    ic_cdk::println!("Event triggered execution: {}", execution_id);
                 }
                 Err(e) => {
-                    ic_cdk::println!("Failed to trigger execution: {}", e);
                 }
             }
         });
@@ -171,11 +168,9 @@ async fn setup_schedule_timer(schedule: &ScheduledWorkflow) -> Result<String, St
             let execution_result = start_execution(workflow_id, None).await;
             match execution_result {
                 Ok(execution_id) => {
-                    ic_cdk::println!("Scheduled execution started: {}", execution_id);
                     reschedule_workflow(schedule_id).await;
                 }
                 Err(e) => {
-                    ic_cdk::println!("Scheduled execution failed: {}", e);
                 }
             }
         });
@@ -275,7 +270,6 @@ pub async fn schedule_workflow_execution(
     // Store in persistent storage
     storage::insert_scheduled_execution(workflow_id.clone(), execution);
     
-    ic_cdk::println!("Scheduled persistent execution for workflow: {}", workflow_id);
     Ok(workflow_id)
 }
 
@@ -295,11 +289,9 @@ async fn schedule_persistent_timer(execution: &ScheduledExecution) -> Result<Str
     
     let timer_id = set_timer(delay, move || {
         spawn(async move {
-            ic_cdk::println!("Executing persistent timer for workflow: {}", workflow_id);
             
             // Execute the workflow
             if let Ok(execution_id) = start_execution(workflow_id.clone(), None).await {
-                ic_cdk::println!("Persistent timer execution started: {}", execution_id);
             }
             
             // Reschedule if recurring
@@ -355,16 +347,13 @@ pub fn restore_persistent_timers() {
     let current_time = api::time();
     let all_executions = storage::list_all_scheduled_executions();
     
-    ic_cdk::println!("Restoring {} persistent timers after upgrade", all_executions.len());
     
     for (workflow_id, execution) in all_executions {
         if execution.next_execution <= current_time {
             // Execute immediately if overdue
-            ic_cdk::println!("Executing overdue persistent timer: {}", workflow_id);
             let wf_id = workflow_id.clone();
             spawn(async move {
                 if let Ok(execution_id) = start_execution(wf_id.clone(), None).await {
-                    ic_cdk::println!("Overdue execution started: {}", execution_id);
                 }
             });
             
@@ -395,7 +384,6 @@ pub fn list_persistent_scheduled_executions() -> Vec<(String, ScheduledExecution
 #[update]
 pub async fn cancel_persistent_execution(workflow_id: String) -> Result<(), String> {
     if storage::remove_scheduled_execution(&workflow_id).is_some() {
-        ic_cdk::println!("Cancelled persistent execution for workflow: {}", workflow_id);
         Ok(())
     } else {
         Err("No persistent execution found for workflow".to_string())

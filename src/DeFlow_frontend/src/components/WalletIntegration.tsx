@@ -7,8 +7,23 @@ interface WalletIntegrationProps {
 }
 
 const WalletIntegration = ({ selectedChains, onWalletChange }: WalletIntegrationProps) => {
-  const [wallet, setWallet] = useState<MultiChainWallet>(multiChainWalletService.getWallet())
+  const [wallet, setWallet] = useState<MultiChainWallet>({ addresses: [], lastSyncAt: 0 })
   const [expandedChain, setExpandedChain] = useState<ChainType | null>(null)
+
+  // Initialize wallet asynchronously
+  useEffect(() => {
+    const initializeWallet = async () => {
+      try {
+        const currentWallet = await multiChainWalletService.getWallet()
+        setWallet(currentWallet)
+        onWalletChange?.(currentWallet)
+      } catch (error) {
+        console.error('Failed to initialize wallet in WalletIntegration:', error)
+      }
+    }
+    
+    initializeWallet()
+  }, [onWalletChange])
 
   useEffect(() => {
     const handleWalletUpdate = (updatedWallet: MultiChainWallet) => {

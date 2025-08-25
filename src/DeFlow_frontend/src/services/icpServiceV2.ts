@@ -50,7 +50,6 @@ class ICPServiceV2 {
     if (this.isInitialized) return
 
     try {
-      console.log('Initializing ICP service with proper BigInt handling...')
 
       // Initialize auth client
       this.authClient = await AuthClient.create()
@@ -75,18 +74,15 @@ class ICPServiceV2 {
       if (createActor && canisterId) {
         try {
           this.actor = createActor(canisterId, { agent })
-          console.log('✅ Real ICP actor created successfully')
         } catch (error) {
           console.warn('Failed to create real actor, using mock:', error)
           this.actor = this.createMockActor()
         }
       } else {
-        console.log('Using mock actor for development')
         this.actor = this.createMockActor()
       }
 
       this.isInitialized = true
-      console.log('✅ ICP service initialized with BigInt support')
 
     } catch (error) {
       console.error('Failed to initialize ICP service:', error)
@@ -100,16 +96,13 @@ class ICPServiceV2 {
       greet: async (name: string) => `Hello, ${name}! (ICP Mock Mode with BigInt support)`,
       
       create_workflow: async (workflow: any) => {
-        console.log('Mock: Creating workflow with BigInt timestamps:', workflow)
         return `workflow_${Date.now()}`
       },
       
       update_workflow: async (workflow: any) => {
-        console.log('Mock: Updating workflow:', workflow)
       },
       
       get_workflow: async (id: string) => {
-        console.log('Mock: Getting workflow:', id)
         return {
           id,
           name: 'Mock Workflow with BigInt',
@@ -124,7 +117,6 @@ class ICPServiceV2 {
       },
       
       list_workflows: async () => {
-        console.log('Mock: Listing workflows')
         return [
           {
             id: 'mock_workflow_1',
@@ -141,16 +133,13 @@ class ICPServiceV2 {
       },
       
       delete_workflow: async (id: string) => {
-        console.log('Mock: Deleting workflow:', id)
       },
       
       start_execution: async (workflowId: string, triggerData?: any) => {
-        console.log('Mock: Starting execution for workflow:', workflowId)
         return `execution_${Date.now()}`
       },
       
       get_execution: async (id: string) => {
-        console.log('Mock: Getting execution:', id)
         return {
           id,
           workflow_id: 'mock_workflow_1',
@@ -162,7 +151,6 @@ class ICPServiceV2 {
       },
       
       list_executions: async (workflowId?: string) => {
-        console.log('Mock: Listing executions for workflow:', workflowId)
         return [
           {
             id: 'mock_execution_1',
@@ -176,12 +164,10 @@ class ICPServiceV2 {
       },
       
       list_node_types: async () => {
-        console.log('Mock: Listing node types')
         return ['trigger', 'action', 'condition', 'transform']
       },
       
       get_node_definition: async (nodeType: string) => {
-        console.log('Mock: Getting node definition for:', nodeType)
         return {
           node_type: nodeType,
           name: `${nodeType.charAt(0).toUpperCase() + nodeType.slice(1)} Node`,
@@ -338,7 +324,6 @@ class ICPServiceV2 {
           ? 'http://localhost:4943/?canisterId=rdmx6-jaaaa-aaaaa-aaadq-cai'
           : 'https://identity.ic0.app',
         onSuccess: () => {
-          console.log('✅ ICP login successful')
           resolve(true)
         },
         onError: (error) => {

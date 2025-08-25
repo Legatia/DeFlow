@@ -31,6 +31,12 @@ pub mod price_oracle;
 // Live DeFi protocol integrations for real yield/arbitrage data
 pub mod protocol_integrations;
 pub mod real_protocol_integrations;
+// Price alert & social media integration system
+pub mod price_alert_service;
+// DeFi integration engine for price alert triggers
+pub mod price_alert_defi_integration;
+// Enhanced social media text formatting with DeFi context
+pub mod social_media_formatter;
 
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
@@ -131,7 +137,6 @@ impl DeFiChainManager {
         ).await?;
         
         self.bitcoin_service = Some(bitcoin_service);
-        ic_cdk::println!("Bitcoin DeFi service initialized successfully");
         Ok(())
     }
     
@@ -139,11 +144,10 @@ impl DeFiChainManager {
     pub async fn initialize_ethereum(&mut self) -> Result<(), String> {
         let ethereum_service = ethereum::minimal_icp::MinimalIcpEthereumService::new(
             "deflow_ethereum_key".to_string(),
-            ic_cdk::api::id(),
+            ic_cdk::api::id()
         );
         
         self.ethereum_service = Some(ethereum_service);
-        ic_cdk::println!("ICP-compliant Ethereum DeFi service initialized successfully");
         Ok(())
     }
     
@@ -156,7 +160,6 @@ impl DeFiChainManager {
         );
         
         self.solana_service = Some(solana_service);
-        ic_cdk::println!("ICP-compliant Solana DeFi service initialized successfully");
         Ok(())
     }
     
@@ -185,25 +188,27 @@ pub fn with_defi_manager_mut<R>(f: impl FnOnce(&mut DeFiChainManager) -> R) -> R
 
 // Initialize DeFi system
 pub async fn initialize_defi_system() -> Result<(), String> {
-    ic_cdk::println!("Initializing DeFlow DeFi system...");
     
     // Initialize portfolio management system
     portfolio_api::init_portfolio_system();
     
     // Initialize automated strategy system
     if let Err(e) = automated_strategy_api::init_automated_strategy_system().await {
-        ic_cdk::println!("Failed to initialize automated strategy system in defi module: {}", e);
     }
     
     // Initialize strategy API system  
-    ic_cdk::println!("DeFlow Strategy API components ready");
     
     // Initialize workflow template system
     simple_template_api::init_simple_workflow_template_system();
     
+    // Initialize price alert system
+    price_alert_service::init_price_alert_system();
+    
+    // Initialize DeFi trigger engine for price alerts
+    price_alert_defi_integration::init_defi_trigger_engine();
+    
     // Bitcoin service initialization will be handled on-demand in API calls
     // This avoids complex async lifetime issues during initialization
     
-    ic_cdk::println!("DeFi system components ready");
     Ok(())
 }

@@ -16,7 +16,7 @@ mod integration_tests {
     
     #[test]
     fn test_cross_chain_portfolio_sync() {
-        let mut portfolio_manager = PortfolioManager::new("test_user".to_string());
+        let mut portfolio_manager = PortfolioManager::new("test_user".to_string()
         
         // Add positions across multiple chains
         let btc_position = Position {
@@ -159,7 +159,7 @@ mod integration_tests {
     
     #[test]
     fn test_liquidity_crisis_simulation() {
-        let mut portfolio_manager = PortfolioManager::new("test_user".to_string());
+        let mut portfolio_manager = PortfolioManager::new("test_user".to_string()
         
         // Add positions in various liquidity levels
         portfolio_manager.add_illiquid_position("SMALL_CAP_TOKEN", 1000.0, 0.1); // Low liquidity
@@ -281,7 +281,7 @@ mod integration_tests {
     
     #[test]
     fn test_memory_usage_under_load() {
-        let mut portfolio_manager = PortfolioManager::new("stress_test_user".to_string());
+        let mut portfolio_manager = PortfolioManager::new("stress_test_user".to_string()
         
         // Add many positions to test memory usage
         for i in 0..1000 {
@@ -318,11 +318,11 @@ mod integration_tests {
         
         // Test various error scenarios
         let error_scenarios = vec![
-            "insufficient_balance",
+            ic_cdk::println!("insufficient_balance",
             "slippage_exceeded",
             "deadline_exceeded",
             "contract_paused",
-            "oracle_failure",
+            "oracle_failure");
         ];
         
         for error_type in error_scenarios {

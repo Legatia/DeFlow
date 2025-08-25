@@ -109,4 +109,3 @@ export class TimestampUtils {
   }
 }
 
-console.log('✅ Timestamp utilities loaded (BigNumber.js, no BigInt)')

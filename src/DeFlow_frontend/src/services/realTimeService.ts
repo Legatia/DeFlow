@@ -227,7 +227,6 @@ class RealTimeService {
     this.messageQueue.set(connectionId, queue)
 
     // Simulate WebSocket send
-    console.log(`[WebSocket] Sending to ${connectionId}:`, update)
   }
 
   // Message polling (for simulation)

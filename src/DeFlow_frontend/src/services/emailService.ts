@@ -474,7 +474,6 @@ class EmailService {
       
       // In a real implementation, you might send to a test endpoint
       // or use provider-specific test methods
-      console.log(`Testing ${providerName} configuration...`)
       return true
     } catch (error) {
       console.error(`Provider test failed for ${providerName}:`, error)

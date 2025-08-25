@@ -26,7 +26,7 @@
     "test:watch": "vitest --watch",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{json,js,jsx,ts,tsx,css,scss}\"",
-    "prebuild": "dfx generate"
+    "prebuild": "dfx generate DeFlow_pool"
   },
   "dependencies": {
     "@dfinity/agent": "^2.4.1",

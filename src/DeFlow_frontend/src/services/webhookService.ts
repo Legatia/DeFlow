@@ -362,7 +362,6 @@ class WebhookService {
       webhook.executionCount++
       this.outgoingWebhooks.set(webhook.id, webhook)
 
-      console.log(`[Outgoing Webhook] ${webhook.method} ${webhook.url}:`, processedBody)
 
     } catch (error) {
       console.error(`[Outgoing Webhook Error] ${webhook.name}:`, error)

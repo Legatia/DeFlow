@@ -6,6 +6,7 @@ import simpleDefiTemplateService, {
   DeFiWorkflowTemplate, 
   StrategyFromTemplateResponse 
 } from '../services/defiTemplateServiceSimple';
+import realProtocolService from '../services/realProtocolService';
 import { StrategyConfig } from '../types/defi-strategy';
 
 interface ActiveStrategy extends StrategyFromTemplateResponse {
@@ -15,6 +16,18 @@ interface ActiveStrategy extends StrategyFromTemplateResponse {
   current_value: number;
   total_return: number;
   roi_percentage: number;
+  market_data?: {
+    current_apy?: number;
+    protocol_health?: string;
+    last_execution?: string;
+  };
+}
+
+interface MarketOverview {
+  totalTVL: number;
+  avgYieldAPY: number;
+  activeOpportunities: number;
+  protocolsOnline: number;
 }
 
 type ViewMode = 'templates' | 'create' | 'dashboard' | 'custom';
@@ -26,6 +39,12 @@ const DeFiDashboard = () => {
   const [portfolioValue, setPortfolioValue] = useState(0);
   const [totalReturn, setTotalReturn] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [marketOverview, setMarketOverview] = useState<MarketOverview>({
+    totalTVL: 0,
+    avgYieldAPY: 0,
+    activeOpportunities: 0,
+    protocolsOnline: 0
+  });
 
   useEffect(() => {
     loadPortfolioData();
@@ -35,20 +54,73 @@ const DeFiDashboard = () => {
     try {
       setLoading(true);
       
-      // In a real app, this would fetch from the backend
-      // For now, we'll use mock data
-      const mockStrategies: ActiveStrategy[] = JSON.parse(
+      // Load stored strategies
+      const storedStrategies: ActiveStrategy[] = JSON.parse(
         localStorage.getItem('defi_strategies') || '[]'
       );
       
-      setActiveStrategies(mockStrategies);
+      // Get real market data to enhance stored strategies
+      const [yieldData, arbitrageData, protocolHealth, marketData] = await Promise.all([
+        realProtocolService.getYieldOpportunities().catch(() => null),
+        realProtocolService.getArbitrageOpportunities().catch(() => null),
+        realProtocolService.getProtocolHealth().catch(() => null),
+        simpleDefiTemplateService.getMarketData().catch(() => ({
+          avgYieldAPY: 5.0,
+          avgArbitrageProfit: 1.2,
+          totalTVL: 15000000000,
+          activeOpportunities: 25
+        }))
+      ]);
+      
+      // Enhance strategies with real market data
+      const enhancedStrategies = storedStrategies.map(strategy => {
+        let currentAPY = strategy.template.estimated_apy;
+        let protocolStatus = 'unknown';
+        
+        if (yieldData && strategy.template.category === 'YieldFarming') {
+          const matchingOpportunity = yieldData.opportunities.find(opp => 
+            opp.protocol.toLowerCase().includes(strategy.template.id.toLowerCase())
+          );
+          if (matchingOpportunity) {
+            currentAPY = matchingOpportunity.apy;
+            protocolStatus = 'healthy';
+          }
+        }
+        
+        return {
+          ...strategy,
+          market_data: {
+            current_apy: currentAPY,
+            protocol_health: protocolStatus,
+            last_execution: new Date().toISOString()
+          }
+        };
+      });
+      
+      setActiveStrategies(enhancedStrategies);
       
       // Calculate portfolio metrics
-      const totalValue = mockStrategies.reduce((sum, strategy) => sum + strategy.current_value, 0);
-      const totalRet = mockStrategies.reduce((sum, strategy) => sum + strategy.total_return, 0);
+      const totalValue = enhancedStrategies.reduce((sum, strategy) => sum + strategy.current_value, 0);
+      const totalRet = enhancedStrategies.reduce((sum, strategy) => sum + strategy.total_return, 0);
       
       setPortfolioValue(totalValue);
       setTotalReturn(totalRet);
+      
+      // Set market overview
+      const protocolsOnline = [
+        protocolHealth?.aave_status === 'healthy' ? 1 : 0,
+        protocolHealth?.uniswap_status === 'healthy' ? 1 : 0,
+        protocolHealth?.compound_status === 'healthy' ? 1 : 0,
+        protocolHealth?.curve_status === 'healthy' ? 1 : 0
+      ].reduce((sum, status) => sum + status, 0);
+      
+      setMarketOverview({
+        totalTVL: marketData.totalTVL,
+        avgYieldAPY: marketData.avgYieldAPY,
+        activeOpportunities: marketData.activeOpportunities,
+        protocolsOnline
+      });
+      
     } catch (error) {
       console.error('Error loading portfolio data:', error);
     } finally {
@@ -166,6 +238,29 @@ const DeFiDashboard = () => {
         </div>
       </div>
 
+      {/* Market Overview */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 mb-8 text-white">
+        <h2 className="text-xl font-semibold mb-4">DeFi Market Overview</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold">${(marketOverview.totalTVL / 1e9).toFixed(1)}B</div>
+            <div className="text-blue-100 text-sm">Total TVL</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold">{marketOverview.avgYieldAPY.toFixed(1)}%</div>
+            <div className="text-blue-100 text-sm">Avg APY</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold">{marketOverview.activeOpportunities}</div>
+            <div className="text-blue-100 text-sm">Opportunities</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold">{marketOverview.protocolsOnline}/4</div>
+            <div className="text-blue-100 text-sm">Protocols Online</div>
+          </div>
+        </div>
+      </div>
+
       {/* Portfolio Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -173,18 +268,21 @@ const DeFiDashboard = () => {
           <div className="text-2xl font-bold text-gray-900">
             ${portfolioValue.toLocaleString()}
           </div>
+          {loading && <div className="text-xs text-gray-400 mt-1">Updating...</div>}
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h3 className="text-sm font-medium text-gray-500 mb-2">Total Return</h3>
           <div className={`text-2xl font-bold ${totalReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             ${totalReturn.toLocaleString()}
           </div>
+          {loading && <div className="text-xs text-gray-400 mt-1">Updating...</div>}
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h3 className="text-sm font-medium text-gray-500 mb-2">Active Strategies</h3>
           <div className="text-2xl font-bold text-gray-900">
             {activeStrategies.filter(s => s.status === 'active').length}
           </div>
+          {loading && <div className="text-xs text-gray-400 mt-1">Updating...</div>}
         </div>
       </div>
 
@@ -248,7 +346,7 @@ const DeFiDashboard = () => {
                   </div>
                 </div>
                 
-                <div className="mt-4 grid grid-cols-4 gap-4 text-sm">
+                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500">Category:</span>
                     <span className="ml-2 font-medium">{strategy.template.category}</span>
@@ -258,16 +356,38 @@ const DeFiDashboard = () => {
                     <span className="ml-2 font-medium">{strategy.template.risk_score}/10</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Target APY:</span>
+                    <span className="text-gray-500">Current APY:</span>
                     <span className="ml-2 font-medium text-green-600">
-                      {strategy.template.estimated_apy}%
+                      {strategy.market_data?.current_apy?.toFixed(1) || strategy.template.estimated_apy}%
                     </span>
+                    {strategy.market_data?.current_apy && strategy.market_data.current_apy !== strategy.template.estimated_apy && (
+                      <span className={`ml-1 text-xs ${strategy.market_data.current_apy > strategy.template.estimated_apy ? 'text-green-500' : 'text-red-500'}`}>
+                        ({strategy.market_data.current_apy > strategy.template.estimated_apy ? '+' : ''}{(strategy.market_data.current_apy - strategy.template.estimated_apy).toFixed(1)}%)
+                      </span>
+                    )}
                   </div>
                   <div>
-                    <span className="text-gray-500">Status:</span>
-                    <span className="ml-2 font-medium capitalize">{strategy.deployment_status}</span>
+                    <span className="text-gray-500">Protocol:</span>
+                    <span className="ml-2 font-medium capitalize">
+                      {strategy.deployment_status}
+                      {strategy.market_data?.protocol_health && (
+                        <span className={`ml-1 text-xs px-1 rounded ${
+                          strategy.market_data.protocol_health === 'healthy' 
+                            ? 'bg-green-100 text-green-700' 
+                            : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {strategy.market_data.protocol_health}
+                        </span>
+                      )}
+                    </span>
                   </div>
                 </div>
+                
+                {strategy.market_data?.last_execution && (
+                  <div className="mt-3 text-xs text-gray-500">
+                    Last updated: {new Date(strategy.market_data.last_execution).toLocaleString()}
+                  </div>
+                )}
               </div>
             ))}
           </div>

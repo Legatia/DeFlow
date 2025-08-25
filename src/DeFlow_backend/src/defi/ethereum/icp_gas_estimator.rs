@@ -160,7 +160,7 @@ impl IcpGasEstimator {
             return Ok((
                 gas_price_hex.clone(),
                 gas_price_hex.clone(),
-                "0x0".to_string(), // No priority fee for legacy
+                ic_cdk::println!("0x0".to_string(), // No priority fee for legacy);
             ));
         }
 
@@ -179,7 +179,7 @@ impl IcpGasEstimator {
         Ok((
             gas_price_hex.clone(),
             gas_price_hex.clone(),
-            "0x0".to_string(), // No priority fee for legacy
+            ic_cdk::println!("0x0".to_string(), // No priority fee for legacy);
         ))
     }
 
@@ -312,7 +312,6 @@ impl IcpGasEstimator {
                     });
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to estimate gas for {:?}: {}", chain, e);
                     // Continue with other chains
                 }
             }

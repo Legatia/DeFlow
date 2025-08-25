@@ -387,12 +387,10 @@ class MonitoringService {
 
   private async sendEmailNotification(alert: Alert): Promise<void> {
     // Simulate email notification
-    console.log(`[EMAIL ALERT] ${alert.severity.toUpperCase()}: ${alert.message}`)
   }
 
   private async sendWebhookNotification(alert: Alert, webhookUrl: string): Promise<void> {
     // Simulate webhook notification
-    console.log(`[WEBHOOK ALERT] ${webhookUrl}: ${alert.message}`)
   }
 
   private startHealthChecks(): void {

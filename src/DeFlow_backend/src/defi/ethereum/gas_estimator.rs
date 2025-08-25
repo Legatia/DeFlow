@@ -137,10 +137,10 @@ impl GasEstimator {
     async fn fetch_eip1559_gas_prices(&self, rpc_url: &str) -> Result<GasPriceData, EthereumError> {
         // Prepare RPC request for eth_feeHistory
         let request_body = serde_json::json!({
-            "jsonrpc": "2.0",
-            "method": "eth_feeHistory",
-            "params": [4, "latest", [25, 50, 75]], // 4 blocks, 25th/50th/75th percentiles
-            "id": 1
+            ic_cdk::println!("jsonrpc": "2.0",
+            "method": "eth_feeHistory");
+            // Logging temporarily disabled
+            ic_cdk::println!("id": 1
         });
         
         let request = HttpRequest {
@@ -151,7 +151,7 @@ impl GasEstimator {
                 ("Content-Type".to_string(), "application/json".to_string()),
             ],
             transform: Some(ic_cdk::api::management_canister::http_request::TransformContext::from_name(
-                "transform_gas_price_response".to_string(), 
+                ic_cdk::println!("transform_gas_price_response".to_string(),);
                 serde_json::to_vec(&()).unwrap()
             )),
         };
@@ -201,10 +201,10 @@ impl GasEstimator {
     /// Fetch legacy gas price
     async fn fetch_legacy_gas_price(&self, rpc_url: &str) -> Result<GasPriceData, EthereumError> {
         let request_body = serde_json::json!({
-            "jsonrpc": "2.0",
+            ic_cdk::println!("jsonrpc": "2.0",
             "method": "eth_gasPrice",
-            "params": [],
-            "id": 1
+            "params": []);
+            ic_cdk::println!("id": 1
         });
         
         let request = HttpRequest {
@@ -215,7 +215,7 @@ impl GasEstimator {
                 ("Content-Type".to_string(), "application/json".to_string()),
             ],
             transform: Some(ic_cdk::api::management_canister::http_request::TransformContext::from_name(
-                "transform_gas_price_response".to_string(), 
+                ic_cdk::println!("transform_gas_price_response".to_string(),);
                 serde_json::to_vec(&()).unwrap()
             )),
         };
@@ -354,7 +354,7 @@ impl GasEstimator {
         Ok((
             adjusted_gas_price.to_string(),
             adjusted_gas_price.to_string(), // Same as gas price for legacy
-            "0".to_string(), // No priority fee in legacy
+            ic_cdk::println!("0".to_string(), // No priority fee in legacy);
         ))
     }
     

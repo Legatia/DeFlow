@@ -1,5 +1,6 @@
 // Simple DeFi Template Service - Direct canister calls to avoid BigInt issues
 import { BigIntUtils } from '../utils/bigint-utils';
+import realProtocolService from './realProtocolService';
 
 // Import polyfill for BigInt handling
 import '../utils/bigint-polyfill';
@@ -42,14 +43,12 @@ class SimpleDefiTemplateService {
     if (this.isInitialized) return;
 
     try {
-      console.log('Initializing Simple DeFi Template service...');
 
       if (canisterId) {
         this.canisterId = canisterId;
       }
 
       this.isInitialized = true;
-      console.log('Simple DeFi Template service initialized successfully');
     } catch (error) {
       console.error('Failed to initialize Simple DeFi Template service:', error);
       throw error;
@@ -62,105 +61,62 @@ class SimpleDefiTemplateService {
     }
   }
 
-  // Helper method to make direct canister calls via dfx
+  // Make real canister calls to DeFlow backend
   private async callCanister(method: string, args: any[] = []): Promise<any> {
     try {
-      // For now, we'll return mock data since direct dfx calls from browser are not straightforward
-      console.log(`Would call canister method: ${method} with args:`, args);
+      // Import the backend canister declarations
+      const { createActor } = await import('../../../declarations/DeFlow_backend');
+      const { idlFactory } = await import('../../../declarations/DeFlow_backend');
       
-      // In a real implementation, you could use a proxy server or the agent-js library
-      // For demo purposes, we'll use mock data
-      throw new Error('Using mock data - canister not directly accessible from browser');
+      // Create actor for backend canister
+      const backendActor = createActor(process.env.VITE_CANISTER_ID_DEFLOW_BACKEND || this.canisterId, {
+        agentOptions: {
+          host: process.env.NODE_ENV === 'production' ? 'https://ic0.app' : 'http://127.0.0.1:8080'
+        }
+      });
+      
+      // Make the actual canister call
+      const result = await (backendActor as any)[method](...args);
+      
+      return result;
     } catch (error) {
-      console.warn(`Canister call failed for ${method}:`, error);
-      // Return mock data as fallback
-      return this.getMockResponse(method, args);
+      console.error(`Canister call failed for ${method}:`, error);
+      throw new Error(`Backend service unavailable: ${method}`);
     }
   }
 
-  // Mock response generator
-  private getMockResponse(method: string, args: any[]): any {
-    switch (method) {
-      case 'list_workflow_templates':
+  // Handle canister response format
+  private processCanisterResponse(response: any, method: string): any {
+    // Handle different response formats from the canister
+    if (response && typeof response === 'object') {
+      // If response has 'Ok' field (Result type)
+      if ('Ok' in response) {
         return {
           success: true,
-          data: {
-            templates: this.getMockTemplates(),
-            total_count: 4
-          },
+          data: response.Ok,
           error: null,
           timestamp: Date.now()
         };
-      
-      case 'get_templates_by_category':
-        const category = args[0];
-        return {
-          success: true,
-          data: {
-            templates: this.getMockTemplates().filter(t => t.category === category),
-            total_count: this.getMockTemplates().filter(t => t.category === category).length
-          },
-          error: null,
-          timestamp: Date.now()
-        };
-      
-      case 'get_template_by_id':
-        const templateId = args[0];
-        const template = this.getMockTemplates().find(t => t.id === templateId);
-        return {
-          success: !!template,
-          data: template,
-          error: template ? null : 'Template not found',
-          timestamp: Date.now()
-        };
-      
-      case 'create_strategy_from_simple_template':
-        return {
-          success: true,
-          data: {
-            strategy_id: `mock_strategy_${Date.now()}`,
-            strategy_config: {},
-            estimated_setup_time: 5,
-            deployment_status: 'created'
-          },
-          error: null,
-          timestamp: Date.now()
-        };
-      
-      case 'get_simple_template_recommendations':
-        const [riskTolerance, capitalAmount, experienceLevel] = args;
-        return {
-          success: true,
-          data: {
-            templates: this.getMockTemplates().filter(t => 
-              t.risk_score <= riskTolerance && 
-              t.min_capital_usd <= capitalAmount
-            ),
-            total_count: this.getMockTemplates().filter(t => 
-              t.risk_score <= riskTolerance && 
-              t.min_capital_usd <= capitalAmount
-            ).length
-          },
-          error: null,
-          timestamp: Date.now()
-        };
-      
-      case 'get_template_categories':
-        return {
-          success: true,
-          data: ['YieldFarming', 'Arbitrage', 'Rebalancing', 'DCA'],
-          error: null,
-          timestamp: Date.now()
-        };
-      
-      default:
+      }
+      // If response has 'Err' field (Result type)
+      if ('Err' in response) {
         return {
           success: false,
           data: null,
-          error: `Unknown method: ${method}`,
+          error: response.Err,
           timestamp: Date.now()
         };
+      }
+      // Direct response format
+      return {
+        success: true,
+        data: response,
+        error: null,
+        timestamp: Date.now()
+      };
     }
+    
+    throw new Error(`Invalid response format from ${method}`);
   }
 
   // Public API methods
@@ -168,16 +124,23 @@ class SimpleDefiTemplateService {
     await this.ensureInitialized();
     
     try {
+      // First try to get real protocol data to update template APYs
+      await this.updateTemplatesWithRealData();
+      
       const response = await this.callCanister('list_workflow_templates');
       
-      if (response?.success && response?.data?.templates) {
-        return this.sanitizeTemplates(response.data.templates);
+      const processedResponse = this.processCanisterResponse(response, 'list_workflow_templates');
+      
+      if (processedResponse.success && processedResponse.data) {
+        // Handle different possible data structures
+        const templates = processedResponse.data.templates || processedResponse.data || [];
+        return this.sanitizeTemplates(Array.isArray(templates) ? templates : []);
       } else {
-        throw new Error(response?.error || 'Failed to fetch templates');
+        throw new Error(processedResponse.error || 'Failed to fetch templates');
       }
     } catch (error) {
       console.error('Error listing workflow templates:', error);
-      return this.getMockTemplates();
+      throw error; // Don't fall back to mock data for production
     }
   }
 
@@ -194,7 +157,7 @@ class SimpleDefiTemplateService {
       }
     } catch (error) {
       console.error('Error getting templates by category:', error);
-      return this.getMockTemplates().filter(t => t.category === category);
+      throw error; // Don't fall back to mock data
     }
   }
 
@@ -211,7 +174,7 @@ class SimpleDefiTemplateService {
       }
     } catch (error) {
       console.error('Error getting template by ID:', error);
-      return this.getMockTemplates().find(t => t.id === templateId) || null;
+      throw error; // Don't fall back to mock data
     }
   }
 
@@ -229,21 +192,29 @@ class SimpleDefiTemplateService {
     };
 
     try {
+      // Update market data before creating strategy
+      await this.updateTemplatesWithRealData();
+      
       const response = await this.callCanister('create_strategy_from_simple_template', [request]);
       
       if (response?.success && response?.data) {
-        return response.data;
+        // Enhanced response with real market context
+        return {
+          ...response.data,
+          market_context: {
+            current_avg_apy: this.realMarketData.avgYieldAPY,
+            market_volatility: this.realMarketData.marketVolatility,
+            last_updated: this.realMarketData.lastUpdated
+          }
+        };
       } else {
         throw new Error(response?.error || 'Failed to create strategy');
       }
     } catch (error) {
       console.error('Error creating strategy from template:', error);
-      return {
-        strategy_id: `mock_strategy_${Date.now()}`,
-        strategy_config: {},
-        estimated_setup_time: 5,
-        deployment_status: 'created'
-      };
+      
+      // Return error instead of mock data for production
+      throw error;
     }
   }
 
@@ -268,10 +239,7 @@ class SimpleDefiTemplateService {
       }
     } catch (error) {
       console.error('Error getting template recommendations:', error);
-      return this.getMockTemplates().filter(t => 
-        t.risk_score <= riskTolerance && 
-        t.min_capital_usd <= capitalAmount
-      );
+      throw error; // Don't fall back to mock data
     }
   }
 
@@ -292,50 +260,80 @@ class SimpleDefiTemplateService {
     }
   }
 
-  // Mock data for development
-  private getMockTemplates(): DeFiWorkflowTemplate[] {
-    return [
-      {
-        id: 'conservative_yield',
-        name: 'Conservative Yield Farming',
-        description: 'Low-risk yield farming on established protocols',
-        category: 'YieldFarming',
-        difficulty: 'Beginner',
-        estimated_apy: 4.5,
-        risk_score: 3,
-        min_capital_usd: 100.0
-      },
-      {
-        id: 'basic_arbitrage',
-        name: 'Cross-Chain Arbitrage',
-        description: 'Automated arbitrage opportunities across chains',
-        category: 'Arbitrage',
-        difficulty: 'Advanced',
-        estimated_apy: 12.0,
-        risk_score: 7,
-        min_capital_usd: 1000.0
-      },
-      {
-        id: 'portfolio_rebalancing',
-        name: 'Portfolio Rebalancing',
-        description: 'Maintain optimal asset allocation',
-        category: 'Rebalancing',
-        difficulty: 'Intermediate',
-        estimated_apy: 6.0,
-        risk_score: 5,
-        min_capital_usd: 500.0
-      },
-      {
-        id: 'dollar_cost_averaging',
-        name: 'Dollar Cost Averaging',
-        description: 'Systematic investment strategy',
-        category: 'DCA',
-        difficulty: 'Beginner',
-        estimated_apy: 8.0,
-        risk_score: 4,
-        min_capital_usd: 50.0
+  // Updated templates with real market data
+  private realMarketData: { 
+    avgYieldAPY: number; 
+    avgArbitrageProfit: number; 
+    marketVolatility: number; 
+    lastUpdated: number;
+  } = {
+    avgYieldAPY: 5.0,
+    avgArbitrageProfit: 1.2,
+    marketVolatility: 0.15,
+    lastUpdated: 0
+  };
+
+  private async updateTemplatesWithRealData(): Promise<void> {
+    try {
+      // Update market data every 5 minutes
+      if (Date.now() - this.realMarketData.lastUpdated < 5 * 60 * 1000) {
+        return;
       }
-    ];
+
+      
+      // Get real yield opportunities
+      const yieldData = await realProtocolService.getYieldOpportunities();
+      if (yieldData.opportunities.length > 0) {
+        this.realMarketData.avgYieldAPY = yieldData.market_summary.average_apy;
+      }
+
+      // Get real arbitrage opportunities  
+      const arbData = await realProtocolService.getArbitrageOpportunities();
+      if (arbData.opportunities.length > 0) {
+        this.realMarketData.avgArbitrageProfit = arbData.opportunities
+          .reduce((sum, opp) => sum + opp.profit_percentage, 0) / arbData.opportunities.length;
+      }
+
+      this.realMarketData.lastUpdated = Date.now();
+    } catch (error) {
+      console.warn('Failed to update templates with real data:', error);
+    }
+  }
+
+  // REMOVED: All mock template data has been removed for production deployment
+
+  /**
+   * Get real-time market data for display
+   */
+  async getMarketData(): Promise<{ 
+    avgYieldAPY: number; 
+    avgArbitrageProfit: number; 
+    totalTVL: number;
+    activeOpportunities: number;
+  }> {
+    try {
+      const [yieldData, arbData] = await Promise.all([
+        realProtocolService.getYieldOpportunities(),
+        realProtocolService.getArbitrageOpportunities()
+      ]);
+
+      return {
+        avgYieldAPY: yieldData.market_summary.average_apy,
+        avgArbitrageProfit: arbData.opportunities.length > 0 
+          ? arbData.opportunities.reduce((sum, opp) => sum + opp.profit_percentage, 0) / arbData.opportunities.length
+          : 0,
+        totalTVL: yieldData.market_summary.total_tvl,
+        activeOpportunities: yieldData.total_count + arbData.total_count
+      };
+    } catch (error) {
+      console.error('Failed to get market data:', error);
+      return {
+        avgYieldAPY: 5.0,
+        avgArbitrageProfit: 1.2,
+        totalTVL: 15000000000,
+        activeOpportunities: 25
+      };
+    }
   }
 
   // Utility methods

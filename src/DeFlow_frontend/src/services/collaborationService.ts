@@ -654,7 +654,6 @@ class CollaborationService {
   private async sendInvitationEmails(invitations: WorkflowInvitation[]): Promise<void> {
     // Simulate sending emails
     for (const invitation of invitations) {
-      console.log(`[Email] Invitation sent to ${invitation.invitedEmail}`)
     }
   }
 

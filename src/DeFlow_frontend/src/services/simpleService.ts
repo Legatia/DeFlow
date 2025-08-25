@@ -180,13 +180,11 @@ export class SimpleService {
   // Authentication placeholder methods
   async login(): Promise<boolean> {
     await this.delay(500)
-    console.log('Simple mode: Authentication not required')
     return true
   }
 
   async logout(): Promise<void> {
     await this.delay(200)
-    console.log('Simple mode: Logout complete')
   }
 
   async isAuthenticated(): Promise<boolean> {

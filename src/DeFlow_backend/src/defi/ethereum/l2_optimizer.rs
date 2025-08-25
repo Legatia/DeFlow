@@ -107,7 +107,7 @@ impl L2Optimizer {
         
         if chain_options.is_empty() {
             return Err(EthereumError::ChainNotSupported(
-                "No viable chains found for transaction".to_string()
+                ic_cdk::println!("No viable chains found for transaction".to_string()
             ));
         }
         

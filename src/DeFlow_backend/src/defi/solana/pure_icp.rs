@@ -286,7 +286,7 @@ mod tests {
     fn test_pure_icp_service_creation() {
         let service = PureIcpSolanaService::new(
             SolanaNetwork::Devnet,
-            "deflow_solana_key".to_string(),
+            "deflow_solana_key".to_string()
         );
         assert_eq!(service.network, SolanaNetwork::Devnet);
         assert_eq!(service.key_name, "deflow_solana_key");
@@ -296,13 +296,13 @@ mod tests {
     fn test_rpc_endpoint_selection() {
         let service = PureIcpSolanaService::new(
             SolanaNetwork::Mainnet,
-            "test_key".to_string(),
+            "test_key".to_string()
         );
         assert_eq!(service.get_rpc_endpoint(), "https://api.mainnet-beta.solana.com");
 
         let service_devnet = PureIcpSolanaService::new(
             SolanaNetwork::Devnet,
-            "test_key".to_string(),
+            "test_key".to_string()
         );
         assert_eq!(service_devnet.get_rpc_endpoint(), "https://api.devnet.solana.com");
     }
@@ -311,7 +311,7 @@ mod tests {
     fn test_mock_balance_generation() {
         let service = PureIcpSolanaService::new(
             SolanaNetwork::Devnet,
-            "test_key".to_string(),
+            "test_key".to_string()
         );
         
         let balance1 = service.generate_mock_balance("test_address_1");

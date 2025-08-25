@@ -85,7 +85,6 @@ impl UTXOManager {
                     all_utxos.insert(address, utxos);
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to get UTXOs for address {}: {}", address, e);
                     all_utxos.insert(address, Vec::new());
                 }
             }
@@ -104,7 +103,6 @@ impl UTXOManager {
                     total_balance = total_balance.saturating_add(balance);
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to get balance for address {}: {}", address, e);
                 }
             }
         }
@@ -142,10 +140,11 @@ impl UTXOManager {
         }
         
         if total_selected < target_amount {
+            ic_cdk::println!("Insufficient funds: need {} satoshis, have {} satoshis",
+                            target_amount, total_selected);
             return Err(format!(
-                "Insufficient funds: need {} satoshis, have {} satoshis", 
-                target_amount, 
-                total_selected
+                "Insufficient funds: need {} satoshis, have {} satoshis",
+                target_amount, total_selected
             ));
         }
         
@@ -169,7 +168,6 @@ impl UTXOManager {
                     }
                 },
                 Err(e) => {
-                    ic_cdk::println!("Failed to get UTXOs for address {}: {}", address, e);
                 }
             }
         }
@@ -199,10 +197,11 @@ impl UTXOManager {
         }
         
         if total_selected < target_amount {
+            ic_cdk::println!("Insufficient funds across all addresses: need {} satoshis, have {} satoshis",
+                            target_amount, total_selected);
             return Err(format!(
-                "Insufficient funds across all addresses: need {} satoshis, have {} satoshis", 
-                target_amount, 
-                total_selected
+                "Insufficient funds across all addresses: need {} satoshis, have {} satoshis",
+                target_amount, total_selected
             ));
         }
         
@@ -337,10 +336,11 @@ impl UTXOManager {
         }
         
         if total_selected < target_amount {
+            ic_cdk::println!("Insufficient funds: need {} satoshis, have {} satoshis",
+                            target_amount, total_selected);
             return Err(format!(
                 "Insufficient funds: need {} satoshis, have {} satoshis",
-                target_amount,
-                total_selected
+                target_amount, total_selected
             ));
         }
         

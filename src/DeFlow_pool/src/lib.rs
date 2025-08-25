@@ -1,5 +1,6 @@
 use candid::Principal;
 use ic_cdk_macros::{init, post_upgrade, pre_upgrade, query, update};
+use ic_cdk::caller;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap};
 use std::cell::RefCell;
@@ -25,7 +26,9 @@ type Memory = VirtualMemory<DefaultMemoryImpl>;
 type StableStorage<K, V> = StableBTreeMap<K, V, Memory>;
 
 const POOL_STATE_MEMORY_ID: MemoryId = MemoryId::new(0);
+#[allow(dead_code)]
 const RESERVES_MEMORY_ID: MemoryId = MemoryId::new(1);
+#[allow(dead_code)]
 const BUSINESS_MODEL_MEMORY_ID: MemoryId = MemoryId::new(2);
 
 thread_local! {
@@ -76,7 +79,7 @@ fn init(owner: Option<Principal>) {
         pool_state.dev_team_business.distribution_frequency = 2_629_800; // 30 days in seconds
         
         // Grant owner premium access automatically
-        pool_state.dev_team_business.team_member_earnings.insert(owner_principal, 0.0);
+        pool_state.dev_team_business.team_member_earnings.insert(owner_principal, types::MemberEarnings::default());
     });
 
     ic_cdk::println!("AUDIT: Basic canister initialization completed - Chain Fusion addresses can be initialized separately");
@@ -469,6 +472,7 @@ fn validate_secure_confirmation_phrase(
 }
 
 /// SECURITY: Safe arithmetic operations to prevent integer overflow and precision loss
+#[allow(dead_code)]
 fn safe_add_u64(a: u64, b: u64) -> Result<u64, String> {
     a.checked_add(b)
         .ok_or_else(|| {
@@ -477,6 +481,7 @@ fn safe_add_u64(a: u64, b: u64) -> Result<u64, String> {
         })
 }
 
+#[allow(dead_code)]
 fn safe_sub_u64(a: u64, b: u64) -> Result<u64, String> {
     a.checked_sub(b)
         .ok_or_else(|| {
@@ -507,6 +512,7 @@ fn safe_add_f64(a: f64, b: f64) -> Result<f64, String> {
     Ok(result)
 }
 
+#[allow(dead_code)]
 fn safe_sub_f64(a: f64, b: f64) -> Result<f64, String> {
     if !a.is_finite() || !b.is_finite() {
         ic_cdk::println!("SECURITY: Non-finite numbers in subtraction - {} - {}", a, b);
@@ -992,8 +998,96 @@ fn get_dev_earnings(dev_principal: Principal) -> f64 {
         let pool_state = state.borrow();
         pool_state.dev_team_business.team_member_earnings
             .get(&dev_principal)
-            .copied()
+            .map(|earnings| earnings.total_usd_value)
             .unwrap_or(0.0)
+    })
+}
+
+#[query]
+fn get_dev_earnings_detailed(dev_principal: Principal) -> Result<types::MemberEarnings, String> {
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        if pool_state.dev_team_business.team_member_earnings.contains_key(&dev_principal) {
+            Ok(pool_state.dev_team_business.team_member_earnings
+                .get(&dev_principal)
+                .cloned()
+                .unwrap_or_default())
+        } else {
+            Err("Principal not found in team member earnings".to_string())
+        }
+    })
+}
+
+#[update]
+fn withdraw_dev_earnings_with_options(option: types::WithdrawalOption) -> Result<Vec<types::TokenTransfer>, String> {
+    let caller = caller();
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        let mut business_manager = business_model::DevTeamBusinessManager::new();
+        
+        business_manager.withdraw_dev_earnings_multi_token(&mut pool_state, caller, option)
+    })
+}
+
+#[update]
+fn set_withdrawal_address(chain: types::ChainId, address: String) -> Result<String, String> {
+    let caller = caller();
+    
+    // Validate address format for the specific chain
+    validate_blockchain_address(&chain.to_string().to_lowercase(), &address)?;
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        // Check if caller is a team member
+        if !pool_state.dev_team_business.team_member_earnings.contains_key(&caller) {
+            return Err("Only team members can set withdrawal addresses".to_string());
+        }
+        
+        // Get or create member earnings
+        let member_earnings = pool_state.dev_team_business.team_member_earnings
+            .entry(caller)
+            .or_insert_with(|| types::MemberEarnings::default());
+        
+        // Set the withdrawal address for this chain
+        member_earnings.withdrawal_addresses.insert(chain, address.clone());
+        
+        Ok(format!("Withdrawal address set for {:?}: {}", chain, address))
+    })
+}
+
+#[query]
+fn get_my_withdrawal_addresses() -> Result<std::collections::HashMap<types::ChainId, String>, String> {
+    let caller = caller();
+    
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        
+        if let Some(member_earnings) = pool_state.dev_team_business.team_member_earnings.get(&caller) {
+            Ok(member_earnings.withdrawal_addresses.clone())
+        } else {
+            Err("Not a team member".to_string())
+        }
+    })
+}
+
+#[query]
+fn get_withdrawal_address(chain: types::ChainId) -> Result<String, String> {
+    let caller = caller();
+    
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        
+        if let Some(member_earnings) = pool_state.dev_team_business.team_member_earnings.get(&caller) {
+            if let Some(address) = member_earnings.withdrawal_addresses.get(&chain) {
+                Ok(address.clone())
+            } else {
+                Err(format!("No withdrawal address set for {:?}", chain))
+            }
+        } else {
+            Err("Not a team member".to_string())
+        }
     })
 }
 
@@ -1278,7 +1372,7 @@ fn add_team_member(principal: Principal, role: TeamRole) -> Result<String, Strin
         }
         
         // Grant premium access and initialize earnings
-        pool_state.dev_team_business.team_member_earnings.insert(principal, 0.0);
+        pool_state.dev_team_business.team_member_earnings.insert(principal, types::MemberEarnings::default());
         pool_state.dev_team_business.team_hierarchy.last_team_change = ic_cdk::api::time();
         
         Ok(format!("Team member added successfully as {:?}", role))
@@ -1361,7 +1455,7 @@ fn approve_team_change(request_id: u64) -> Result<String, String> {
                     }
                     
                     // Grant premium access
-                    pool_state.dev_team_business.team_member_earnings.insert(request.target_principal, 0.0);
+                    pool_state.dev_team_business.team_member_earnings.insert(request.target_principal, types::MemberEarnings::default());
                 },
                 _ => {} // Handle other change types as needed
             }
@@ -1396,7 +1490,7 @@ fn get_my_earnings() -> f64 {
         let pool_state = state.borrow();
         pool_state.dev_team_business.team_member_earnings
             .get(&caller)
-            .copied()
+            .map(|earnings| earnings.total_usd_value)
             .unwrap_or(0.0)
     })
 }

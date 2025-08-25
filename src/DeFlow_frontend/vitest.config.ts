@@ -62,9 +62,7 @@ export default defineConfig({
       junit: './test-results/junit.xml'
     },
     // Watch mode configuration
-    watch: {
-      exclude: ['node_modules/**', 'dist/**']
-    },
+    watchExclude: ['node_modules/**', 'dist/**'],
     typecheck: {
       tsconfig: './tsconfig.test.json'
     }

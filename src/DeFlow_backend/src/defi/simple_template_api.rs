@@ -184,7 +184,7 @@ pub fn get_template_categories() -> SimpleApiResponse<Vec<String>> {
         "YieldFarming".to_string(),
         "Arbitrage".to_string(),
         "Rebalancing".to_string(),
-        "DCA".to_string(),
+        "DCA".to_string()
     ];
     
     SimpleApiResponse::success(categories)
@@ -207,5 +207,4 @@ pub fn init_simple_workflow_template_system() {
     SIMPLE_TEMPLATE_MANAGER.with(|_manager| {
         // Template manager is already initialized via lazy static
     });
-    ic_cdk::println!("DeFlow Simple Workflow Template System initialized successfully");
 }

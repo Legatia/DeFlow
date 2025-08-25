@@ -223,7 +223,7 @@ mod tests {
     fn test_official_service_creation() {
         let service = OfficialIcpSolanaService::new(
             SolanaNetwork::Devnet,
-            "deflow_solana_key".to_string(),
+            ic_cdk::println!("deflow_solana_key".to_string(),);
         );
         assert_eq!(service.network, SolanaNetwork::Devnet);
         assert_eq!(service.key_name, "deflow_solana_key");
@@ -238,7 +238,7 @@ mod tests {
     fn test_mock_balance_generation() {
         let service = OfficialIcpSolanaService::new(
             SolanaNetwork::Devnet,
-            "test_key".to_string(),
+            ic_cdk::println!("test_key".to_string(),);
         );
         
         let balance1 = service.generate_mock_balance("test_address_1");

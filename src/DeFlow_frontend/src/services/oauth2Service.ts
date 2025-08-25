@@ -266,7 +266,6 @@ class OAuth2Service {
     const bufferTime = 5 * 60 * 1000 // 5 minutes
     
     if (token.expires_at && token.expires_at - bufferTime < now) {
-      console.log(`Token for ${providerName} is expired, refreshing...`)
       const refreshedToken = await this.refreshToken(providerName)
       return refreshedToken.access_token
     }

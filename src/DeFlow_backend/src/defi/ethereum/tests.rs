@@ -145,7 +145,7 @@ mod integration_tests {
     fn test_icp_ethereum_service_integration() {
         let service = MinimalIcpEthereumService::new(
             "deflow_ethereum_key".to_string(),
-            Principal::anonymous(),
+            Principal::anonymous());
         );
 
         // Test service properties
@@ -273,7 +273,7 @@ mod icp_compliance_tests {
     fn test_icp_key_management() {
         let service = MinimalIcpEthereumService::new(
             "deflow_ethereum_key".to_string(),
-            Principal::anonymous(),
+            Principal::anonymous());
         );
 
         // Test that key_name follows ICP conventions
@@ -288,7 +288,7 @@ mod icp_compliance_tests {
     fn test_deterministic_address_generation() {
         let service = MinimalIcpEthereumService::new(
             "test_key".to_string(),
-            Principal::anonymous(),
+            Principal::anonymous());
         );
 
         let user = Principal::anonymous();
@@ -314,7 +314,7 @@ mod icp_compliance_tests {
     #[test]
     fn test_icp_compliance_patterns() {
         let service = MinimalIcpEthereumService::new(
-            "deflow_ethereum_key".to_string(),
+            ic_cdk::println!("deflow_ethereum_key".to_string(),);
             Principal::anonymous(), // Use anonymous instead of ic_cdk::api::id() for tests
         );
 
@@ -336,7 +336,7 @@ mod icp_compliance_tests {
     fn test_multi_chain_support() {
         let service = MinimalIcpEthereumService::new(
             "test_key".to_string(),
-            Principal::anonymous(),
+            Principal::anonymous());
         );
 
         // Test that all required EVM chains are supported
@@ -352,7 +352,7 @@ mod icp_compliance_tests {
         for required_chain in required_chains {
             assert!(
                 service.supported_chains.contains(&required_chain),
-                "Missing required chain: {:?}",
+                // Logging temporarily disabled
                 required_chain
             );
         }
