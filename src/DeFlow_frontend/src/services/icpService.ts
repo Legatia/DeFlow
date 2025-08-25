@@ -61,11 +61,8 @@ class ICPService {
 
       // Try to get the canister ID and create actor
       try {
-        // For now, we'll use a placeholder canister ID
-        // In a real app, this would come from dfx deployment
-        const canisterId = this.isLocal 
-          ? 'rdmx6-jaaaa-aaaaa-aaadq-cai' // Local canister ID
-          : 'rdmx6-jaaaa-aaaaa-aaadq-cai'; // Replace with actual mainnet ID
+        // Get canister ID from environment variables
+        const canisterId = import.meta.env.VITE_CANISTER_ID_DEFLOW_BACKEND || 'u6s2n-gx777-77774-qaaba-cai';
 
         // Create actor with safe BigInt handling
         this.actor = Actor.createActor<BackendCanister>(

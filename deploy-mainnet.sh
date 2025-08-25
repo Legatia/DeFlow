@@ -51,7 +51,16 @@ export DFX_NETWORK=ic
 
 # Deploy backend canisters first
 echo "🔨 Deploying backend canisters to mainnet..."
-dfx deploy --network ic DeFlow_pool DeFlow_backend
+
+# Deploy pool first
+dfx deploy --network ic DeFlow_pool
+
+# Get pool ID and set it as environment variable for backend deployment
+POOL_ID=$(dfx canister --network ic id DeFlow_pool)
+echo "✅ Pool canister deployed: $POOL_ID"
+
+# Deploy backend with pool canister ID
+POOL_CANISTER_ID=$POOL_ID dfx deploy --network ic DeFlow_backend
 
 # Get deployed canister IDs
 POOL_ID=$(dfx canister --network ic id DeFlow_pool)
@@ -63,8 +72,11 @@ echo "  Backend: $BACKEND_ID"
 
 # Update environment with actual canister IDs
 echo "📝 Updating environment with deployed canister IDs..."
-sed -i.bak "s/VITE_CANISTER_ID_DEFLOW_POOL=.*/VITE_CANISTER_ID_DEFLOW_POOL=$POOL_ID/" src/DeFlow_admin/.env.production
-sed -i.bak "s/VITE_CANISTER_ID_DEFLOW_BACKEND=.*/VITE_CANISTER_ID_DEFLOW_BACKEND=$BACKEND_ID/" src/DeFlow_admin/.env.production
+sed -i.bak "s/<ACTUAL_MAINNET_POOL_ID>/$POOL_ID/g" src/DeFlow_admin/.env.production
+sed -i.bak "s/<ACTUAL_MAINNET_BACKEND_ID>/$BACKEND_ID/g" src/DeFlow_admin/.env.production
+sed -i.bak "s/<ACTUAL_MAINNET_POOL_ID>/$POOL_ID/g" src/DeFlow_frontend/.env.production
+sed -i.bak "s/<ACTUAL_MAINNET_BACKEND_ID>/$BACKEND_ID/g" src/DeFlow_frontend/.env.production
+sed -i.bak "s/<MAINNET_POOL_ID>/$POOL_ID/g" src/DeFlow_backend/.env.production
 
 # Build admin with production settings
 cd src/DeFlow_admin
@@ -89,9 +101,11 @@ dfx deploy --network ic DeFlow_admin DeFlow_frontend
 ADMIN_ID=$(dfx canister --network ic id DeFlow_admin)
 FRONTEND_ID=$(dfx canister --network ic id DeFlow_frontend)
 
-# Final update of environment file
-sed -i.bak "s/VITE_CANISTER_ID_DEFLOW_ADMIN=.*/VITE_CANISTER_ID_DEFLOW_ADMIN=$ADMIN_ID/" src/DeFlow_admin/.env.production
-sed -i.bak "s/VITE_CANISTER_ID_DEFLOW_FRONTEND=.*/VITE_CANISTER_ID_DEFLOW_FRONTEND=$FRONTEND_ID/" src/DeFlow_admin/.env.production
+# Final update of environment files with remaining IDs
+sed -i.bak "s/<ACTUAL_MAINNET_ADMIN_ID>/$ADMIN_ID/g" src/DeFlow_admin/.env.production
+sed -i.bak "s/<ACTUAL_MAINNET_FRONTEND_ID>/$FRONTEND_ID/g" src/DeFlow_admin/.env.production
+sed -i.bak "s/<ACTUAL_MAINNET_ADMIN_ID>/$ADMIN_ID/g" src/DeFlow_frontend/.env.production
+sed -i.bak "s/<ACTUAL_MAINNET_FRONTEND_ID>/$FRONTEND_ID/g" src/DeFlow_frontend/.env.production
 
 echo ""
 echo "🎉 MAINNET DEPLOYMENT SUCCESSFUL!"
