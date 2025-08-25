@@ -36,7 +36,7 @@ export interface StrategyFromTemplateResponse {
 }
 
 class SimpleDefiTemplateService {
-  private canisterId: string = 'rdmx6-jaaaa-aaaah-qdrqaq-cai'; // Default local canister ID
+  private canisterId: string = import.meta.env.VITE_CANISTER_ID_DEFLOW_BACKEND || 'u6s2n-gx777-77774-qaaba-cai';
   private isInitialized = false;
 
   async initialize(canisterId?: string): Promise<void> {
@@ -69,9 +69,9 @@ class SimpleDefiTemplateService {
       const { idlFactory } = await import('../../../declarations/DeFlow_backend');
       
       // Create actor for backend canister
-      const backendActor = createActor(process.env.VITE_CANISTER_ID_DEFLOW_BACKEND || this.canisterId, {
+      const backendActor = createActor(this.canisterId, {
         agentOptions: {
-          host: process.env.NODE_ENV === 'production' ? 'https://ic0.app' : 'http://127.0.0.1:8080'
+          host: import.meta.env.VITE_DFX_NETWORK === 'ic' ? 'https://ic0.app' : 'http://127.0.0.1:4943'
         }
       });
       

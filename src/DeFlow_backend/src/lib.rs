@@ -67,17 +67,43 @@ pub use fee_collection::{
     initialize_fee_collection, TransactionFeeRequest, FeeCollectionResult
 };
 
+/// Get the appropriate pool canister ID based on the network environment
+fn get_pool_canister_id_for_network() -> Principal {
+    // Check if we're on mainnet by examining cycles balance
+    // Mainnet canisters typically have higher cycles balance than local
+    match ic_cdk::api::canister_balance128() {
+        balance if balance > 1_000_000_000_000u128 => {
+            // Mainnet - must use environment variable
+            match std::env::var("POOL_CANISTER_ID") {
+                Ok(canister_id) => {
+                    Principal::from_text(canister_id)
+                        .unwrap_or_else(|e| {
+                            ic_cdk::trap(&format!("Invalid POOL_CANISTER_ID environment variable: {}", e));
+                        })
+                },
+                Err(_) => {
+                    ic_cdk::trap("POOL_CANISTER_ID environment variable must be set for mainnet deployment");
+                }
+            }
+        },
+        _ => {
+            // Local development - use hardcoded development canister ID
+            ic_cdk::println!("INFO: Using development pool canister ID for local deployment");
+            Principal::from_text("rdmx6-jaaaa-aaaah-qcaiq-cai")
+                .unwrap_or_else(|_| {
+                    ic_cdk::println!("WARNING: Failed to parse development pool canister ID, using anonymous");
+                    Principal::anonymous()
+                })
+        }
+    }
+}
+
 #[init]
 fn init() {
     initialize_built_in_nodes();
     
-    // Initialize fee collection service with pool canister ID
-    // TODO: Replace with actual pool canister ID from environment or dfx.json
-    let pool_canister_id = Principal::from_text("rdmx6-jaaaa-aaaah-qcaiq-cai")
-        .unwrap_or_else(|_| {
-            ic_cdk::println!("WARNING: Using default pool canister ID for development");
-            Principal::anonymous()
-        });
+    // Initialize fee collection service with network-appropriate pool canister ID
+    let pool_canister_id = get_pool_canister_id_for_network();
     initialize_fee_collection(pool_canister_id);
     
     // Initialize DeFi system
