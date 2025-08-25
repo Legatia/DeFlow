@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { AdminPoolService } from '../services/adminPoolService';
 
 interface TreasuryBalance {
   chain: string;
   asset: string;
   amount: number;
   amount_usd: number;
-  last_updated: number;
+  last_updated: bigint;
   last_tx_hash?: string;
 }
 
@@ -20,7 +21,7 @@ interface TreasuryTransaction {
   to_address: string;
   tx_hash?: string;
   status: string;
-  timestamp: number;
+  timestamp: bigint;
   initiated_by: string;
   notes?: string;
 }
@@ -30,88 +31,46 @@ const TreasuryManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<'overview' | 'balances' | 'transactions' | 'earnings' | 'configure'>('overview');
 
-  // Simulate connection attempt
+  const [healthData, setHealthData] = useState<any>(null);
+  const [balances, setBalances] = useState<TreasuryBalance[]>([]);
+  const [transactions, setTransactions] = useState<TreasuryTransaction[]>([]);
+  const [teamEarnings, setTeamEarnings] = useState<Record<string, any>>({});
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    const simulateConnection = async () => {
-      setLoading(true);
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      // For now, always show as disconnected (placeholder mode)
-      setIsConnected(false);
-      setLoading(false);
-    };
-    
-    simulateConnection();
+    loadTreasuryData();
   }, []);
 
-  // Sample data for demonstration
-  const sampleHealthData = {
-    total_usd_value: 847250.00,
-    total_assets: 8,
-    hot_wallet_utilization: 23.5,
-    diversification_score: 0.85,
-    pending_withdrawals: 3,
-    security_alerts: [
-      "✅ All wallets are secure and monitored",
-      "✅ Multi-signature protection active", 
-      "⚠️ High balance detected in hot wallet (>$50k)",
-      "🕐 Next security audit scheduled for next week"
-    ]
+  const loadTreasuryData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Load real data from the pool canister
+      const [healthReport, treasuryBalances, treasuryTransactions, allTeamEarnings] = await Promise.all([
+        AdminPoolService.getTreasuryHealthReport(),
+        AdminPoolService.getAllTreasuryBalances(), 
+        AdminPoolService.getTreasuryTransactions(50),
+        AdminPoolService.getAllTeamEarnings()
+      ]);
+      
+      setHealthData(healthReport);
+      setBalances(treasuryBalances);
+      setTransactions(treasuryTransactions);
+      setTeamEarnings(allTeamEarnings);
+      setIsConnected(true);
+    } catch (err) {
+      console.error('Failed to load treasury data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to connect to treasury');
+      setIsConnected(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const sampleBalances: TreasuryBalance[] = [
-    { chain: "Bitcoin", asset: "BTC", amount: 12.5, amount_usd: 425000.00, last_updated: Date.now() - 300000 },
-    { chain: "Ethereum", asset: "ETH", amount: 85.3, amount_usd: 285000.00, last_updated: Date.now() - 600000 },
-    { chain: "Ethereum", asset: "USDC", amount: 75000, amount_usd: 75000.00, last_updated: Date.now() - 120000 },
-    { chain: "Solana", asset: "SOL", amount: 850, amount_usd: 25500.00, last_updated: Date.now() - 900000 },
-    { chain: "Polygon", asset: "MATIC", amount: 12000, amount_usd: 18000.00, last_updated: Date.now() - 450000 },
-    { chain: "Arbitrum", asset: "ETH", amount: 8.2, amount_usd: 15750.00, last_updated: Date.now() - 750000 },
-  ];
-
-  const sampleTransactions: TreasuryTransaction[] = [
-    {
-      id: "tx_001",
-      transaction_type: "TransactionFeeRevenue",
-      chain: "Ethereum",
-      asset: "ETH", 
-      amount: 2.5,
-      amount_usd: 8750.00,
-      from_address: "0x1234...5678",
-      to_address: "Treasury",
-      status: "Confirmed",
-      timestamp: Date.now() - 3600000,
-      initiated_by: "System",
-      notes: "DeFi arbitrage fees collected"
-    },
-    {
-      id: "tx_002", 
-      transaction_type: "SubscriptionPayment",
-      chain: "Bitcoin",
-      asset: "BTC",
-      amount: 0.05,
-      amount_usd: 1750.00,
-      from_address: "1ABC...XYZ9",
-      to_address: "Treasury",
-      status: "Confirmed", 
-      timestamp: Date.now() - 7200000,
-      initiated_by: "User",
-      notes: "Monthly subscription payment"
-    },
-    {
-      id: "tx_003",
-      transaction_type: "WithdrawalToTeam",
-      chain: "Ethereum",
-      asset: "USDC",
-      amount: 5000,
-      amount_usd: 5000.00,
-      from_address: "Treasury",
-      to_address: "0xABCD...1234",
-      status: "Pending",
-      timestamp: Date.now() - 1800000,
-      initiated_by: "Admin",
-      notes: "Team member earnings withdrawal"
-    }
-  ];
+  const refreshData = async () => {
+    await loadTreasuryData();
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -173,9 +132,13 @@ const TreasuryManagement: React.FC = () => {
               }`}></div>
               <span>{isConnected ? 'Connected' : 'Demo Mode'}</span>
             </div>
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+            <button 
+              onClick={refreshData}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              disabled={loading}
+            >
               <span className="flex items-center">
-                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Refresh
@@ -185,17 +148,22 @@ const TreasuryManagement: React.FC = () => {
         </div>
 
         {/* Connection Status Banner */}
-        {!isConnected && (
-          <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
+        {error && (
+          <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex">
-              <svg className="h-5 w-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <div className="ml-3">
-                <p className="text-sm text-orange-800">
-                  <strong>Demo Mode:</strong> Unable to connect to treasury backend services. 
-                  Showing sample data for demonstration purposes.
+                <p className="text-sm text-red-800">
+                  <strong>Connection Error:</strong> {error}
                 </p>
+                <button 
+                  onClick={refreshData}
+                  className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                >
+                  Retry Connection
+                </button>
               </div>
             </div>
           </div>
@@ -238,25 +206,25 @@ const TreasuryManagement: React.FC = () => {
                 <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
                   <h3 className="text-sm font-medium text-blue-700">Total Treasury Value</h3>
                   <p className="text-2xl font-bold text-blue-900 mt-1">
-                    {formatCurrency(sampleHealthData.total_usd_value)}
+                    {formatCurrency(healthData?.total_usd_value || 0)}
                   </p>
                 </div>
                 <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
                   <h3 className="text-sm font-medium text-green-700">Total Assets</h3>
                   <p className="text-2xl font-bold text-green-900 mt-1">
-                    {sampleHealthData.total_assets}
+                    {healthData?.total_assets || 0}
                   </p>
                 </div>
                 <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
                   <h3 className="text-sm font-medium text-yellow-700">Hot Wallet Usage</h3>
                   <p className="text-2xl font-bold text-yellow-900 mt-1">
-                    {sampleHealthData.hot_wallet_utilization.toFixed(1)}%
+                    {(healthData?.hot_wallet_utilization || 0).toFixed(1)}%
                   </p>
                 </div>
                 <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg">
                   <h3 className="text-sm font-medium text-purple-700">Diversification</h3>
                   <p className="text-2xl font-bold text-purple-900 mt-1">
-                    {(sampleHealthData.diversification_score * 100).toFixed(1)}%
+                    {((healthData?.diversification_score || 0) * 100).toFixed(1)}%
                   </p>
                 </div>
               </div>
@@ -265,7 +233,7 @@ const TreasuryManagement: React.FC = () => {
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Security Status</h3>
                 <div className="space-y-2">
-                  {sampleHealthData.security_alerts.map((alert, index) => (
+                  {(healthData?.security_alerts || []).map((alert: string, index: number) => (
                     <div key={index} className={`p-3 rounded-lg text-sm ${
                       alert.includes('✅') ? 'bg-green-100 text-green-800' :
                       alert.includes('⚠️') ? 'bg-yellow-100 text-yellow-800' :
@@ -346,7 +314,7 @@ const TreasuryManagement: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {sampleBalances.map((balance, index) => (
+                    {balances.map((balance, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           <span className="capitalize font-medium">{balance.chain}</span>
@@ -361,7 +329,7 @@ const TreasuryManagement: React.FC = () => {
                           {formatCurrency(balance.amount_usd)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatTimestamp(balance.last_updated)}
+                          {formatTimestamp(Number(balance.last_updated) / 1000000)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <button className="text-blue-600 hover:text-blue-800">View Details</button>
@@ -391,7 +359,7 @@ const TreasuryManagement: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {sampleTransactions.map((transaction, index) => (
+                    {transactions.map((transaction, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTransactionTypeColor(transaction.transaction_type)}`}>
@@ -411,7 +379,7 @@ const TreasuryManagement: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatTimestamp(transaction.timestamp)}
+                          {formatTimestamp(Number(transaction.timestamp) / 1000000)}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
                           {transaction.notes || '-'}
@@ -432,58 +400,78 @@ const TreasuryManagement: React.FC = () => {
               {/* Earnings Distribution Overview */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-                  <h4 className="text-sm font-medium text-green-700">Monthly Revenue</h4>
-                  <p className="text-2xl font-bold text-green-900 mt-1">$125,450</p>
-                  <p className="text-xs text-green-600 mt-1">↑ 23.5% from last month</p>
+                  <h4 className="text-sm font-medium text-green-700">Total Team Earnings</h4>
+                  <p className="text-2xl font-bold text-green-900 mt-1">
+                    {formatCurrency(
+                      Object.values(teamEarnings).reduce((total: number, member: any) => 
+                        total + (member.total_usd_value || 0), 0
+                      )
+                    )}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">Available for withdrawal</p>
                 </div>
                 <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg">
-                  <h4 className="text-sm font-medium text-purple-700">Team Allocation</h4>
-                  <p className="text-2xl font-bold text-purple-900 mt-1">35.0%</p>
-                  <p className="text-xs text-purple-600 mt-1">$43,908 distributed</p>
+                  <h4 className="text-sm font-medium text-purple-700">Team Members</h4>
+                  <p className="text-2xl font-bold text-purple-900 mt-1">{Object.keys(teamEarnings).length}</p>
+                  <p className="text-xs text-purple-600 mt-1">Active earning members</p>
                 </div>
                 <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                  <h4 className="text-sm font-medium text-blue-700">Owner Share</h4>
-                  <p className="text-2xl font-bold text-blue-900 mt-1">65.0%</p>
-                  <p className="text-xs text-blue-600 mt-1">$81,542 retained</p>
+                  <h4 className="text-sm font-medium text-blue-700">Treasury Health</h4>
+                  <p className="text-2xl font-bold text-blue-900 mt-1">
+                    {formatCurrency(healthData?.total_usd_value || 0)}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">Total treasury value</p>
                 </div>
               </div>
 
               {/* Individual Team Earnings */}
               <div className="bg-white border border-gray-200 rounded-lg">
                 <div className="px-6 py-4 border-b border-gray-200">
-                  <h4 className="text-lg font-medium text-gray-900">Individual Earnings (Demo Data)</h4>
-                  <p className="text-sm text-gray-600">Based on custom percentage allocation set by owner</p>
+                  <h4 className="text-lg font-medium text-gray-900">Team Member Earnings</h4>
+                  <p className="text-sm text-gray-600">Real-time earnings from pool canister</p>
                 </div>
                 <div className="p-6">
-                  <div className="space-y-4">
-                    {[
-                      { principal: "rdmx6-jaaaa-aaaah-qcaiq-cai", role: "Senior Developer", percentage: 15.0, earnings: 18817.50 },
-                      { principal: "rrkah-fqaaa-aaaah-qcaiq-cai", role: "Marketing Lead", percentage: 12.0, earnings: 15054.00 },
-                      { principal: "be2us-64aaa-aaaah-qc6hq-cai", role: "Product Manager", percentage: 8.0, earnings: 10036.00 }
-                    ].map((member, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div className="flex-1">
-                          <div className="flex items-center">
-                            <p className="font-mono text-sm text-gray-800">
-                              {member.principal.slice(0, 10)}...{member.principal.slice(-10)}
+                  {isConnected && Object.keys(teamEarnings).length > 0 ? (
+                    <div className="space-y-4">
+                      {Object.entries(teamEarnings).map(([principal, earnings]: [string, any]) => (
+                        <div key={principal} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                          <div className="flex-1">
+                            <div className="flex items-center">
+                              <p className="font-mono text-sm text-gray-800">
+                                {principal.slice(0, 10)}...{principal.slice(-10)}
+                              </p>
+                              <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                Team Member
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-600 mt-1">
+                              Last distribution: {earnings.last_distribution_time ? 
+                                new Date(Number(earnings.last_distribution_time) / 1000000).toLocaleDateString() : 
+                                'Never'
+                              }
                             </p>
-                            <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                              {member.role}
-                            </span>
                           </div>
-                          <p className="text-xs text-gray-600 mt-1">
-                            Allocation: {member.percentage}% of total revenue
-                          </p>
+                          <div className="text-right">
+                            <p className="text-lg font-semibold text-gray-900">
+                              {formatCurrency(earnings.total_usd_value || 0)}
+                            </p>
+                            <p className="text-xs text-gray-600">Available to withdraw</p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-lg font-semibold text-gray-900">
-                            ${member.earnings.toLocaleString()}
-                          </p>
-                          <p className="text-xs text-gray-600">This month</p>
-                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="text-gray-400 mb-2">
+                        <svg className="h-12 w-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
                       </div>
-                    ))}
-                  </div>
+                      <p className="text-gray-500 text-sm">
+                        {error ? error : isConnected ? 'No team members found' : 'Connecting to treasury...'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -1,93 +1,48 @@
 import React, { useState, useEffect } from 'react';
+import { AdminPoolService } from '../services/adminPoolService';
 
 interface PoolState {
   phase: string;
   total_liquidity_usd: number;
   monthly_volume: number;
   fee_collection_rate: number;
+  team_earnings: Record<string, number>;
   bootstrap_progress: number;
-  dev_earnings_pending: number;
-  emergency_fund: number;
 }
 
-interface ArbitrageOpportunity {
-  asset_pair: [string, string];
-  buy_chain: string;
-  sell_chain: string;
-  price_difference: number;
-  expected_profit: number;
-  required_capital: number;
-  confidence_score: number;
-}
 
 const PoolManagement: React.FC = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'liquidity' | 'arbitrage' | 'configure'>('overview');
 
-  // Simulate connection attempt
+  const [poolState, setPoolState] = useState<PoolState | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    const simulateConnection = async () => {
-      setLoading(true);
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      // For now, always show as disconnected (placeholder mode)
-      setIsConnected(false);
-      setLoading(false);
-    };
-    
-    simulateConnection();
+    loadPoolData();
   }, []);
 
-  // Sample data for demonstration
-  const samplePoolState: PoolState = {
-    phase: "Active",
-    total_liquidity_usd: 2547830.50,
-    monthly_volume: 15842650.00,
-    fee_collection_rate: 0.003, // 0.3%
-    bootstrap_progress: 100,
-    dev_earnings_pending: 45230.80,
-    emergency_fund: 125000.00
+  const loadPoolData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const state = await AdminPoolService.getPoolState();
+      setPoolState(state);
+      setIsConnected(true);
+    } catch (err) {
+      console.error('Failed to load pool data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to connect to pool');
+      setIsConnected(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const sampleArbitrageOpportunities: ArbitrageOpportunity[] = [
-    {
-      asset_pair: ["BTC", "ETH"],
-      buy_chain: "Bitcoin",
-      sell_chain: "Ethereum",
-      price_difference: 2.3,
-      expected_profit: 8750.50,
-      required_capital: 250000.00,
-      confidence_score: 0.89
-    },
-    {
-      asset_pair: ["ETH", "USDC"],
-      buy_chain: "Arbitrum",
-      sell_chain: "Ethereum",
-      price_difference: 1.8,
-      expected_profit: 3245.20,
-      required_capital: 150000.00,
-      confidence_score: 0.76
-    },
-    {
-      asset_pair: ["SOL", "USDC"],
-      buy_chain: "Solana",
-      sell_chain: "Polygon", 
-      price_difference: 0.9,
-      expected_profit: 1850.30,
-      required_capital: 85000.00,
-      confidence_score: 0.92
-    }
-  ];
-
-  const liquidityPools = [
-    { chain: "Ethereum", protocol: "Uniswap V3", tvl_usd: 847250.00, apy: 12.5, fees_24h: 2840.50 },
-    { chain: "Arbitrum", protocol: "SushiSwap", tvl_usd: 425800.00, apy: 18.3, fees_24h: 1950.20 },
-    { chain: "Polygon", protocol: "QuickSwap", tvl_usd: 324650.00, apy: 22.1, fees_24h: 1850.80 },
-    { chain: "Solana", protocol: "Raydium", tvl_usd: 298430.00, apy: 15.7, fees_24h: 1425.30 },
-    { chain: "Base", protocol: "Aerodrome", tvl_usd: 185720.00, apy: 28.4, fees_24h: 980.60 },
-    { chain: "Optimism", protocol: "Velodrome", tvl_usd: 165680.00, apy: 19.8, fees_24h: 850.40 }
-  ];
+  const refreshData = async () => {
+    await loadPoolData();
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -142,11 +97,15 @@ const PoolManagement: React.FC = () => {
               <div className={`w-2 h-2 rounded-full ${
                 isConnected ? 'bg-green-500' : 'bg-orange-500'
               }`}></div>
-              <span>{isConnected ? 'Connected' : 'Demo Mode'}</span>
+              <span>{isConnected ? 'Connected' : error ? 'Error' : 'Connecting'}</span>
             </div>
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+            <button 
+              onClick={refreshData}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              disabled={loading}
+            >
               <span className="flex items-center">
-                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Refresh
@@ -156,17 +115,22 @@ const PoolManagement: React.FC = () => {
         </div>
 
         {/* Connection Status Banner */}
-        {!isConnected && (
-          <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
+        {error && (
+          <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex">
-              <svg className="h-5 w-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <div className="ml-3">
-                <p className="text-sm text-orange-800">
-                  <strong>Demo Mode:</strong> Unable to connect to pool backend services. 
-                  Showing sample data for demonstration purposes.
+                <p className="text-sm text-red-800">
+                  <strong>Connection Error:</strong> {error}
                 </p>
+                <button 
+                  onClick={refreshData}
+                  className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                >
+                  Retry Connection
+                </button>
               </div>
             </div>
           </div>
@@ -208,25 +172,25 @@ const PoolManagement: React.FC = () => {
                 <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
                   <h3 className="text-sm font-medium text-blue-700">Total Liquidity</h3>
                   <p className="text-2xl font-bold text-blue-900 mt-1">
-                    {formatCurrency(samplePoolState.total_liquidity_usd)}
+                    {formatCurrency(poolState?.total_liquidity_usd || 0)}
                   </p>
                 </div>
                 <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
                   <h3 className="text-sm font-medium text-green-700">Monthly Volume</h3>
                   <p className="text-2xl font-bold text-green-900 mt-1">
-                    {formatCurrency(samplePoolState.monthly_volume)}
+                    {formatCurrency(poolState?.monthly_volume || 0)}
                   </p>
                 </div>
                 <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg">
                   <h3 className="text-sm font-medium text-purple-700">Fee Collection</h3>
                   <p className="text-2xl font-bold text-purple-900 mt-1">
-                    {formatPercentage(samplePoolState.fee_collection_rate)}
+                    {formatPercentage(poolState?.fee_collection_rate || 0)}
                   </p>
                 </div>
                 <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
                   <h3 className="text-sm font-medium text-yellow-700">Dev Earnings</h3>
                   <p className="text-2xl font-bold text-yellow-900 mt-1">
-                    {formatCurrency(samplePoolState.dev_earnings_pending)}
+                    {formatCurrency(Object.values(poolState?.team_earnings || {}).reduce((a, b) => a + b, 0))}
                   </p>
                 </div>
               </div>
@@ -235,8 +199,8 @@ const PoolManagement: React.FC = () => {
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium text-gray-900">Pool Status</h3>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getPhaseColor(samplePoolState.phase)}`}>
-                    {samplePoolState.phase}
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getPhaseColor(poolState?.phase || 'Unknown')}`}>
+                    {poolState?.phase || 'Unknown'}
                   </span>
                 </div>
                 
@@ -246,16 +210,16 @@ const PoolManagement: React.FC = () => {
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-blue-600 h-2 rounded-full" 
-                        style={{ width: `${samplePoolState.bootstrap_progress}%` }}
+                        style={{ width: `${(poolState?.bootstrap_progress || 0) * 100}%` }}
                       ></div>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">{samplePoolState.bootstrap_progress}% Complete</p>
+                    <p className="text-sm text-gray-600 mt-1">{((poolState?.bootstrap_progress || 0) * 100).toFixed(1)}% Complete</p>
                   </div>
                   
                   <div className="bg-white border border-gray-200 rounded-lg p-4">
                     <h4 className="font-medium text-gray-900 mb-2">Emergency Fund</h4>
                     <p className="text-xl font-bold text-gray-900">
-                      {formatCurrency(samplePoolState.emergency_fund)}
+                      {formatCurrency(poolState?.team_earnings?.emergency_fund || 0)}
                     </p>
                     <p className="text-sm text-green-600 mt-1">Fully Funded</p>
                   </div>
@@ -339,6 +303,20 @@ const PoolManagement: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
+                    {isConnected ? (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                          Liquidity pools data will be loaded from the pool canister
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                          {error || 'Connecting to pool...'}
+                        </td>
+                      </tr>
+                    )}
+                    {/* Placeholder for when we implement pool management
                     {liquidityPools.map((pool, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -365,7 +343,8 @@ const PoolManagement: React.FC = () => {
                           <button className="hover:text-blue-800">Manage</button>
                         </td>
                       </tr>
-                    ))}
+                    ))
+                    */}
                   </tbody>
                 </table>
               </div>
@@ -377,66 +356,36 @@ const PoolManagement: React.FC = () => {
             <div className="space-y-6">
               <h3 className="text-lg font-medium text-gray-900">Arbitrage Opportunities</h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {sampleArbitrageOpportunities.map((opportunity, index) => (
-                  <div key={index} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-medium text-gray-900">
-                        {opportunity.asset_pair[0]} / {opportunity.asset_pair[1]}
-                      </h4>
-                      <span className={`font-medium ${getConfidenceColor(opportunity.confidence_score)}`}>
-                        {(opportunity.confidence_score * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Route:</span>
-                        <span className="text-sm font-medium text-gray-900">
-                          {opportunity.buy_chain} → {opportunity.sell_chain}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Price Difference:</span>
-                        <span className="text-sm font-medium text-green-600">
-                          +{opportunity.price_difference.toFixed(1)}%
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Expected Profit:</span>
-                        <span className="text-sm font-medium text-green-600">
-                          {formatCurrency(opportunity.expected_profit)}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Required Capital:</span>
-                        <span className="text-sm font-medium text-gray-900">
-                          {formatCurrency(opportunity.required_capital)}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <button className="mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
-                      Execute Arbitrage
-                    </button>
+              {isConnected ? (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                  <div className="flex items-center mb-4">
+                    <svg className="h-5 w-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h4 className="text-lg font-medium text-blue-800">Arbitrage Opportunities</h4>
                   </div>
-                ))}
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center">
-                  <svg className="h-5 w-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-blue-800 text-sm">
-                    <strong>Note:</strong> Arbitrage execution requires connection to the pool backend services.
-                    These are demo opportunities for interface demonstration.
+                  <p className="text-blue-700 mb-4">
+                    Arbitrage opportunities will be displayed here when connected to the pool backend.
+                    The system will automatically scan for profitable cross-chain arbitrage opportunities.
+                  </p>
+                  <div className="bg-white border border-blue-200 rounded-lg p-4">
+                    <h5 className="font-medium text-blue-800 mb-2">Features:</h5>
+                    <ul className="text-blue-700 text-sm space-y-1">
+                      <li>• Real-time cross-chain price monitoring</li>
+                      <li>• Automated arbitrage execution</li>
+                      <li>• Risk assessment and confidence scoring</li>
+                      <li>• Gas fee optimization</li>
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                  <p className="text-red-700">
+                    {error || 'Unable to connect to arbitrage services'}
                   </p>
                 </div>
-              </div>
+              )}
+
             </div>
           )}
 

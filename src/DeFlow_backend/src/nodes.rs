@@ -4,8 +4,11 @@ use crate::types::{
     ExecutionContext
 };
 use crate::storage;
+use crate::defi::{ChainId, Asset};
 use crate::defi::types::*;
-use ic_cdk::{api, update, query};
+use crate::fee_collection::{FeeCollectionService, TransactionFeeRequest};
+use ic_cdk::{api, update, query, caller};
+use candid::Principal;
 use std::collections::HashMap;
 
 #[allow(dead_code)]
@@ -51,6 +54,75 @@ pub fn list_nodes_by_category(category: String) -> Vec<NodeDefinition> {
     })
 }
 
+/// Helper function to collect transaction fees for DeFi operations
+async fn collect_defi_operation_fee(
+    user: Principal, 
+    transaction_value_usd: u64, 
+    operation_type: &str,
+    asset: Asset
+) -> Result<(), String> {
+    if transaction_value_usd == 0 {
+        return Ok(()); // No fee for zero-value operations
+    }
+
+    let fee_request = TransactionFeeRequest {
+        user,
+        transaction_value_usd,
+        asset,
+        operation_type: operation_type.to_string(),
+    };
+
+    match FeeCollectionService::collect_transaction_fee(fee_request).await {
+        Ok(result) if result.success => {
+            ic_cdk::println!(
+                "Fee collected: User={}, Amount=${}, Operation={}, Fee=${}", 
+                user.to_text(), 
+                transaction_value_usd, 
+                operation_type,
+                result.fee_amount
+            );
+            Ok(())
+        }
+        Ok(result) => {
+            let error_msg = result.error.unwrap_or("Unknown fee collection error".to_string());
+            ic_cdk::println!("Fee collection failed: {}", error_msg);
+            // For now, don't fail the entire operation if fee collection fails
+            // In production, you might want to queue for retry or fail the operation
+            Ok(())
+        }
+        Err(e) => {
+            ic_cdk::println!("Fee collection error: {}", e);
+            // Don't fail the DeFi operation due to fee collection issues in beta
+            Ok(())
+        }
+    }
+}
+
+/// Extract transaction value from node parameters or input data
+fn extract_transaction_value(
+    node: &WorkflowNode, 
+    input_data: &HashMap<String, ConfigValue>
+) -> u64 {
+    // Try to get transaction amount from node configuration
+    if let Some(ConfigValue::Number(amount)) = node.configuration.parameters.get("amount") {
+        return *amount as u64;
+    }
+    
+    // Try to get from input data
+    if let Some(ConfigValue::Number(amount)) = input_data.get("amount") {
+        return *amount as u64;
+    }
+    
+    // Try common parameter names
+    for key in &["value", "transaction_value", "amount_usd", "trade_size"] {
+        if let Some(ConfigValue::Number(amount)) = input_data.get(*key) {
+            return *amount as u64;
+        }
+    }
+    
+    0 // Default to 0 if no value found
+}
+
 pub async fn execute_node_internal(
     node: &WorkflowNode,
     input_data: &HashMap<String, ConfigValue>,
@@ -66,6 +138,35 @@ pub async fn execute_node_internal(
     
     let start_time = api::time();
     
+    // Check if this is a DeFi operation that requires fee collection
+    let is_defi_operation = matches!(node.node_type.as_str(), 
+        "bitcoin_send" | "ethereum_send" | "swap" | "yield_farm" | 
+        "arbitrage" | "lending" | "borrowing" | "bridge_analysis" |
+        "l2_optimization"
+    );
+    
+    // Collect fee before executing DeFi operations
+    if is_defi_operation {
+        let transaction_value = extract_transaction_value(node, input_data);
+        if transaction_value > 0 {
+            // Get user from context (for now use anonymous, in production get from context)
+            let user = caller(); // Get the actual caller
+            
+            // Create a default asset (should be extracted from node config in production)
+            let asset = Asset {
+                symbol: "USDC".to_string(),
+                name: "USD Coin".to_string(),
+                chain: ChainId::Ethereum,
+                contract_address: Some("0xA0b86a33E6411E6A3fc0c39E4e90C8C4Bb8eF5E8".to_string()),
+                decimals: 6,
+                is_native: false,
+            };
+            
+            // Collect fee (non-blocking - don't fail operation if fee collection fails)
+            let _ = collect_defi_operation_fee(user, transaction_value, &node.node_type, asset).await;
+        }
+    }
+
     let result = match node.node_type.as_str() {
         "delay" => execute_delay_node(node, input_data).await,
         "condition" => execute_condition_node(node, input_data).await,

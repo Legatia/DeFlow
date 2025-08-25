@@ -147,8 +147,8 @@ class DeFiTemplateService {
       }
     } catch (error) {
       console.error('Error listing workflow templates:', error);
-      // Return mock data for development
-      return this.getMockTemplates();
+      // Return empty array for production - no fallback to mock data
+      throw new Error('Backend service unavailable');
     }
   }
 
@@ -165,8 +165,8 @@ class DeFiTemplateService {
       }
     } catch (error) {
       console.error('Error getting templates by category:', error);
-      // Return filtered mock data
-      return this.getMockTemplates().filter(t => t.category === category);
+      // Don't fall back to mock data
+      throw error;
     }
   }
 
@@ -184,7 +184,7 @@ class DeFiTemplateService {
     } catch (error) {
       console.error('Error getting template by ID:', error);
       // Return mock data
-      return this.getMockTemplates().find(t => t.id === templateId) || null;
+      throw error; // Don't fall back to mock data
     }
   }
 
@@ -243,10 +243,7 @@ class DeFiTemplateService {
     } catch (error) {
       console.error('Error getting template recommendations:', error);
       // Return filtered mock data based on criteria
-      return this.getMockTemplates().filter(t => 
-        t.risk_score <= riskTolerance && 
-        t.min_capital_usd <= capitalAmount
-      );
+      throw error; // Don't fall back to mock data
     }
   }
 
@@ -268,61 +265,7 @@ class DeFiTemplateService {
     }
   }
 
-  // Mock data for development/fallback
-  private getMockTemplates(): DeFiWorkflowTemplate[] {
-    return [
-      {
-        id: 'conservative_yield',
-        name: 'Conservative Yield Farming',
-        description: 'Low-risk yield farming on established protocols',
-        category: 'YieldFarming',
-        difficulty: 'Beginner',
-        estimated_apy: 4.5,
-        risk_score: 3,
-        min_capital_usd: 100.0
-      },
-      {
-        id: 'basic_arbitrage',
-        name: 'Cross-Chain Arbitrage',
-        description: 'Automated arbitrage opportunities across chains',
-        category: 'Arbitrage',
-        difficulty: 'Advanced',
-        estimated_apy: 12.0,
-        risk_score: 7,
-        min_capital_usd: 1000.0
-      },
-      {
-        id: 'icp_arbitrage',
-        name: 'ICP-ETH Arbitrage via KongSwap',
-        description: 'Arbitrage between ICP DEXs and Ethereum using KongSwap',
-        category: 'Arbitrage',
-        difficulty: 'Intermediate',
-        estimated_apy: 8.5,
-        risk_score: 6,
-        min_capital_usd: 500.0
-      },
-      {
-        id: 'portfolio_rebalancing',
-        name: 'Portfolio Rebalancing',
-        description: 'Maintain optimal asset allocation',
-        category: 'Rebalancing',
-        difficulty: 'Intermediate',
-        estimated_apy: 6.0,
-        risk_score: 5,
-        min_capital_usd: 500.0
-      },
-      {
-        id: 'dollar_cost_averaging',
-        name: 'Dollar Cost Averaging',
-        description: 'Systematic investment strategy',
-        category: 'DCA',
-        difficulty: 'Beginner',
-        estimated_apy: 8.0,
-        risk_score: 4,
-        min_capital_usd: 50.0
-      }
-    ];
-  }
+  // REMOVED: Mock data removed for production deployment
 
   // Utility methods
   getCategoryIcon(category: string): string {

@@ -61,104 +61,62 @@ class SimpleDefiTemplateService {
     }
   }
 
-  // Helper method to make direct canister calls via dfx
+  // Make real canister calls to DeFlow backend
   private async callCanister(method: string, args: any[] = []): Promise<any> {
     try {
-      // For now, we'll return mock data since direct dfx calls from browser are not straightforward
+      // Import the backend canister declarations
+      const { createActor } = await import('../../../declarations/DeFlow_backend');
+      const { idlFactory } = await import('../../../declarations/DeFlow_backend');
       
-      // In a real implementation, you could use a proxy server or the agent-js library
-      // For demo purposes, we'll use mock data
-      throw new Error('Using mock data - canister not directly accessible from browser');
+      // Create actor for backend canister
+      const backendActor = createActor(process.env.VITE_CANISTER_ID_DEFLOW_BACKEND || this.canisterId, {
+        agentOptions: {
+          host: process.env.NODE_ENV === 'production' ? 'https://ic0.app' : 'http://127.0.0.1:8080'
+        }
+      });
+      
+      // Make the actual canister call
+      const result = await (backendActor as any)[method](...args);
+      
+      return result;
     } catch (error) {
-      console.warn(`Canister call failed for ${method}:`, error);
-      // Return mock data as fallback
-      return this.getMockResponse(method, args);
+      console.error(`Canister call failed for ${method}:`, error);
+      throw new Error(`Backend service unavailable: ${method}`);
     }
   }
 
-  // Mock response generator
-  private getMockResponse(method: string, args: any[]): any {
-    switch (method) {
-      case 'list_workflow_templates':
+  // Handle canister response format
+  private processCanisterResponse(response: any, method: string): any {
+    // Handle different response formats from the canister
+    if (response && typeof response === 'object') {
+      // If response has 'Ok' field (Result type)
+      if ('Ok' in response) {
         return {
           success: true,
-          data: {
-            templates: this.getMockTemplates(),
-            total_count: 4
-          },
+          data: response.Ok,
           error: null,
           timestamp: Date.now()
         };
-      
-      case 'get_templates_by_category':
-        const category = args[0];
-        return {
-          success: true,
-          data: {
-            templates: this.getMockTemplates().filter(t => t.category === category),
-            total_count: this.getMockTemplates().filter(t => t.category === category).length
-          },
-          error: null,
-          timestamp: Date.now()
-        };
-      
-      case 'get_template_by_id':
-        const templateId = args[0];
-        const template = this.getMockTemplates().find(t => t.id === templateId);
-        return {
-          success: !!template,
-          data: template,
-          error: template ? null : 'Template not found',
-          timestamp: Date.now()
-        };
-      
-      case 'create_strategy_from_simple_template':
-        return {
-          success: true,
-          data: {
-            strategy_id: `mock_strategy_${Date.now()}`,
-            strategy_config: {},
-            estimated_setup_time: 5,
-            deployment_status: 'created'
-          },
-          error: null,
-          timestamp: Date.now()
-        };
-      
-      case 'get_simple_template_recommendations':
-        const [riskTolerance, capitalAmount, experienceLevel] = args;
-        return {
-          success: true,
-          data: {
-            templates: this.getMockTemplates().filter(t => 
-              t.risk_score <= riskTolerance && 
-              t.min_capital_usd <= capitalAmount
-            ),
-            total_count: this.getMockTemplates().filter(t => 
-              t.risk_score <= riskTolerance && 
-              t.min_capital_usd <= capitalAmount
-            ).length
-          },
-          error: null,
-          timestamp: Date.now()
-        };
-      
-      case 'get_template_categories':
-        return {
-          success: true,
-          data: ['YieldFarming', 'Arbitrage', 'Rebalancing', 'DCA'],
-          error: null,
-          timestamp: Date.now()
-        };
-      
-      default:
+      }
+      // If response has 'Err' field (Result type)
+      if ('Err' in response) {
         return {
           success: false,
           data: null,
-          error: `Unknown method: ${method}`,
+          error: response.Err,
           timestamp: Date.now()
         };
+      }
+      // Direct response format
+      return {
+        success: true,
+        data: response,
+        error: null,
+        timestamp: Date.now()
+      };
     }
+    
+    throw new Error(`Invalid response format from ${method}`);
   }
 
   // Public API methods
@@ -171,14 +129,18 @@ class SimpleDefiTemplateService {
       
       const response = await this.callCanister('list_workflow_templates');
       
-      if (response?.success && response?.data?.templates) {
-        return this.sanitizeTemplates(response.data.templates);
+      const processedResponse = this.processCanisterResponse(response, 'list_workflow_templates');
+      
+      if (processedResponse.success && processedResponse.data) {
+        // Handle different possible data structures
+        const templates = processedResponse.data.templates || processedResponse.data || [];
+        return this.sanitizeTemplates(Array.isArray(templates) ? templates : []);
       } else {
-        throw new Error(response?.error || 'Failed to fetch templates');
+        throw new Error(processedResponse.error || 'Failed to fetch templates');
       }
     } catch (error) {
       console.error('Error listing workflow templates:', error);
-      return this.getUpdatedMockTemplates();
+      throw error; // Don't fall back to mock data for production
     }
   }
 
@@ -195,7 +157,7 @@ class SimpleDefiTemplateService {
       }
     } catch (error) {
       console.error('Error getting templates by category:', error);
-      return this.getMockTemplates().filter(t => t.category === category);
+      throw error; // Don't fall back to mock data
     }
   }
 
@@ -212,7 +174,7 @@ class SimpleDefiTemplateService {
       }
     } catch (error) {
       console.error('Error getting template by ID:', error);
-      return this.getMockTemplates().find(t => t.id === templateId) || null;
+      throw error; // Don't fall back to mock data
     }
   }
 
@@ -251,22 +213,8 @@ class SimpleDefiTemplateService {
     } catch (error) {
       console.error('Error creating strategy from template:', error);
       
-      // Enhanced mock response with real data context
-      const template = this.getUpdatedMockTemplates().find(t => t.id === templateId);
-      return {
-        strategy_id: `strategy_${templateId}_${Date.now()}`,
-        strategy_config: {
-          template_id: templateId,
-          capital_amount: capitalAmount,
-          estimated_apy: template?.estimated_apy || 5.0,
-          market_conditions: {
-            avg_yield: this.realMarketData.avgYieldAPY,
-            volatility: this.realMarketData.marketVolatility
-          }
-        },
-        estimated_setup_time: 5,
-        deployment_status: 'created'
-      };
+      // Return error instead of mock data for production
+      throw error;
     }
   }
 
@@ -291,10 +239,7 @@ class SimpleDefiTemplateService {
       }
     } catch (error) {
       console.error('Error getting template recommendations:', error);
-      return this.getMockTemplates().filter(t => 
-        t.risk_score <= riskTolerance && 
-        t.min_capital_usd <= capitalAmount
-      );
+      throw error; // Don't fall back to mock data
     }
   }
 
@@ -355,58 +300,7 @@ class SimpleDefiTemplateService {
     }
   }
 
-  // Mock data enhanced with real market data
-  private getMockTemplates(): DeFiWorkflowTemplate[] {
-    return this.getUpdatedMockTemplates();
-  }
-
-  private getUpdatedMockTemplates(): DeFiWorkflowTemplate[] {
-    const baseYieldAPY = Math.max(this.realMarketData.avgYieldAPY, 3.0);
-    const baseArbProfit = Math.max(this.realMarketData.avgArbitrageProfit, 0.8);
-    
-    return [
-      {
-        id: 'conservative_yield',
-        name: 'Conservative Yield Farming',
-        description: 'Low-risk yield farming on established protocols like Aave and Compound',
-        category: 'YieldFarming',
-        difficulty: 'Beginner',
-        estimated_apy: Math.round((baseYieldAPY * 0.85) * 10) / 10, // 85% of average for conservative
-        risk_score: 3,
-        min_capital_usd: 100.0
-      },
-      {
-        id: 'basic_arbitrage',
-        name: 'Cross-Chain Arbitrage',
-        description: 'Automated arbitrage opportunities across Ethereum, Arbitrum, and other chains',
-        category: 'Arbitrage',
-        difficulty: 'Advanced',
-        estimated_apy: Math.round((baseArbProfit * 365 * 1.2) * 10) / 10, // Annualized + 20% boost
-        risk_score: 7,
-        min_capital_usd: 1000.0
-      },
-      {
-        id: 'portfolio_rebalancing',
-        name: 'Portfolio Rebalancing',
-        description: 'Maintain optimal asset allocation across DeFi protocols',
-        category: 'Rebalancing',
-        difficulty: 'Intermediate',
-        estimated_apy: Math.round((baseYieldAPY * 1.1) * 10) / 10, // 10% boost from rebalancing
-        risk_score: 5,
-        min_capital_usd: 500.0
-      },
-      {
-        id: 'dollar_cost_averaging',
-        name: 'Dollar Cost Averaging',
-        description: 'Systematic investment strategy with market timing',
-        category: 'DCA',
-        difficulty: 'Beginner',
-        estimated_apy: Math.round((8.0 + this.realMarketData.marketVolatility * 20) * 10) / 10, // Higher volatility = higher DCA returns
-        risk_score: 4,
-        min_capital_usd: 50.0
-      }
-    ];
-  }
+  // REMOVED: All mock template data has been removed for production deployment
 
   /**
    * Get real-time market data for display

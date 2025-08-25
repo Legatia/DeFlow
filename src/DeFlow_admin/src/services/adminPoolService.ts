@@ -655,15 +655,20 @@ export class AdminPoolService {
       const state = poolState.Ok;
       const teamEarnings: Record<string, MemberEarnings> = {};
       
-      // TODO: Get actual team member list from state
-      // For now, just get owner earnings
-      const ownerPrincipal = state.dev_team_business?.team_hierarchy?.owner_principal;
-      if (ownerPrincipal) {
-        try {
-          teamEarnings[ownerPrincipal] = await this.getDetailedEarnings(ownerPrincipal);
-        } catch (e) {
-          console.warn('Failed to get owner earnings:', e);
+      // Get actual team member earnings from the pool canister
+      // The pool canister manages team member earnings automatically
+      try {
+        // Try to get detailed earnings for the current user (owner or team member)
+        const myEarnings = await this.getMyDetailedEarnings();
+        if (myEarnings && myEarnings.total_usd_value > 0) {
+          const authClient = await (await import('@dfinity/auth-client')).AuthClient.create();
+          const identity = authClient.getIdentity();
+          const currentPrincipal = identity.getPrincipal().toString();
+          teamEarnings[currentPrincipal] = myEarnings;
         }
+      } catch (e) {
+        // No earnings available yet or not authorized - this is normal for a new deployment
+        console.log('No team earnings available yet:', e);
       }
       
       return teamEarnings;

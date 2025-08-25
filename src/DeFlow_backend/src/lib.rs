@@ -11,12 +11,13 @@ mod user_management;
 mod security;
 mod scheduler_service;
 mod cycles_monitor_service;
+mod fee_collection;
 
 // Re-export types for external use
 pub use types::*;
 
 use ic_cdk::{init, post_upgrade, pre_upgrade, query, heartbeat, spawn, update};
-use candid::{CandidType, Deserialize};
+use candid::{CandidType, Deserialize, Principal};
 use serde::Serialize;
 use nodes::initialize_built_in_nodes;
 use events::restore_scheduled_workflows;
@@ -61,10 +62,23 @@ pub use user_management::{
     get_allowed_node_types, record_workflow_execution, update_user_volume,
     get_subscription_pricing, list_all_users, reset_monthly_stats
 };
+pub use fee_collection::{
+    collect_transaction_fee, estimate_transaction_fee, get_user_fee_rate, 
+    initialize_fee_collection, TransactionFeeRequest, FeeCollectionResult
+};
 
 #[init]
 fn init() {
     initialize_built_in_nodes();
+    
+    // Initialize fee collection service with pool canister ID
+    // TODO: Replace with actual pool canister ID from environment or dfx.json
+    let pool_canister_id = Principal::from_text("rdmx6-jaaaa-aaaah-qcaiq-cai")
+        .unwrap_or_else(|_| {
+            ic_cdk::println!("WARNING: Using default pool canister ID for development");
+            Principal::anonymous()
+        });
+    initialize_fee_collection(pool_canister_id);
     
     // Initialize DeFi system
     ic_cdk::spawn(async {

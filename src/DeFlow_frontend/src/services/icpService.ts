@@ -100,9 +100,8 @@ class ICPService {
 
     } catch (error) {
       console.error('Failed to initialize ICP service:', error);
-      // Use mock actor as fallback
-      this.actor = this.createMockActor();
-      this.isInitialized = true;
+      // Don't fall back to mock data for production
+      throw new Error(`Failed to connect to DeFlow backend canister: ${error}`);
     }
   }
 
