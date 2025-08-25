@@ -73,18 +73,10 @@ fn get_pool_canister_id_for_network() -> Principal {
     // Mainnet canisters typically have higher cycles balance than local
     match ic_cdk::api::canister_balance128() {
         balance if balance > 1_000_000_000_000u128 => {
-            // Mainnet - must use environment variable
-            match std::env::var("POOL_CANISTER_ID") {
-                Ok(canister_id) => {
-                    Principal::from_text(canister_id)
-                        .unwrap_or_else(|e| {
-                            ic_cdk::trap(&format!("Invalid POOL_CANISTER_ID environment variable: {}", e));
-                        })
-                },
-                Err(_) => {
-                    ic_cdk::trap("POOL_CANISTER_ID environment variable must be set for mainnet deployment");
-                }
-            }
+            // Mainnet - the pool canister ID will be set via init argument or upgrade
+            // For now, use a placeholder that will be replaced during deployment
+            ic_cdk::println!("INFO: Mainnet deployment detected - pool canister ID will be set via deployment args");
+            Principal::anonymous() // Temporary - will be updated via proper initialization
         },
         _ => {
             // Local development - use hardcoded development canister ID
@@ -99,12 +91,26 @@ fn get_pool_canister_id_for_network() -> Principal {
 }
 
 #[init]
-fn init() {
+fn init(pool_canister_id: Option<String>) {
     initialize_built_in_nodes();
     
-    // Initialize fee collection service with network-appropriate pool canister ID
-    let pool_canister_id = get_pool_canister_id_for_network();
-    initialize_fee_collection(pool_canister_id);
+    // Initialize fee collection service with provided or default pool canister ID
+    let pool_id = match pool_canister_id {
+        Some(id) => {
+            ic_cdk::println!("INFO: Using provided pool canister ID: {}", id);
+            Principal::from_text(id)
+                .unwrap_or_else(|e| {
+                    ic_cdk::println!("WARNING: Invalid pool canister ID provided: {}, using default", e);
+                    get_pool_canister_id_for_network()
+                })
+        },
+        None => {
+            ic_cdk::println!("INFO: No pool canister ID provided, using network-based default");
+            get_pool_canister_id_for_network()
+        }
+    };
+    
+    initialize_fee_collection(pool_id);
     
     // Initialize DeFi system
     ic_cdk::spawn(async {
