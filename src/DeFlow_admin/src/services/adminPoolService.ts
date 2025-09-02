@@ -158,7 +158,7 @@ interface TerminationSummary {
 }
 
 export class AdminPoolService {
-  private static poolCanisterId = process.env.VITE_CANISTER_ID_DEFLOW_POOL;
+  private static poolCanisterId = import.meta.env.VITE_CANISTER_ID_DEFLOW_POOL;
 
   private static async getPoolActor() {
     if (!this.poolCanisterId) {
@@ -170,16 +170,16 @@ export class AdminPoolService {
     
     const agent = new HttpAgent({
       identity,
-      host: process.env.DFX_NETWORK === "local" ? "http://127.0.0.1:8080" : "https://ic0.app",
+      host: import.meta.env.VITE_DFX_NETWORK === "local" ? "http://127.0.0.1:8080" : "https://ic0.app",
     });
 
     // SECURITY: Only fetch root key for local development
-    if (process.env.DFX_NETWORK === "local") {
+    if (import.meta.env.VITE_DFX_NETWORK === "local") {
       await agent.fetchRootKey();
     }
     
     // SECURITY: Additional validation for production
-    if (process.env.DFX_NETWORK === "ic" && !this.poolCanisterId?.includes(".ic0.app")) {
+    if (import.meta.env.VITE_DFX_NETWORK === "ic" && !this.poolCanisterId?.includes(".ic0.app")) {
       // For mainnet, ensure we have proper canister ID format
     }
 
@@ -318,8 +318,7 @@ export class AdminPoolService {
         monthly_volume: state.monthly_volume,
         fee_collection_rate: state.fee_collection_rate,
         team_earnings: {
-          'dev_1_pending': overview.dev_1_pending,
-          'dev_2_pending': overview.dev_2_pending,
+          'total_team_pending': overview.total_team_pending,
           'emergency_fund': overview.emergency_fund
         },
         bootstrap_progress: overview.bootstrap_progress
@@ -408,7 +407,7 @@ export class AdminPoolService {
           total_volume_24h_usd: 0
         },
         network_info: {
-          ic_network: process.env.DFX_NETWORK || 'unknown',
+          ic_network: import.meta.env.VITE_DFX_NETWORK || 'unknown',
           subnet_id: 'unknown',
           replica_version: 'unknown'
         }

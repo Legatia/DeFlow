@@ -51,15 +51,68 @@ type LiquidityReserve = record {
   utilization_rate : float64;
 };
 
+type TeamRole = variant {
+  Owner;
+  SeniorManager;
+  OperationsManager;
+  TechManager;
+  Developer;
+};
+
+type TeamChangeType = variant {
+  AddMember;
+  RemoveMember;
+  PromoteMember;
+  DemoteMember;
+};
+
+type TeamChangeRequest = record {
+  request_type : TeamChangeType;
+  requester : principal;
+  target_principal : principal;
+  new_role : TeamRole;
+  requires_owner_approval : bool;
+  timestamp : nat64;
+  approved : bool;
+  request_id : nat64;
+};
+
+type TeamHierarchy = record {
+  owner_principal : principal;
+  senior_managers : vec principal;
+  operations_managers : vec principal;
+  tech_managers : vec principal;
+  developers : vec principal;
+  pending_approvals : vec TeamChangeRequest;
+  next_request_id : nat64;
+  last_team_change : nat64;
+  last_bootstrap_change : nat64;
+  last_configuration_change : nat64;
+  last_financial_operation : nat64;
+};
+
+type TokenBalance = record {
+  asset : Asset;
+  amount : nat64;
+  last_updated : nat64;
+  usd_value_at_time : float64;
+};
+
+type MemberEarnings = record {
+  balances : vec record { Asset; TokenBalance };
+  total_usd_value : float64;
+  last_distribution_time : nat64;
+  withdrawal_addresses : vec record { ChainId; text };
+};
+
 type DevTeamBusinessModel = record {
-  dev_1_principal : principal;
-  dev_2_principal : principal;
+  team_hierarchy : TeamHierarchy;
   monthly_subscription_revenue : float64;
   monthly_transaction_fees : float64;
   monthly_enterprise_revenue : float64;
   monthly_operating_costs : float64;
-  dev_1_pending_earnings : float64;
-  dev_2_pending_earnings : float64;
+  team_member_earnings : vec record { principal; MemberEarnings };
+  total_distributed_profits : float64;
   emergency_fund : float64;
   reinvestment_fund : float64;
   minimum_distribution_threshold : float64;
@@ -77,13 +130,48 @@ type PoolState = record {
   fee_collection_rate : float64;
 };
 
+type TreasuryTransactionType = variant {
+  SubscriptionPayment;
+  TransactionFeeRevenue;
+  WithdrawalToTeam;
+  TransferToCold;
+  TransferToWarm;
+  Rebalancing;
+  EmergencyWithdrawal;
+  PaymentReceived;
+  RefundIssued;
+};
+
+type TransactionStatus = variant {
+  Pending;
+  Confirmed;
+  Failed;
+  RequiresApproval;
+  Cancelled;
+};
+
+type TreasuryTransaction = record {
+  id : text;
+  transaction_type : TreasuryTransactionType;
+  chain : text;
+  asset : text;
+  amount : float64;
+  amount_usd : float64;
+  from_address : text;
+  to_address : text;
+  tx_hash : opt text;
+  status : TransactionStatus;
+  timestamp : nat64;
+  initiated_by : principal;
+  notes : opt text;
+};
+
 type FinancialOverview = record {
   total_liquidity : float64;
   monthly_pool_growth : float64;
   bootstrap_progress : float64;
   monthly_revenue : float64;
-  dev_1_pending : float64;
-  dev_2_pending : float64;
+  total_team_pending : float64;
   emergency_fund : float64;
   pool_health : text;
   business_health : text;
@@ -132,4 +220,7 @@ service : {
   // Analytics
   "get_pool_analytics" : () -> (text) query;
   "get_chain_distribution" : () -> (vec record { ChainId; float64 }) query;
+  
+  // Treasury Management
+  "get_treasury_transactions" : (opt nat64) -> (vec TreasuryTransaction) query;
 }

@@ -172,6 +172,7 @@ pub struct DevTeamBusinessModel {
     pub minimum_distribution_threshold: f64,  // $5,000 minimum
     pub distribution_frequency: u64,          // Monthly (2,629,800 seconds)
     pub last_distribution_time: u64,
+    pub profit_split_ratio: (f64, f64),      // Team profit split ratios
 }
 
 impl Default for TeamHierarchy {
@@ -212,6 +213,7 @@ impl Default for DevTeamBusinessModel {
             minimum_distribution_threshold: 5000.0,
             distribution_frequency: 2_629_800, // 30 days
             last_distribution_time: ic_cdk::api::time(),
+            profit_split_ratio: (0.5, 0.5), // Equal 50/50 split by default
         }
     }
 }
@@ -369,8 +371,7 @@ pub struct FinancialOverview {
     
     // Business metrics
     pub monthly_revenue: f64,
-    pub dev_1_pending: f64,
-    pub dev_2_pending: f64,
+    pub total_team_pending: f64,
     pub emergency_fund: f64,
     
     // Health indicators

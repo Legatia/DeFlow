@@ -1943,7 +1943,7 @@ fn get_treasury_health_report() -> TreasuryHealthReport {
 }
 
 #[query]
-fn get_treasury_transactions(limit: Option<usize>) -> Vec<TreasuryTransaction> {
+fn get_treasury_transactions(limit: Option<u64>) -> Vec<TreasuryTransaction> {
     let caller = ic_cdk::caller();
     if !is_manager_or_above(caller) {
         return Vec::new();
@@ -1957,7 +1957,7 @@ fn get_treasury_transactions(limit: Option<usize>) -> Vec<TreasuryTransaction> {
         transactions.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
         
         if let Some(limit) = limit {
-            transactions.truncate(limit);
+            transactions.truncate(limit as usize);
         }
         
         transactions

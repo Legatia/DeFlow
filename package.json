@@ -9,7 +9,12 @@
     "prebuild": "npm run prebuild --workspaces --if-present",
     "pretest": "npm run prebuild --workspaces --if-present",
     "start": "npm start --workspaces --if-present",
-    "test": "npm test --workspaces --if-present"
+    "test": "npm test --workspaces --if-present",
+    "deploy:local": "./deploy-local.sh",
+    "deploy:mainnet": "./deploy-mainnet.sh",
+    "env:local": "./switch-environment.sh local",
+    "env:mainnet": "./switch-environment.sh mainnet",
+    "test:mainnet": "./test-mainnet.sh"
   },
   "type": "module",
   "workspaces": [

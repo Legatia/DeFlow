@@ -7,7 +7,7 @@
     "setup": "npm i && dfx canister create DeFlow_backend && dfx generate DeFlow_backend && dfx deploy",
     "dev": "vite --port 3000",
     "start": "vite --port 3000",
-    "build": "tsc --project tsconfig.prod.json && vite build",
+    "build": "tsc --project tsconfig.prod.json && vite build && cp .ic-assets.json dist/",
     "build:mainnet": "NODE_ENV=production tsc --project tsconfig.prod.json && vite build --mode production",
     "preview": "vite preview",
     "test": "vitest",
@@ -26,7 +26,7 @@
     "test:watch": "vitest --watch",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{json,js,jsx,ts,tsx,css,scss}\"",
-    "prebuild": "dfx generate DeFlow_pool"
+    "prebuild": "echo 'Skipping prebuild for mainnet deployment'"
   },
   "dependencies": {
     "@dfinity/agent": "^2.4.1",
