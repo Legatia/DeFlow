@@ -150,6 +150,40 @@ pub struct TeamHierarchy {
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum EarningsAllocation {
+    Percentage(f64),           // e.g., 25.0 for 25% of profits
+    FixedMonthlyUSD(f64),      // e.g., 5000.0 for $5,000/month
+    FixedPerTransaction(f64),  // e.g., 10.0 for $10 per transaction
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct MemberEarningsConfig {
+    pub allocation: EarningsAllocation,
+    pub role: TeamRole,
+    pub is_active: bool,           // Can be temporarily disabled
+    pub vesting_cliff_months: u64, // Months before earning starts
+    pub vesting_period_months: u64, // Total vesting period
+    pub joined_timestamp: u64,
+    pub last_modified_by: Principal,
+    pub last_modified_time: u64,
+}
+
+impl Default for MemberEarningsConfig {
+    fn default() -> Self {
+        MemberEarningsConfig {
+            allocation: EarningsAllocation::Percentage(0.0),
+            role: TeamRole::Developer,
+            is_active: true,
+            vesting_cliff_months: 0,
+            vesting_period_months: 12, // 1 year default vesting
+            joined_timestamp: ic_cdk::api::time(),
+            last_modified_by: Principal::anonymous(),
+            last_modified_time: ic_cdk::api::time(),
+        }
+    }
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct DevTeamBusinessModel {
     // TEAM HIERARCHY: Internet Identity based team management
     pub team_hierarchy: TeamHierarchy,
@@ -172,7 +206,7 @@ pub struct DevTeamBusinessModel {
     pub minimum_distribution_threshold: f64,  // $5,000 minimum
     pub distribution_frequency: u64,          // Monthly (2,629,800 seconds)
     pub last_distribution_time: u64,
-    pub profit_split_ratio: (f64, f64),      // Team profit split ratios
+    pub member_earnings_config: HashMap<Principal, MemberEarningsConfig>, // Individual earnings allocation
 }
 
 impl Default for TeamHierarchy {
@@ -213,7 +247,7 @@ impl Default for DevTeamBusinessModel {
             minimum_distribution_threshold: 5000.0,
             distribution_frequency: 2_629_800, // 30 days
             last_distribution_time: ic_cdk::api::time(),
-            profit_split_ratio: (0.5, 0.5), // Equal 50/50 split by default
+            member_earnings_config: HashMap::new(), // No earnings allocated by default
         }
     }
 }

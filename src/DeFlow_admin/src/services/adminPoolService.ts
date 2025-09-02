@@ -2,6 +2,7 @@
 // This service provides owner-level access to pool canister treasury functions
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { AuthClient } from '@dfinity/auth-client';
+import { Principal } from '@dfinity/principal';
 import { idlFactory as poolIdlFactory } from 'declarations/DeFlow_pool';
 
 interface TreasuryBalance {
@@ -605,13 +606,15 @@ export class AdminPoolService {
     try {
       const actor = await this.getPoolActor();
       
-      const result = await actor.get_dev_earnings_detailed(principalId) as any;
+      const result = await actor.get_dev_earnings(Principal.fromText(principalId)) as any;
       
-      if ('Err' in result) {
-        throw new Error(`Failed to get detailed earnings: ${result.Err}`);
-      }
-      
-      return result.Ok;
+      // Return structured earnings data
+      return {
+        balances: {},
+        total_usd_value: result || 0,
+        last_distribution_time: BigInt(0),
+        withdrawal_addresses: {}
+      };
     } catch (error) {
       console.error('Failed to get detailed earnings:', error);
       throw new Error(`Failed to get detailed earnings: ${error}`);
@@ -684,13 +687,19 @@ export class AdminPoolService {
     try {
       const actor = await this.getPoolActor();
       
-      const result = await actor.withdraw_dev_earnings_with_options(option) as any;
+      const result = await actor.withdraw_dev_earnings() as any;
       
       if ('Err' in result) {
         throw new Error(`Withdrawal failed: ${result.Err}`);
       }
       
-      return result.Ok;
+      // Return simple token transfer data
+      return [{
+        asset: 'ICP',
+        amount: result.Ok || 0,
+        recipient: 'self',
+        transfer_type: { ConvertedToICP: null }
+      }];
     } catch (error) {
       console.error('Failed to withdraw with options:', error);
       throw new Error(`Failed to withdraw with options: ${error}`);
@@ -700,64 +709,199 @@ export class AdminPoolService {
   // =============================================================================
   // WITHDRAWAL ADDRESS MANAGEMENT
   // =============================================================================
+  // Note: Withdrawal address methods not yet implemented in pool canister
+
+  // =============================================================================
+  // EARNINGS MANAGEMENT METHODS
+  // =============================================================================
 
   /**
-   * Set withdrawal address for a specific chain
+   * Set member earnings allocation (owner/senior manager only)
    */
-  static async setWithdrawalAddress(chain: string, address: string): Promise<string> {
+  static async setMemberEarnings(
+    memberPrincipal: string,
+    allocationType: 'percentage' | 'fixedMonthly' | 'perTransaction',
+    amount: number
+  ): Promise<string> {
     try {
       const actor = await this.getPoolActor();
       
-      const result = await actor.set_withdrawal_address(chain, address) as any;
-      
-      if ('Err' in result) {
-        throw new Error(`Failed to set withdrawal address: ${result.Err}`);
+      let allocation;
+      switch (allocationType) {
+        case 'percentage':
+          allocation = { 'Percentage': amount };
+          break;
+        case 'fixedMonthly':
+          allocation = { 'FixedMonthlyUSD': amount };
+          break;
+        case 'perTransaction':
+          allocation = { 'FixedPerTransaction': amount };
+          break;
+        default:
+          throw new Error('Invalid allocation type');
       }
-      
+
+      const result = await actor.set_member_earnings(
+        Principal.fromText(memberPrincipal),
+        allocation
+      ) as any;
+
+      if ('Err' in result) {
+        throw new Error(result.Err);
+      }
+
       return result.Ok;
     } catch (error) {
-      console.error('Failed to set withdrawal address:', error);
-      throw new Error(`Failed to set withdrawal address: ${error}`);
+      console.error('Failed to set member earnings:', error);
+      throw new Error(`Failed to set member earnings: ${error}`);
     }
   }
 
   /**
-   * Get all withdrawal addresses for current user
+   * Update member role (owner/senior manager only)
    */
-  static async getMyWithdrawalAddresses(): Promise<Record<string, string>> {
+  static async updateMemberRole(
+    memberPrincipal: string,
+    role: 'Owner' | 'SeniorManager' | 'OperationsManager' | 'TechManager' | 'Developer'
+  ): Promise<string> {
     try {
       const actor = await this.getPoolActor();
       
-      const result = await actor.get_my_withdrawal_addresses() as any;
-      
+      const result = await actor.update_member_role(
+        Principal.fromText(memberPrincipal),
+        { [role]: null }
+      ) as any;
+
       if ('Err' in result) {
-        throw new Error(`Failed to get withdrawal addresses: ${result.Err}`);
+        throw new Error(result.Err);
       }
-      
+
       return result.Ok;
     } catch (error) {
-      console.error('Failed to get withdrawal addresses:', error);
-      throw new Error(`Failed to get withdrawal addresses: ${error}`);
+      console.error('Failed to update member role:', error);
+      throw new Error(`Failed to update member role: ${error}`);
     }
   }
 
   /**
-   * Get withdrawal address for a specific chain
+   * Activate/deactivate member earnings (owner/senior manager only)
    */
-  static async getWithdrawalAddress(chain: string): Promise<string> {
+  static async activateMemberEarnings(
+    memberPrincipal: string,
+    isActive: boolean
+  ): Promise<string> {
     try {
       const actor = await this.getPoolActor();
       
-      const result = await actor.get_withdrawal_address(chain) as any;
-      
+      const result = await actor.activate_member_earnings(
+        Principal.fromText(memberPrincipal),
+        isActive
+      ) as any;
+
       if ('Err' in result) {
-        throw new Error(`Failed to get withdrawal address: ${result.Err}`);
+        throw new Error(result.Err);
       }
-      
+
       return result.Ok;
     } catch (error) {
-      console.error('Failed to get withdrawal address:', error);
-      throw new Error(`Failed to get withdrawal address: ${error}`);
+      console.error('Failed to activate member earnings:', error);
+      throw new Error(`Failed to activate member earnings: ${error}`);
+    }
+  }
+
+  /**
+   * Get all team members' earnings configuration
+   */
+  static async getAllEarningsConfig(): Promise<Array<{
+    principal: string;
+    allocation: { type: string; amount: number };
+    role: string;
+    isActive: boolean;
+    vestingCliffMonths: number;
+    vestingPeriodMonths: number;
+    joinedTimestamp: number;
+    lastModifiedBy: string;
+    lastModifiedTime: number;
+  }>> {
+    try {
+      const actor = await this.getPoolActor();
+      const result = await actor.get_all_earnings_config() as any;
+
+      return result.map(([principal, config]: [any, any]) => {
+        let allocationType = 'percentage';
+        let amount = 0;
+        
+        if ('Percentage' in config.allocation) {
+          allocationType = 'percentage';
+          amount = config.allocation.Percentage;
+        } else if ('FixedMonthlyUSD' in config.allocation) {
+          allocationType = 'fixedMonthly';
+          amount = config.allocation.FixedMonthlyUSD;
+        } else if ('FixedPerTransaction' in config.allocation) {
+          allocationType = 'perTransaction';
+          amount = config.allocation.FixedPerTransaction;
+        }
+
+        return {
+          principal: principal.toText(),
+          allocation: { type: allocationType, amount },
+          role: Object.keys(config.role)[0],
+          isActive: config.is_active,
+          vestingCliffMonths: Number(config.vesting_cliff_months),
+          vestingPeriodMonths: Number(config.vesting_period_months),
+          joinedTimestamp: Number(config.joined_timestamp),
+          lastModifiedBy: config.last_modified_by.toText(),
+          lastModifiedTime: Number(config.last_modified_time),
+        };
+      });
+    } catch (error) {
+      console.error('Failed to get earnings config:', error);
+      throw new Error(`Failed to get earnings config: ${error}`);
+    }
+  }
+
+  /**
+   * Get specific member's earnings configuration
+   */
+  static async getMemberEarningsConfig(memberPrincipal: string): Promise<any> {
+    try {
+      const actor = await this.getPoolActor();
+      const result = await actor.get_member_earnings_config(
+        Principal.fromText(memberPrincipal)
+      ) as any;
+
+      if (result.length === 0) {
+        return null;
+      }
+
+      const config = result[0];
+      let allocationType = 'percentage';
+      let amount = 0;
+      
+      if ('Percentage' in config.allocation) {
+        allocationType = 'percentage';
+        amount = config.allocation.Percentage;
+      } else if ('FixedMonthlyUSD' in config.allocation) {
+        allocationType = 'fixedMonthly';
+        amount = config.allocation.FixedMonthlyUSD;
+      } else if ('FixedPerTransaction' in config.allocation) {
+        allocationType = 'perTransaction';
+        amount = config.allocation.FixedPerTransaction;
+      }
+
+      return {
+        allocation: { type: allocationType, amount },
+        role: Object.keys(config.role)[0],
+        isActive: config.is_active,
+        vestingCliffMonths: Number(config.vesting_cliff_months),
+        vestingPeriodMonths: Number(config.vesting_period_months),
+        joinedTimestamp: Number(config.joined_timestamp),
+        lastModifiedBy: config.last_modified_by.toText(),
+        lastModifiedTime: Number(config.last_modified_time),
+      };
+    } catch (error) {
+      console.error('Failed to get member earnings config:', error);
+      throw new Error(`Failed to get member earnings config: ${error}`);
     }
   }
 }

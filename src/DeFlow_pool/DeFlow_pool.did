@@ -105,6 +105,23 @@ type MemberEarnings = record {
   withdrawal_addresses : vec record { ChainId; text };
 };
 
+type EarningsAllocation = variant {
+  Percentage : float64;
+  FixedMonthlyUSD : float64;
+  FixedPerTransaction : float64;
+};
+
+type MemberEarningsConfig = record {
+  allocation : EarningsAllocation;
+  role : TeamRole;
+  is_active : bool;
+  vesting_cliff_months : nat64;
+  vesting_period_months : nat64;
+  joined_timestamp : nat64;
+  last_modified_by : principal;
+  last_modified_time : nat64;
+};
+
 type DevTeamBusinessModel = record {
   team_hierarchy : TeamHierarchy;
   monthly_subscription_revenue : float64;
@@ -118,7 +135,7 @@ type DevTeamBusinessModel = record {
   minimum_distribution_threshold : float64;
   distribution_frequency : nat64;
   last_distribution_time : nat64;
-  profit_split_ratio : record { float64; float64 };
+  member_earnings_config : vec record { principal; MemberEarningsConfig };
 };
 
 type PoolState = record {
@@ -223,4 +240,11 @@ service : {
   
   // Treasury Management
   "get_treasury_transactions" : (opt nat64) -> (vec TreasuryTransaction) query;
+  
+  // Earnings Management (Owner/Senior Manager only)
+  "set_member_earnings" : (principal, EarningsAllocation) -> (Result);
+  "update_member_role" : (principal, TeamRole) -> (Result);
+  "activate_member_earnings" : (principal, bool) -> (Result);
+  "get_member_earnings_config" : (principal) -> (opt MemberEarningsConfig) query;
+  "get_all_earnings_config" : () -> (vec record { principal; MemberEarningsConfig }) query;
 }

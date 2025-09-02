@@ -3,6 +3,7 @@ import TreasuryManagement from '../components/TreasuryManagement';
 import PoolManagement from '../components/PoolManagement';
 import SystemHealth from '../components/SystemHealth';
 import TeamManagement from '../components/TeamManagement';
+import EarningsManagement from '../components/EarningsManagement';
 
 interface AdminSession {
   principal: string;
@@ -17,7 +18,7 @@ interface AdminDashboardProps {
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminSession, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'treasury' | 'pool' | 'system' | 'team'>('treasury');
+  const [activeTab, setActiveTab] = useState<'treasury' | 'pool' | 'system' | 'team' | 'earnings'>('treasury');
 
   const formatSessionTime = (timestamp: number) => {
     const hours = Math.floor((Date.now() - timestamp) / (1000 * 60 * 60));
@@ -86,7 +87,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminSession, onLogout 
               { id: 'treasury', label: 'Treasury Management', icon: '💰' },
               { id: 'pool', label: 'Pool Management', icon: '🏊' },
               { id: 'system', label: 'System Health', icon: '📊' },
-              { id: 'team', label: 'Team Management', icon: '👥' }
+              { id: 'team', label: 'Team Management', icon: '👥' },
+              { id: 'earnings', label: 'Earnings Management', icon: '💼' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -112,6 +114,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminSession, onLogout 
         {activeTab === 'system' && <SystemHealth />}
         {activeTab === 'team' && (
           <TeamManagement 
+            isOwner={adminSession.isOwner}
+            currentPrincipal={adminSession.principal}
+          />
+        )}
+        {activeTab === 'earnings' && (
+          <EarningsManagement 
             isOwner={adminSession.isOwner}
             currentPrincipal={adminSession.principal}
           />

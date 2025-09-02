@@ -1965,6 +1965,142 @@ fn get_treasury_transactions(limit: Option<u64>) -> Vec<TreasuryTransaction> {
 }
 
 // =============================================================================
+// EARNINGS MANAGEMENT FUNCTIONS
+// =============================================================================
+
+#[update]
+fn set_member_earnings(member: Principal, allocation: EarningsAllocation) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    if !is_owner_or_senior_manager(caller) {
+        return Err("Access denied: Only owner or senior managers can set member earnings".to_string());
+    }
+
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        // Verify the member exists in the team hierarchy
+        let is_team_member = pool_state.dev_team_business.team_hierarchy.owner_principal == member ||
+            pool_state.dev_team_business.team_hierarchy.senior_managers.contains(&member) ||
+            pool_state.dev_team_business.team_hierarchy.operations_managers.contains(&member) ||
+            pool_state.dev_team_business.team_hierarchy.tech_managers.contains(&member) ||
+            pool_state.dev_team_business.team_hierarchy.developers.contains(&member);
+            
+        if !is_team_member {
+            return Err("Member not found in team hierarchy".to_string());
+        }
+
+        // Validate allocation
+        match &allocation {
+            EarningsAllocation::Percentage(pct) => {
+                if *pct < 0.0 || *pct > 100.0 {
+                    return Err("Percentage must be between 0-100%".to_string());
+                }
+            },
+            EarningsAllocation::FixedMonthlyUSD(amount) => {
+                if *amount < 0.0 || *amount > 50000.0 { // Max $50k/month
+                    return Err("Fixed monthly amount must be between $0-$50,000".to_string());
+                }
+            },
+            EarningsAllocation::FixedPerTransaction(amount) => {
+                if *amount < 0.0 || *amount > 1000.0 { // Max $1k per transaction
+                    return Err("Fixed per-transaction amount must be between $0-$1,000".to_string());
+                }
+            }
+        }
+
+        // Update or create earnings config
+        let config = pool_state.dev_team_business.member_earnings_config
+            .entry(member)
+            .or_insert_with(MemberEarningsConfig::default);
+            
+        config.allocation = allocation.clone();
+        config.last_modified_by = caller;
+        config.last_modified_time = ic_cdk::api::time();
+
+        Ok(format!("Member earnings updated: {:?}", allocation))
+    })
+}
+
+#[update]
+fn update_member_role(member: Principal, new_role: TeamRole) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    if !is_owner_or_senior_manager(caller) {
+        return Err("Access denied: Only owner or senior managers can update roles".to_string());
+    }
+
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        if let Some(config) = pool_state.dev_team_business.member_earnings_config.get_mut(&member) {
+            config.role = new_role.clone();
+            config.last_modified_by = caller;
+            config.last_modified_time = ic_cdk::api::time();
+            Ok(format!("Member role updated to: {:?}", new_role))
+        } else {
+            Err("Member earnings config not found".to_string())
+        }
+    })
+}
+
+#[update]
+fn activate_member_earnings(member: Principal, is_active: bool) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    if !is_owner_or_senior_manager(caller) {
+        return Err("Access denied: Only owner or senior managers can activate/deactivate earnings".to_string());
+    }
+
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        if let Some(config) = pool_state.dev_team_business.member_earnings_config.get_mut(&member) {
+            config.is_active = is_active;
+            config.last_modified_by = caller;
+            config.last_modified_time = ic_cdk::api::time();
+            Ok(format!("Member earnings {}", if is_active { "activated" } else { "deactivated" }))
+        } else {
+            Err("Member earnings config not found".to_string())
+        }
+    })
+}
+
+#[query]
+fn get_member_earnings_config(member: Principal) -> Option<MemberEarningsConfig> {
+    let caller = ic_cdk::caller();
+    if !is_manager_or_above(caller) && caller != member {
+        return None; // Privacy: members can only see their own config
+    }
+
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        pool_state.dev_team_business.member_earnings_config.get(&member).cloned()
+    })
+}
+
+#[query]
+fn get_all_earnings_config() -> Vec<(Principal, MemberEarningsConfig)> {
+    let caller = ic_cdk::caller();
+    if !is_manager_or_above(caller) {
+        return Vec::new();
+    }
+
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        pool_state.dev_team_business.member_earnings_config
+            .iter()
+            .map(|(k, v)| (*k, v.clone()))
+            .collect()
+    })
+}
+
+fn is_owner_or_senior_manager(caller: Principal) -> bool {
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        caller == pool_state.dev_team_business.team_hierarchy.owner_principal ||
+        pool_state.dev_team_business.team_hierarchy.senior_managers.contains(&caller)
+    })
+}
+
+// =============================================================================
 // TREASURY UTILITY FUNCTIONS
 // =============================================================================
 
