@@ -7,12 +7,13 @@ interface CanisterHealth {
   status: string;
   memory_usage: number;
   cycles_balance: number;
-  last_upgrade: bigint;
-  error_rate: number;
-  avg_response_time: number;
-  heap_memory_size: number;
-  stable_memory_size: number;
-  is_healthy: boolean;
+  last_upgrade?: bigint;
+  error_rate?: number;
+  avg_response_time?: number;
+  heap_memory_size?: number;
+  stable_memory_size?: number;
+  health_score?: number;
+  is_healthy?: boolean;
   warnings: string[];
 }
 
@@ -62,6 +63,7 @@ const SystemHealth: React.FC = () => {
   };
 
   const formatCycles = (cycles: number) => {
+    if (cycles === 0) return 'N/A';
     if (cycles >= 1_000_000_000_000) {
       return `${(cycles / 1_000_000_000_000).toFixed(1)}T`;
     } else if (cycles >= 1_000_000_000) {
@@ -73,6 +75,7 @@ const SystemHealth: React.FC = () => {
   };
 
   const formatBytes = (bytes: number) => {
+    if (bytes === 0) return 'N/A';
     if (bytes >= 1_000_000) {
       return `${(bytes / 1_000_000).toFixed(1)}MB`;
     } else if (bytes >= 1_000) {
@@ -243,17 +246,19 @@ const SystemHealth: React.FC = () => {
                 <div>
                   <span className="text-gray-400">Memory Usage:</span>
                   <div className="flex items-center mt-1">
-                    <span className="text-white font-medium">{canister.memory_usage.toFixed(1)}%</span>
-                    <div className="ml-2 flex-1 bg-gray-600 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full ${
-                          canister.memory_usage > 80 ? 'bg-red-500' :
-                          canister.memory_usage > 60 ? 'bg-yellow-500' :
-                          'bg-green-500'
-                        }`}
-                        style={{ width: `${canister.memory_usage}%` }}
-                      ></div>
-                    </div>
+                    <span className="text-white font-medium">{canister.memory_usage === 0 ? 'N/A' : canister.memory_usage.toFixed(1) + '%'}</span>
+                    {canister.memory_usage > 0 && (
+                      <div className="ml-2 flex-1 bg-gray-600 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            canister.memory_usage > 80 ? 'bg-red-500' :
+                            canister.memory_usage > 60 ? 'bg-yellow-500' :
+                            'bg-green-500'
+                          }`}
+                          style={{ width: `${canister.memory_usage}%` }}
+                        ></div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -264,30 +269,30 @@ const SystemHealth: React.FC = () => {
 
                 <div>
                   <span className="text-gray-400">Response Time:</span>
-                  <p className="text-white font-medium">{canister.avg_response_time}ms</p>
+                  <p className="text-white font-medium">{canister.avg_response_time ? canister.avg_response_time + 'ms' : 'N/A'}</p>
                 </div>
 
                 <div>
                   <span className="text-gray-400">Error Rate:</span>
-                  <p className="text-white font-medium">{(canister.error_rate * 100).toFixed(3)}%</p>
+                  <p className="text-white font-medium">{canister.error_rate ? (canister.error_rate * 100).toFixed(3) + '%' : 'N/A'}</p>
                 </div>
 
                 <div>
                   <span className="text-gray-400">Heap Memory:</span>
-                  <p className="text-white font-medium">{formatBytes(canister.heap_memory_size)}</p>
+                  <p className="text-white font-medium">{canister.heap_memory_size ? formatBytes(canister.heap_memory_size) : 'N/A'}</p>
                 </div>
 
                 <div>
                   <span className="text-gray-400">Stable Memory:</span>
                   <p className="text-white font-medium">
-                    {canister.stable_memory_size > 0 ? formatBytes(canister.stable_memory_size) : 'N/A'}
+                    {canister.stable_memory_size && canister.stable_memory_size > 0 ? formatBytes(canister.stable_memory_size) : 'N/A'}
                   </p>
                 </div>
               </div>
 
               <div className="mt-3 pt-3 border-t border-gray-600">
                 <span className="text-gray-400 text-xs">Last Upgrade:</span>
-                <p className="text-white text-xs">{formatTimestamp(canister.last_upgrade)}</p>
+                <p className="text-white text-xs">{canister.last_upgrade ? formatTimestamp(canister.last_upgrade) : 'N/A'}</p>
               </div>
 
               {canister.warnings.length > 0 && (
