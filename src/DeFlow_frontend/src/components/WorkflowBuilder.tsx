@@ -22,9 +22,10 @@ import { useEnhancedAuth } from '../contexts/EnhancedAuthContext'
 import { canAddNodeToWorkflow, getUpgradePath } from '../utils/subscriptionUtils'
 import { Workflow, WorkflowState } from '../types/index'
 import WorkflowNode from './WorkflowNode'
-import NodePalette from './NodePalette'
+import { EnhancedNodePalette } from './EnhancedNodePalette'
 import NodeConfigPanel from './NodeConfigPanel'
 import SaveWorkflowModal from './SaveWorkflowModal'
+import { Waves } from './ui/wave-background'
 
 interface WorkflowBuilderProps {
   initialNodes?: Node[]
@@ -91,11 +92,17 @@ const WorkflowBuilder = memo(({
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault()
+      event.stopPropagation()
 
       const nodeTypeId = event.dataTransfer.getData('application/reactflow')
+      console.log('Dropped node type ID:', nodeTypeId) // Debug log
+      
       const nodeType = allNodeTypes.find(nt => nt.id === nodeTypeId)
       
-      if (!nodeType) return
+      if (!nodeType) {
+        console.warn('Node type not found:', nodeTypeId)
+        return
+      }
 
       // CHECK SUBSCRIPTION TIER ACCESS - Universal access control
       if (!canAddNodeToWorkflow(subscriptionTier, nodeType)) {
@@ -109,10 +116,20 @@ const WorkflowBuilder = memo(({
       }
 
       // Get accurate position using React Flow instance
-      const position = reactFlowInstance?.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      }) || { x: 0, y: 0 }
+      let position = { x: 100, y: 100 } // Default position
+      
+      if (reactFlowInstance) {
+        try {
+          const reactFlowBounds = (event.target as HTMLElement).closest('.react-flow')?.getBoundingClientRect()
+          if (reactFlowBounds) {
+            const x = event.clientX - reactFlowBounds.left
+            const y = event.clientY - reactFlowBounds.top
+            position = reactFlowInstance.screenToFlowPosition({ x, y })
+          }
+        } catch (error) {
+          console.warn('Failed to get drop position:', error)
+        }
+      }
 
       const newNode: Node = {
         id: `${nodeType.id}-${Date.now()}`,
@@ -126,6 +143,7 @@ const WorkflowBuilder = memo(({
         },
       }
 
+      console.log('Creating new node:', newNode) // Debug log
       setNodes((nds) => nds.concat(newNode))
     },
     [setNodes, subscriptionTier, reactFlowInstance]
@@ -230,22 +248,27 @@ const WorkflowBuilder = memo(({
 
   return (
     <div className="h-full w-full flex">
-      {/* Node Palette - Left Sidebar - PERFORMANCE: Lazy load palette */}
+      {/* Enhanced Node Palette - Left Sidebar with Liquid Glass */}
       {!readOnly && (
-        <div className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col">
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Node Palette</h3>
-            <p className="text-sm text-gray-600 mt-1">Drag nodes to canvas</p>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            <NodePalette />
-          </div>
-        </div>
+        <EnhancedNodePalette />
       )}
 
       {/* Main Canvas Area */}
-      <div className="flex-1 relative">
-        <ReactFlow
+      <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-gray-900 via-slate-900 to-gray-800">
+        {/* Animated Wave Background */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <Waves 
+            className="w-full h-full" 
+            strokeColor="rgba(255, 255, 255, 0.12)"
+            backgroundColor="transparent"
+            pointerSize={0.2}
+          />
+        </div>
+        
+        {/* ReactFlow Canvas */}
+        <div className="relative z-10 w-full h-full">
+          <ReactFlow
+          className="w-full h-full"
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
@@ -278,12 +301,7 @@ const WorkflowBuilder = memo(({
               zoomable
             />
           )}
-          <Background 
-            variant={BackgroundVariant.Dots} 
-            gap={20} 
-            size={1} 
-            color="#e5e7eb"
-          />
+          {/* Background removed - using animated waves instead */}
           
           {/* Top Panel with Actions */}
           {!readOnly && (
@@ -344,6 +362,7 @@ const WorkflowBuilder = memo(({
             </div>
           </Panel>
         </ReactFlow>
+        </div>
       </div>
 
       {/* Node Configuration Panel - Right Sidebar */}
