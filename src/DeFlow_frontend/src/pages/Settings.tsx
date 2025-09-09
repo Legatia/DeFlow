@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useEnhancedAuth } from '../contexts/EnhancedAuthContext'
 import localCacheService, { UserPreferences } from '../services/localCacheService'
+import WalletConfiguration from '../components/WalletConfiguration'
 import EmailProviderSetup from '../components/EmailProviderSetup'
 import CustomAPIProviderSetup from '../components/CustomAPIProviderSetup'
 import TelegramBotSetup from '../components/TelegramBotSetup'
@@ -152,6 +153,11 @@ const Settings = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Wallet Configuration */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <WalletConfiguration />
       </div>
 
       {/* External Integrations */}

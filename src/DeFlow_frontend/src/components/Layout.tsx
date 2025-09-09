@@ -3,8 +3,7 @@ import '../utils/bigint-polyfill'
 
 import { ReactNode, useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import MultiChainWalletComponent from './MultiChainWallet'
-import multiChainWalletService, { MultiChainWallet, SUPPORTED_CHAINS } from '../services/multiChainWalletService'
+import WalletConfiguration from './WalletConfiguration'
 import { useEnhancedAuth } from '../contexts/EnhancedAuthContext'
 import { AuthDropdown } from './AuthDropdown'
 import { NotificationDropdown } from './NotificationDropdown'
@@ -20,39 +19,44 @@ const Layout = ({ children }: LayoutProps) => {
   const location = useLocation()
   const navigate = useNavigate()
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
-  const [wallet, setWallet] = useState<MultiChainWallet>({ addresses: [], lastSyncAt: 0 })
+  const [walletCount, setWalletCount] = useState(0)
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [subscription, setSubscription] = useState<UserSubscription>(SubscriptionService.getCurrentSubscription())
   const auth = useEnhancedAuth()
 
-  // Initialize wallet asynchronously
+  // Load wallet count from localStorage
   useEffect(() => {
-    const initializeWallet = async () => {
+    const loadWalletCount = () => {
       try {
-        const currentWallet = await multiChainWalletService.getWallet()
-        setWallet(currentWallet)
+        const savedWallets = localStorage.getItem('deflow_wallets')
+        if (savedWallets) {
+          const wallets = JSON.parse(savedWallets)
+          setWalletCount(wallets.length || 0)
+        }
       } catch (error) {
-        console.error('Failed to initialize wallet in Layout:', error)
+        console.error('Failed to load wallet count:', error)
       }
     }
     
-    initializeWallet()
+    loadWalletCount()
+    
+    // Listen for storage changes to update wallet count
+    const handleStorageChange = () => {
+      loadWalletCount()
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
   useEffect(() => {
-    const handleWalletUpdate = (updatedWallet: MultiChainWallet) => {
-      setWallet(updatedWallet)
-    }
-
     const handleSubscriptionUpdate = (updatedSubscription: UserSubscription) => {
       setSubscription(updatedSubscription)
     }
 
-    multiChainWalletService.addListener(handleWalletUpdate)
     SubscriptionService.addSubscriptionListener(handleSubscriptionUpdate)
 
     return () => {
-      multiChainWalletService.removeListener(handleWalletUpdate)
       SubscriptionService.removeSubscriptionListener(handleSubscriptionUpdate)
     }
   }, [])
@@ -161,32 +165,17 @@ const Layout = ({ children }: LayoutProps) => {
                 </div>
               )}
 
-              {/* Multi-Chain Wallet Status */}
-              {wallet.addresses.length > 0 && (
+              {/* Wallet Status */}
+              {walletCount > 0 && (
                 <div className="flex items-center space-x-2">
-                  <div className="flex -space-x-1">
-                    {wallet.addresses.slice(0, 3).map((addr, index) => {
-                      const chainConfig = SUPPORTED_CHAINS[addr.chain]
-                      return (
-                        <div
-                          key={addr.chain}
-                          className="w-6 h-6 rounded-full flex items-center justify-center text-xs text-white border-2 border-white"
-                          style={{ backgroundColor: chainConfig.color }}
-                          title={`${chainConfig.name}: ${addr.address.slice(0, 8)}...`}
-                        >
-                          {chainConfig.icon}
-                        </div>
-                      )
-                    })}
-                    {wallet.addresses.length > 3 && (
-                      <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-xs text-white border-2 border-white">
-                        +{wallet.addresses.length - 3}
-                      </div>
-                    )}
+                  <div className="flex items-center space-x-1">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center text-xs text-white border-2 border-white">
+                      💰
+                    </div>
+                    <span className="text-sm text-gray-600">
+                      {walletCount} wallet{walletCount !== 1 ? 's' : ''} configured
+                    </span>
                   </div>
-                  <span className="text-sm text-gray-600">
-                    {wallet.addresses.length} chain{wallet.addresses.length !== 1 ? 's' : ''} connected
-                  </span>
                 </div>
               )}
 
@@ -224,7 +213,7 @@ const Layout = ({ children }: LayoutProps) => {
                 onClick={() => setIsWalletModalOpen(true)}
                 className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
               >
-                <span>{wallet.addresses.length > 0 ? 'Manage Wallets' : 'Connect Wallets'}</span>
+                <span>{walletCount > 0 ? `${walletCount} Wallet${walletCount !== 1 ? 's' : ''}` : 'Add Wallet'}</span>
               </button>
             </div>
           </div>
@@ -236,11 +225,41 @@ const Layout = ({ children }: LayoutProps) => {
         </main>
       </div>
 
-      {/* Multi-Chain Wallet Modal */}
-      <MultiChainWalletComponent 
-        isOpen={isWalletModalOpen}
-        onClose={() => setIsWalletModalOpen(false)}
-      />
+      {/* Wallet Configuration Modal */}
+      {isWalletModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-purple-600 to-blue-600">
+              <div>
+                <h2 className="text-xl font-semibold text-white">Wallet Configuration</h2>
+                <p className="text-purple-100 text-sm mt-1">
+                  Add seed phrases to enable automated DeFi strategies
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsWalletModalOpen(false)
+                  // Reload wallet count when modal closes
+                  const savedWallets = localStorage.getItem('deflow_wallets')
+                  if (savedWallets) {
+                    const wallets = JSON.parse(savedWallets)
+                    setWalletCount(wallets.length || 0)
+                  }
+                }}
+                className="text-white hover:text-purple-200 text-2xl font-light"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto max-h-[75vh]">
+              <WalletConfiguration />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
