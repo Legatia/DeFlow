@@ -163,17 +163,17 @@ const WorkflowEditor = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center h-64 bg-slate-900">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <h3 className="text-red-800 font-medium">Error</h3>
-        <p className="text-red-600 text-sm mt-1">{error}</p>
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4">
+        <h3 className="text-red-300 font-medium">Error</h3>
+        <p className="text-red-200 text-sm mt-1">{error}</p>
       </div>
     )
   }
@@ -182,23 +182,23 @@ const WorkflowEditor = () => {
     return (
       <div className="h-full flex flex-col">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="bg-slate-800/95 backdrop-blur-lg border-b border-slate-600/50 px-6 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">
+            <h1 className="text-xl font-bold text-slate-100">
               {isEditing ? 'Edit' : 'Create'}: {formData.name}
             </h1>
-            <p className="text-sm text-gray-600">{formData.description || 'No description'}</p>
+            <p className="text-sm text-slate-300">{formData.description || 'No description'}</p>
           </div>
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setShowBuilder(false)}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 text-slate-300 border border-slate-500/40 rounded-lg hover:bg-slate-700/60 transition-all duration-200 backdrop-blur-sm"
             >
               Back to Info
             </button>
             <button
               onClick={() => navigate('/workflows')}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 text-slate-300 border border-slate-500/40 rounded-lg hover:bg-slate-700/60 transition-all duration-200 backdrop-blur-sm"
             >
               Cancel
             </button>
@@ -228,15 +228,15 @@ const WorkflowEditor = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">
+    <div className="max-w-2xl mx-auto min-h-screen bg-slate-900 py-8">
+      <div className="bg-slate-800/90 backdrop-blur-lg rounded-xl shadow-xl p-6 border border-slate-600/50">
+        <h1 className="text-2xl font-bold text-slate-100 mb-6">
           {isEditing ? 'Edit Workflow Info' : 'Create New Workflow'}
         </h1>
 
         <form onSubmit={handleBasicInfoSubmit} className="space-y-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="name" className="block text-sm font-medium text-slate-200 mb-1">
               Workflow Name
             </label>
             <input
@@ -245,13 +245,13 @@ const WorkflowEditor = () => {
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-slate-700/60 border border-slate-500/40 rounded-lg text-slate-100 placeholder-slate-300 focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400/50 transition-all duration-200 backdrop-blur-sm"
               placeholder="Enter workflow name"
             />
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="description" className="block text-sm font-medium text-slate-200 mb-1">
               Description (Optional)
             </label>
             <textarea
@@ -259,7 +259,7 @@ const WorkflowEditor = () => {
               rows={3}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-slate-700/60 border border-slate-500/40 rounded-lg text-slate-100 placeholder-slate-300 focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400/50 transition-all duration-200 backdrop-blur-sm"
               placeholder="Describe what this workflow does"
             />
           </div>
@@ -270,20 +270,20 @@ const WorkflowEditor = () => {
               id="active"
               checked={formData.active}
               onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 text-cyan-400 focus:ring-cyan-400 bg-slate-700 border-slate-500 rounded"
             />
-            <label htmlFor="active" className="ml-2 block text-sm text-gray-700">
+            <label htmlFor="active" className="ml-2 block text-sm text-slate-200">
               Active (workflow can be triggered)
             </label>
           </div>
 
           {/* Next Steps Preview */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="text-lg font-medium text-blue-900 mb-2">Next Steps</h3>
-            <p className="text-blue-700 text-sm mb-3">
+          <div className="bg-cyan-900/20 border border-cyan-400/30 rounded-lg p-4 backdrop-blur-sm">
+            <h3 className="text-lg font-medium text-cyan-200 mb-2">Next Steps</h3>
+            <p className="text-cyan-100 text-sm mb-3">
               After saving the basic info, you'll be able to:
             </p>
-            <ul className="text-blue-700 text-sm space-y-1">
+            <ul className="text-cyan-100 text-sm space-y-1">
               <li>• 🎨 Design your workflow visually with drag & drop</li>
               <li>• 🔗 Connect nodes to create automation flows</li>
               <li>• ⚙️ Configure each node with specific settings</li>
@@ -291,17 +291,17 @@ const WorkflowEditor = () => {
             </ul>
           </div>
 
-          <div className="flex items-center justify-between pt-6 border-t">
+          <div className="flex items-center justify-between pt-6 border-t border-slate-600/50">
             <button
               type="button"
               onClick={() => navigate('/workflows')}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 text-slate-300 border border-slate-500/40 rounded-lg hover:bg-slate-700/60 transition-all duration-200 backdrop-blur-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-6 py-2 bg-cyan-500/80 backdrop-blur-sm text-white rounded-lg hover:bg-cyan-500 transition-all duration-200 border border-cyan-400/30"
             >
               Continue to Builder →
             </button>

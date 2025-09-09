@@ -87,10 +87,10 @@ export const EnhancedNodePalette: React.FC = () => {
   }
 
   return (
-    <div className="w-80 h-full bg-gray-900/80 backdrop-blur-lg border-r border-gray-700 flex flex-col">
+    <div className="w-80 h-full bg-slate-800/90 backdrop-blur-lg border-r border-slate-600/50 flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-gray-700">
-        <h2 className="text-lg font-semibold text-white mb-4">Workflow Nodes</h2>
+      <div className="p-4 border-b border-slate-600/50">
+        <h2 className="text-lg font-semibold text-slate-100 mb-4">Workflow Nodes</h2>
         
         {/* Search */}
         <div className="mb-4">
@@ -99,7 +99,7 @@ export const EnhancedNodePalette: React.FC = () => {
             placeholder="Search nodes..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm"
+            className="w-full px-3 py-2 bg-slate-700/60 border border-slate-500/40 rounded-lg text-slate-100 placeholder-slate-300 text-sm focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400/50 backdrop-blur-sm transition-all duration-200"
           />
         </div>
         
@@ -124,7 +124,7 @@ export const EnhancedNodePalette: React.FC = () => {
       {/* Nodes Grid */}
       <div className="flex-1 p-4 overflow-y-auto">
         {filteredNodes.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">
+          <div className="text-center text-slate-400 py-8">
             <div className="text-2xl mb-2">🔍</div>
             <div className="text-sm">
               {searchTerm ? `No nodes found for "${searchTerm}"` : 'No nodes in this category'}
@@ -160,12 +160,12 @@ export const EnhancedNodePalette: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-700 text-center">
-        <p className="text-xs text-gray-400">
+      <div className="p-4 border-t border-slate-600/50 text-center">
+        <p className="text-xs text-slate-300">
           Drag nodes to create workflows
         </p>
         {filteredNodes.some(n => !canAccessNodeType(subscriptionTier, n)) && (
-          <p className="text-xs text-amber-400 mt-1">
+          <p className="text-xs text-amber-300 mt-1">
             🔒 Some nodes require subscription upgrade
           </p>
         )}
