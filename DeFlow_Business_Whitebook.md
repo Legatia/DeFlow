@@ -306,16 +306,28 @@ DeFlow implements a revolutionary dual-payment system where users can choose bet
 
 ---
 
-## 6. $FLOW Tokenomics: Revolutionary "Earn-by-DeFi" Model
+## 6. $FLOW Tokenomics: Two-Phase "Community-First" Model
 
-### 6.1 Token Overview
+### 6.1 Revolutionary Two-Phase Launch Strategy
+
+**Phase 1: Community Building & Pre-Launch Rewards (Current - Until 1 BTC Pool)**
+- **Token Status**: Future value IOUs - not yet tradeable but fully earnable
+- **Focus**: Build community loyalty through early rewards
+- **Pool Target**: 1 BTC equivalent (~$60,000 TVL) in DeFlow pool
+- **Community Rewards**: Active users earn $FLOW for future value
+
+**Phase 2: Asset-Backed Real Launch (When Pool Reaches 1 BTC)**
+- **Backing Mechanism**: Pool Bitcoin staked as ckBTC for yield generation
+- **Token Activation**: All pre-earned tokens become tradeable and transferable
+- **Price Discovery**: Market-driven pricing based on ckBTC yield potential
+- **Real Utility**: Immediate use for fee discounts, staking, governance
 
 **$FLOW Token Specifications:**
 - **Standard**: ICRC-2 (Internet Computer native)
 - **Total Supply**: 1,000,000,000 FLOW (fixed supply, deflationary)
 - **Decimals**: 8 (supporting micro-transactions)
-- **Initial Price**: $0.10 per FLOW
-- **Unique Value Proposition**: First token where every DeFi operation earns rewards
+- **Launch Value**: Determined by pool assets/circulating supply ratio
+- **Unique Value Proposition**: First DeFi token backed by real yielding assets
 
 ### 6.2 Token Distribution Strategy
 
@@ -411,22 +423,33 @@ Transform transaction costs into earnings through strategic FLOW holdings:
 - **DeFlow**: "Earn-by-DeFi" model with financial upside
 - **Traditional**: Subscription-only model with no user rewards
 
-### 6.9 Token Launch Strategy
+### 6.9 Two-Phase Launch Strategy Implementation
 
-**Phase 1: Soft Launch (Months 1-3)**
-- **Target**: Existing user base (500-1,000 users)
-- **Action**: 10M FLOW airdrop to early adopters
-- **Goal**: Establish baseline reward rates and user behavior
+**Phase 1: Community Building & Pool Accumulation (Current Phase)**
+- **Target**: 1,000+ early adopters earning pre-launch tokens
+- **Pool Goal**: Accumulate 1 BTC equivalent (~$60,000) in platform assets
+- **Token Distribution**: 10-20M FLOW distributed as "future value IOUs"
+- **Community Incentives**: Earn tokens now, unlock value when pool hits milestone
 
-**Phase 2: Public Launch (Months 4-6)**
-- **Target**: Public DEX listing and DeFi community
-- **Action**: 50M FLOW liquidity mining program
-- **Goal**: 5,000+ active users, $100M+ monthly volume
+**Phase 1 Airdrop Criteria:**
+- **First 1,000 Users**: 100 FLOW each (future value)
+- **First DeFi Operation**: 50 FLOW bonus
+- **7-Day Activity Streak**: 200 FLOW bonus
+- **Successful Referrals**: 100 FLOW per referred user
+- **Beta Testing Participation**: 150 FLOW for feedback
 
-**Phase 3: Ecosystem Expansion (Months 7-12)**
-- **Target**: Major DeFi protocol integrations
-- **Action**: 100M FLOW partnership incentives
-- **Goal**: 20,000+ users, established token economy
+**Phase 2: Asset-Backed Launch (Triggered by 1 BTC Pool)**
+- **Launch Trigger**: When DeFlow pool reaches 1 BTC equivalent
+- **Asset Backing**: Stake pool Bitcoin as ckBTC for 5-8% APY
+- **Token Activation**: All pre-distributed tokens become tradeable
+- **Price Discovery**: Initial value based on (Pool Assets ÷ Circulating Supply)
+- **DEX Listing**: Launch with real liquidity backing on ICP DEXs
+
+**Why This Strategy Works:**
+1. **No Speculative Bubble**: Tokens have no value until backed by real assets
+2. **Community Loyalty**: Early users accumulate future value through activity
+3. **Sustainable Launch**: Real asset backing prevents token collapse
+4. **Market Excitement**: "When we hit 1 BTC, your tokens go live!" creates anticipation
 
 ### 6.10 Real-World Implementation
 
@@ -671,7 +694,7 @@ The platform's ability to seamlessly integrate social media automation with soph
 4. **Network Effects**: More users → higher token value → more users
 5. **Integrated Ecosystem**: DeFi + Social + Automation in one platform
 
-With our experienced team, innovative technology stack, proven tokenomics implementation, and clear path to explosive profitability, DeFlow is positioned to lead the next wave of DeFi innovation and mainstream adoption while creating the first sustainable crypto platform where users truly benefit from their engagement.
+With our experienced team, innovative technology stack, revolutionary two-phase tokenomics strategy, and clear path to sustainable profitability, DeFlow is positioned to lead the next wave of DeFi innovation. Our asset-backed token launch model eliminates speculative risk while building genuine community value, creating the first truly sustainable crypto platform where users benefit from real utility rather than speculation.
 
 **The future of DeFi automation is here, and it rewards its users.**
 

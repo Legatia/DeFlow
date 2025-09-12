@@ -147,11 +147,17 @@ Users can pay fees in either:
 
 ## 7. Economic Projections & Modeling
 
-### Year 1 Targets (Conservative)
-- **Active Users**: 2,500 (current projections: 1,000)
-- **Monthly DeFi Volume**: $50M processed through platform
-- **$FLOW Rewards Distributed**: 60M tokens (20% of reward pool)
-- **Token Price Target**: $0.10-0.20 (based on utility demand)
+### Phase 1 Targets (Pre-Launch - Building to 1 BTC Pool)
+- **Active Users**: 1,000+ early adopters earning pre-launch tokens
+- **Pool Asset Target**: 1 BTC equivalent (~$60,000 TVL minimum)
+- **$FLOW Pre-Distributed**: 10-20M tokens via airdrops (future value IOUs)
+- **Community Engagement**: High retention through future value anticipation
+
+### Phase 2 Launch Targets (Post-1 BTC Milestone)
+- **Token Price Discovery**: Based on ckBTC yield/pool assets ratio (market-determined)
+- **Initial Circulating Supply**: Pre-distributed tokens become tradeable
+- **Real Utility Launch**: Immediate use for fee discounts and staking
+- **Growth Target**: 2,500+ active users within 6 months of launch
 
 ### Revenue Impact Analysis
 - **Subscription Revenue**: +40% (token discounts drive upgrades)
@@ -186,25 +192,41 @@ Users can pay fees in either:
 
 ---
 
-## 9. Launch Strategy
+## 9. Two-Phase Launch Strategy
 
-### Phase 1: Soft Launch (Months 1-3)
-- **Target**: Existing user base (500-1,000 users)
-- **Distribution**: 10M $FLOW airdrop to early adopters
-- **Focus**: Reward system calibration and feedback
-- **Goal**: Establish baseline reward rates and user behavior
+### Phase 1: Community Building & Pre-Launch Airdrops (Now - Until 1 BTC Pool)
+- **Token Status**: "Future Value IOUs" - Not yet tradeable or transferable
+- **Community Building**: Airdrop $FLOW to early adopters and active users
+- **Reward Accumulation**: Users earn tokens for DeFi operations and platform activity
+- **Pool Building**: Focus on accumulating real assets in DeFlow pool
+- **Milestone Target**: 1 BTC equivalent in pool assets ($60,000+ TVL)
 
-### Phase 2: Public Launch (Months 4-6)  
-- **Target**: Public DEX listing and broader DeFi community
-- **Distribution**: 50M $FLOW for liquidity mining
-- **Focus**: User acquisition through reward campaigns
-- **Goal**: 5,000+ active users, $100M+ monthly volume
+**Phase 1 Airdrop Criteria:**
+- **First 1,000 Users**: 100 $FLOW each
+- **First DeFi Operation**: 50 $FLOW
+- **7-Day Activity Streak**: 200 $FLOW bonus
+- **Successful Referral**: 100 $FLOW per referral
+- **Beta Feature Testing**: 150 $FLOW for feedback
+- **Social Media Integration**: 75 $FLOW for connecting accounts
 
-### Phase 3: Ecosystem Expansion (Months 7-12)
-- **Target**: Integration with major DeFi protocols
-- **Distribution**: 100M $FLOW for partnerships and integrations
-- **Focus**: Cross-protocol reward mechanisms
-- **Goal**: 20,000+ users, established token economy
+### Phase 2: Real Asset-Backed Launch (When Pool Reaches 1 BTC)
+- **Asset Backing**: Use accumulated pool assets (1 BTC minimum) as token backing
+- **ckBTC Integration**: Stake pool Bitcoin as ckBTC on ICP for yield generation
+- **Token Activation**: All previously airdropped tokens become tradeable and transferable
+- **Price Discovery**: Token value tied to ckBTC yield and pool performance
+- **DEX Launch**: List $FLOW on ICP DEXs with real liquidity backing
+
+**Launch Economics:**
+- **Token Value**: Derived from ckBTC yield potential (~5-8% APY)
+- **Initial Price**: Based on pool assets / circulating supply
+- **Sustainability**: Ongoing pool growth and ckBTC staking rewards
+- **Real Utility**: Immediate use for fee discounts and platform benefits
+
+### Phase 3: Ecosystem Expansion (Post-Launch)
+- **Multi-Asset Backing**: Expand beyond BTC to ETH, USDC, other assets
+- **Cross-Chain Integration**: Launch on Ethereum and other chains
+- **DeFi Partnerships**: Deep integrations with major protocols
+- **Institutional Adoption**: Enterprise features and bulk token packages
 
 ---
 
@@ -232,29 +254,40 @@ Users can pay fees in either:
 
 ## 11. Implementation Timeline
 
-### Q1 2025: Token Development
-- [ ] ICRC-2 token contract development
-- [ ] Integration with existing fee system  
-- [ ] Reward calculation engine
-- [ ] Basic staking mechanism
+### Phase 1: Pre-Launch Community Building (Q1-Q3 2025)
+- [x] Token architecture and reward system design
+- [x] Backend token management system implementation
+- [ ] Airdrop criteria and distribution system
+- [ ] Pool asset accumulation tracking
+- [ ] Community engagement campaigns
+- [ ] Pre-launch token earning mechanics
 
-### Q2 2025: Beta Testing
-- [ ] Closed beta with 100 power users
-- [ ] Reward system calibration
-- [ ] Fee discount implementation
-- [ ] Community feedback integration
+### Phase 1 Milestones:
+- [ ] 500 active users earning pre-launch tokens
+- [ ] $30,000 pool assets accumulated (0.5 BTC equivalent)
+- [ ] 5M+ $FLOW distributed via airdrops
+- [ ] Community excitement and anticipation building
 
-### Q3 2025: Public Launch
-- [ ] DEX listing and liquidity provision
-- [ ] Public airdrop to existing users
-- [ ] Referral program activation
-- [ ] Marketing campaign launch
+### Phase 2: Asset-Backed Launch (When 1 BTC Pool Reached)
+- [ ] ckBTC integration and staking mechanism
+- [ ] Token transferability activation
+- [ ] Price discovery and DEX listing preparation
+- [ ] Real utility features activation (fee discounts, staking)
+- [ ] Public marketing campaign launch
 
-### Q4 2025: Ecosystem Growth
-- [ ] Cross-protocol integrations
-- [ ] Advanced governance features
-- [ ] Mobile app token integration
-- [ ] Enterprise token packages
+### Phase 2 Launch Triggers:
+- [x] Pool reaches 1 BTC equivalent (~$60,000 TVL)
+- [ ] ckBTC staking contracts deployed
+- [ ] All pre-distributed tokens become tradeable
+- [ ] Initial DEX liquidity provision
+- [ ] Community celebration and adoption drive
+
+### Phase 3: Ecosystem Expansion (Post-Launch)
+- [ ] Multi-asset pool expansion (ETH, USDC, etc.)
+- [ ] Cross-chain token deployment
+- [ ] Advanced DeFi integrations
+- [ ] Institutional adoption features
+- [ ] Governance system activation
 
 ---
 
