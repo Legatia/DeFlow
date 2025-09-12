@@ -7,6 +7,8 @@
 import React, { useState, useEffect } from 'react'
 import { useEnhancedAuth } from '../contexts/EnhancedAuthContext'
 import walletService, { WalletBalance } from '../services/walletService'
+import SpendingApprovalManager from './SpendingApprovalManager'
+import spendingApprovalService from '../services/spendingApprovalService'
 
 interface WalletConfig {
   id: string
@@ -76,6 +78,17 @@ const WalletConfiguration: React.FC = () => {
   
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [testResults, setTestResults] = useState<Record<string, { success: boolean; message: string }>>({})
+  
+  // Spending approval flow states
+  const [showSpendingApproval, setShowSpendingApproval] = useState(false)
+  const [newlyCreatedWallet, setNewlyCreatedWallet] = useState<WalletConfig | null>(null)
+  const [availableTokens, setAvailableTokens] = useState<Array<{
+    symbol: string
+    balance: string
+    balanceUSD: number
+    contractAddress?: string
+    decimals: number
+  }>>([])
 
   // Load saved wallets from localStorage
   useEffect(() => {
@@ -179,6 +192,14 @@ const WalletConfiguration: React.FC = () => {
       const updatedWallets = [...wallets, walletConfig]
       saveWallets(updatedWallets)
 
+      // Load available tokens for spending approval
+      const mockTokens = await generateMockTokenBalances(walletData.address, newWallet.chainType)
+      setAvailableTokens(mockTokens)
+      
+      // Store newly created wallet and show spending approval flow
+      setNewlyCreatedWallet(walletConfig)
+      setShowSpendingApproval(true)
+
       // Reset form
       setNewWallet({
         name: '',
@@ -269,8 +290,83 @@ const WalletConfiguration: React.FC = () => {
     return `${words[0]} ${words[1]} ••• ••• ••• ${words[words.length-2]} ${words[words.length-1]}`
   }
 
+  // Helper function to generate mock token balances for demo
+  const generateMockTokenBalances = async (address: string, chainType: string) => {
+    // Mock token balances based on chain type
+    const mockBalances = {
+      ethereum: [
+        { symbol: 'ETH', balance: '2.45', balanceUSD: 6125, decimals: 18 },
+        { symbol: 'USDC', balance: '1500.00', balanceUSD: 1500, contractAddress: '0xA0b86a33E6417c70C8bd9Eff59bBf8B70dC7fF9D', decimals: 6 },
+        { symbol: 'USDT', balance: '800.50', balanceUSD: 800.50, contractAddress: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6 },
+        { symbol: 'DAI', balance: '1200.00', balanceUSD: 1200, contractAddress: '0x6B175474E89094C44Da98b954EedeAC495271d0F', decimals: 18 },
+      ],
+      bitcoin: [
+        { symbol: 'BTC', balance: '0.05', balanceUSD: 2250, decimals: 8 }
+      ],
+      solana: [
+        { symbol: 'SOL', balance: '25.0', balanceUSD: 2500, decimals: 9 },
+        { symbol: 'USDC', balance: '1000.00', balanceUSD: 1000, contractAddress: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', decimals: 6 }
+      ]
+    }
+    
+    return mockBalances[chainType as keyof typeof mockBalances] || []
+  }
+
+  // Handle spending approval completion
+  const handleApprovalComplete = async (approvals: any[]) => {
+    try {
+      // Initialize spending approval service with new wallet
+      if (newlyCreatedWallet) {
+        await spendingApprovalService.initialize(newlyCreatedWallet.address)
+        
+        // Create approvals on-chain
+        const result = await spendingApprovalService.createApprovals(
+          newlyCreatedWallet.address,
+          approvals.map(approval => ({
+            token: approval.token,
+            symbol: approval.symbol,
+            contractAddress: approval.contractAddress || '',
+            maxAmount: approval.maxAmount,
+            dailyLimit: approval.dailyLimit,
+            operationsAllowed: approval.operationsAllowed.map((op: any) => op.type),
+            chainId: 1 // Default to Ethereum mainnet
+          }))
+        )
+        
+        console.log('Spending approvals created:', result)
+      }
+      
+      // Close spending approval flow
+      setShowSpendingApproval(false)
+      setNewlyCreatedWallet(null)
+      setAvailableTokens([])
+      
+    } catch (error) {
+      console.error('Failed to create spending approvals:', error)
+    }
+  }
+
+  // Handle skipping spending approval
+  const handleSkipApproval = () => {
+    setShowSpendingApproval(false)
+    setNewlyCreatedWallet(null)
+    setAvailableTokens([])
+  }
+
   // Check if user has premium features
   const canAddWallet = subscriptionTier === 'premium' || wallets.length === 0
+
+  // Show spending approval manager if active
+  if (showSpendingApproval && newlyCreatedWallet) {
+    return (
+      <SpendingApprovalManager
+        walletAddress={newlyCreatedWallet.address}
+        availableTokens={availableTokens}
+        onApprovalComplete={handleApprovalComplete}
+        onSkip={handleSkipApproval}
+      />
+    )
+  }
 
   return (
     <div className="space-y-6">

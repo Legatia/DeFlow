@@ -3330,7 +3330,499 @@ fn asset_to_string(asset: &Asset) -> String {
         Asset::SOL => "SOL".to_string(),
         Asset::MATIC => "MATIC".to_string(),
         Asset::AVAX => "AVAX".to_string(),
+        Asset::FLOW => "FLOW".to_string(),
     }
+}
+
+// =============================================================================
+// $FLOW TOKEN MANAGEMENT FUNCTIONS
+// =============================================================================
+
+/// Get user's $FLOW token balance and staking information
+#[query]
+fn get_user_flow_balance(user: Principal) -> Result<UserFlowBalance, String> {
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        
+        match pool_state.user_flow_balances.get(&user) {
+            Some(balance) => Ok(balance.clone()),
+            None => {
+                // Return default balance for new users
+                Ok(UserFlowBalance {
+                    user,
+                    total_balance: 0,
+                    available_balance: 0,
+                    staked_balance: 0,
+                    pending_rewards: 0,
+                    stake_lock_period: None,
+                    stake_end_time: None,
+                    stake_multiplier: 1.0,
+                    defi_operations_count: 0,
+                    social_posts_count: 0,
+                    last_activity_timestamp: 0,
+                    activity_streak_days: 0,
+                    lifetime_rewards_earned: 0,
+                    lifetime_fees_paid_in_flow: 0,
+                })
+            }
+        }
+    })
+}
+
+/// Get $FLOW token reserve information (public stats)
+#[query]
+fn get_flow_token_reserve() -> Result<FlowTokenReserve, String> {
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        Ok(pool_state.flow_token_reserve.clone())
+    })
+}
+
+/// Award $FLOW tokens to user for DeFi operations
+#[update]
+fn award_flow_tokens(
+    user: Principal, 
+    operation_type: String, 
+    transaction_amount_usd: f64,
+    is_cross_chain: bool
+) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Only authorized backend canisters can award tokens
+    if !is_authorized_payment_processor(caller) {
+        return Err("SECURITY: Only authorized backends can award tokens".to_string());
+    }
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        // Calculate reward amount based on operation type and user tier
+        let base_reward = match operation_type.as_str() {
+            "yield_farming" => {
+                (transaction_amount_usd / 1000.0) * (pool_state.flow_reward_config.yield_farming_reward_rate as f64)
+            },
+            "arbitrage" => pool_state.flow_reward_config.arbitrage_reward_rate as f64,
+            "rebalancing" => pool_state.flow_reward_config.rebalancing_reward_rate as f64,
+            "social_automation" => pool_state.flow_reward_config.social_automation_reward_rate as f64,
+            _ => return Err("Invalid operation type".to_string()),
+        };
+        
+        // Apply bonuses
+        let mut final_reward = base_reward;
+        
+        // Cross-chain bonus
+        if is_cross_chain {
+            final_reward *= pool_state.flow_reward_config.cross_chain_bonus;
+        }
+        
+        // Store the reward config values to avoid borrow conflicts
+        let daily_active_bonus = pool_state.flow_reward_config.daily_active_bonus;
+        let weekly_streak_bonus = pool_state.flow_reward_config.weekly_streak_bonus;
+        let monthly_power_user_bonus = pool_state.flow_reward_config.monthly_power_user_bonus;
+        let quarterly_champion_bonus = pool_state.flow_reward_config.quarterly_champion_bonus;
+        let current_rewards_pool = pool_state.flow_token_reserve.community_rewards_pool;
+        
+        // Get or create user balance
+        let user_balance = pool_state.user_flow_balances.entry(user).or_insert_with(|| {
+            UserFlowBalance {
+                user,
+                total_balance: 0,
+                available_balance: 0,
+                staked_balance: 0,
+                pending_rewards: 0,
+                stake_lock_period: None,
+                stake_end_time: None,
+                stake_multiplier: 1.0,
+                defi_operations_count: 0,
+                social_posts_count: 0,
+                last_activity_timestamp: ic_cdk::api::time(),
+                activity_streak_days: 0,
+                lifetime_rewards_earned: 0,
+                lifetime_fees_paid_in_flow: 0,
+            }
+        });
+        
+        // Apply staking multiplier
+        final_reward *= user_balance.stake_multiplier;
+        
+        // Apply activity streak bonuses
+        let current_time = ic_cdk::api::time();
+        let days_since_last_activity = (current_time - user_balance.last_activity_timestamp) / (24 * 60 * 60 * 1_000_000_000);
+        
+        if days_since_last_activity <= 1 {
+            user_balance.activity_streak_days += 1;
+        } else {
+            user_balance.activity_streak_days = 1;
+        }
+        
+        // Apply streak bonuses
+        if user_balance.activity_streak_days >= 1 {
+            final_reward *= daily_active_bonus;
+        }
+        if user_balance.activity_streak_days >= 7 {
+            final_reward *= weekly_streak_bonus;
+        }
+        if user_balance.activity_streak_days >= 30 {
+            final_reward *= monthly_power_user_bonus;
+        }
+        if user_balance.activity_streak_days >= 90 {
+            final_reward *= quarterly_champion_bonus;
+        }
+        
+        let reward_amount = final_reward as u64;
+        
+        // Check if community rewards pool has sufficient balance
+        if current_rewards_pool < reward_amount {
+            return Err("Insufficient rewards pool balance".to_string());
+        }
+        
+        // Award tokens
+        user_balance.pending_rewards += reward_amount;
+        user_balance.lifetime_rewards_earned += reward_amount;
+        user_balance.last_activity_timestamp = current_time;
+        
+        // Update operation counts
+        match operation_type.as_str() {
+            "yield_farming" | "arbitrage" | "rebalancing" => {
+                user_balance.defi_operations_count += 1;
+            },
+            "social_automation" => {
+                user_balance.social_posts_count += 1;
+            },
+            _ => {}
+        }
+        
+        // Update reserve
+        pool_state.flow_token_reserve.community_rewards_pool -= reward_amount;
+        pool_state.flow_token_reserve.rewards_distributed_total += reward_amount;
+        pool_state.flow_token_reserve.last_reward_distribution = current_time;
+        
+        // Record transaction
+        pool_state.flow_transactions.push(FlowTransaction {
+            transaction_id: format!("reward_{}_{}_{}", user.to_text(), operation_type, current_time),
+            user,
+            transaction_type: FlowTransactionType::RewardEarned { operation_type: operation_type.clone() },
+            amount: reward_amount,
+            timestamp: current_time,
+            details: format!("Earned {} FLOW for {} operation (${} USD)", 
+                           reward_amount as f64 / 100_000_000.0, operation_type, transaction_amount_usd),
+        });
+        
+        Ok(format!("Awarded {} FLOW tokens to {} for {} operation", 
+                  reward_amount as f64 / 100_000_000.0, user.to_text(), operation_type))
+    })
+}
+
+/// Claim pending $FLOW rewards (move from pending to available balance)
+#[update]
+fn claim_flow_rewards() -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        let user_balance = pool_state.user_flow_balances.get_mut(&caller)
+            .ok_or("User balance not found".to_string())?;
+        
+        if user_balance.pending_rewards == 0 {
+            return Ok("No pending rewards to claim".to_string());
+        }
+        
+        let claimed_amount = user_balance.pending_rewards;
+        user_balance.available_balance += claimed_amount;
+        user_balance.total_balance += claimed_amount;
+        user_balance.pending_rewards = 0;
+        
+        // Update circulating supply
+        pool_state.flow_token_reserve.circulating_supply += claimed_amount;
+        
+        // Record transaction
+        let current_time = ic_cdk::api::time();
+        pool_state.flow_transactions.push(FlowTransaction {
+            transaction_id: format!("claim_{}_{}", caller.to_text(), current_time),
+            user: caller,
+            transaction_type: FlowTransactionType::RewardEarned { operation_type: "claim".to_string() },
+            amount: claimed_amount,
+            timestamp: current_time,
+            details: format!("Claimed {} FLOW rewards", claimed_amount as f64 / 100_000_000.0),
+        });
+        
+        Ok(format!("Successfully claimed {} FLOW tokens", claimed_amount as f64 / 100_000_000.0))
+    })
+}
+
+/// Stake $FLOW tokens for enhanced rewards
+#[update]
+fn stake_flow_tokens(amount: u64, lock_period_days: u32) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    
+    // Validate lock period
+    let (lock_period_seconds, multiplier) = match lock_period_days {
+        30 => (30 * 24 * 60 * 60, 1.2),
+        90 => (90 * 24 * 60 * 60, 1.5),
+        180 => (180 * 24 * 60 * 60, 2.0),
+        365 => (365 * 24 * 60 * 60, 3.0),
+        _ => return Err("Invalid lock period. Valid options: 30, 90, 180, 365 days".to_string()),
+    };
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        let user_balance = pool_state.user_flow_balances.get_mut(&caller)
+            .ok_or("User balance not found".to_string())?;
+        
+        if user_balance.available_balance < amount {
+            return Err("Insufficient available balance".to_string());
+        }
+        
+        if user_balance.staked_balance > 0 {
+            return Err("Already have active staking. Unstake first to change terms".to_string());
+        }
+        
+        let current_time = ic_cdk::api::time();
+        let stake_end_time = current_time + (lock_period_seconds as u64 * 1_000_000_000);
+        
+        // Stake tokens
+        user_balance.available_balance -= amount;
+        user_balance.staked_balance = amount;
+        user_balance.stake_lock_period = Some(lock_period_seconds as u64);
+        user_balance.stake_end_time = Some(stake_end_time);
+        user_balance.stake_multiplier = multiplier;
+        
+        // Record transaction
+        pool_state.flow_transactions.push(FlowTransaction {
+            transaction_id: format!("stake_{}_{}", caller.to_text(), current_time),
+            user: caller,
+            transaction_type: FlowTransactionType::Staking { lock_period_days },
+            amount,
+            timestamp: current_time,
+            details: format!("Staked {} FLOW for {} days ({}x multiplier)", 
+                           amount as f64 / 100_000_000.0, lock_period_days, multiplier),
+        });
+        
+        Ok(format!("Successfully staked {} FLOW tokens for {} days with {}x multiplier", 
+                  amount as f64 / 100_000_000.0, lock_period_days, multiplier))
+    })
+}
+
+/// Unstake $FLOW tokens (after lock period expires)
+#[update]
+fn unstake_flow_tokens() -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        let user_balance = pool_state.user_flow_balances.get_mut(&caller)
+            .ok_or("User balance not found".to_string())?;
+        
+        if user_balance.staked_balance == 0 {
+            return Err("No tokens currently staked".to_string());
+        }
+        
+        let current_time = ic_cdk::api::time();
+        if let Some(stake_end_time) = user_balance.stake_end_time {
+            if current_time < stake_end_time {
+                return Err("Staking period has not expired yet".to_string());
+            }
+        }
+        
+        let unstaked_amount = user_balance.staked_balance;
+        user_balance.available_balance += unstaked_amount;
+        user_balance.staked_balance = 0;
+        user_balance.stake_lock_period = None;
+        user_balance.stake_end_time = None;
+        user_balance.stake_multiplier = 1.0;
+        
+        // Record transaction
+        pool_state.flow_transactions.push(FlowTransaction {
+            transaction_id: format!("unstake_{}_{}", caller.to_text(), current_time),
+            user: caller,
+            transaction_type: FlowTransactionType::Unstaking,
+            amount: unstaked_amount,
+            timestamp: current_time,
+            details: format!("Unstaked {} FLOW tokens", unstaked_amount as f64 / 100_000_000.0),
+        });
+        
+        Ok(format!("Successfully unstaked {} FLOW tokens", unstaked_amount as f64 / 100_000_000.0))
+    })
+}
+
+/// Calculate fee discount for user based on FLOW holdings
+#[query]
+fn get_user_fee_discount(user: Principal) -> Result<(f64, f64), String> {
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        
+        let user_balance = pool_state.user_flow_balances.get(&user);
+        let total_flow_balance = match user_balance {
+            Some(balance) => balance.total_balance,
+            None => 0,
+        };
+        
+        // Find applicable discount tier
+        let mut transaction_discount = 0.0;
+        let mut subscription_discount = 0.0;
+        
+        for tier in &pool_state.flow_reward_config.fee_discount_tiers {
+            if total_flow_balance >= tier.minimum_flow_balance {
+                transaction_discount = tier.transaction_fee_discount;
+                subscription_discount = tier.subscription_discount;
+            }
+        }
+        
+        Ok((transaction_discount, subscription_discount))
+    })
+}
+
+/// Pay fees using $FLOW tokens (with discount)
+#[update]
+fn pay_fees_with_flow(service: String, base_fee_usd: f64) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        // Get discount tiers first to avoid borrow conflicts
+        let fee_discount_tiers = pool_state.flow_reward_config.fee_discount_tiers.clone();
+        
+        let user_balance = pool_state.user_flow_balances.get_mut(&caller)
+            .ok_or("User balance not found".to_string())?;
+        
+        // Calculate discount
+        let (transaction_discount, _) = fee_discount_tiers
+            .iter()
+            .rev()
+            .find(|tier| user_balance.total_balance >= tier.minimum_flow_balance)
+            .map(|tier| (tier.transaction_fee_discount, tier.subscription_discount))
+            .unwrap_or((0.0, 0.0));
+        
+        let discounted_fee_usd = base_fee_usd * (1.0 - transaction_discount);
+        
+        // Convert USD to FLOW tokens (assuming $0.10 per FLOW for now)
+        // In production, this should use real price feed
+        let flow_price_usd = 0.10;
+        let fee_in_flow = (discounted_fee_usd / flow_price_usd * 100_000_000.0) as u64; // Convert to 8 decimals
+        
+        if user_balance.available_balance < fee_in_flow {
+            return Err(format!("Insufficient FLOW balance. Need {} FLOW, have {}", 
+                              fee_in_flow as f64 / 100_000_000.0, 
+                              user_balance.available_balance as f64 / 100_000_000.0));
+        }
+        
+        // Deduct tokens
+        user_balance.available_balance -= fee_in_flow;
+        user_balance.total_balance -= fee_in_flow;
+        user_balance.lifetime_fees_paid_in_flow += fee_in_flow;
+        
+        // Update treasury (fees collected in FLOW)
+        pool_state.flow_token_reserve.treasury_reserve_pool += fee_in_flow;
+        
+        // Record transaction
+        let current_time = ic_cdk::api::time();
+        pool_state.flow_transactions.push(FlowTransaction {
+            transaction_id: format!("fee_{}_{}", caller.to_text(), current_time),
+            user: caller,
+            transaction_type: FlowTransactionType::FeePayment { service: service.clone() },
+            amount: fee_in_flow,
+            timestamp: current_time,
+            details: format!("Paid {} FLOW for {} ({}% discount)", 
+                           fee_in_flow as f64 / 100_000_000.0, service, transaction_discount * 100.0),
+        });
+        
+        Ok(format!("Paid {} FLOW tokens for {} with {}% discount", 
+                  fee_in_flow as f64 / 100_000_000.0, service, transaction_discount * 100.0))
+    })
+}
+
+/// Get user's transaction history with FLOW tokens
+#[query]
+fn get_user_flow_transactions(user: Principal, limit: usize) -> Result<Vec<FlowTransaction>, String> {
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        
+        let user_transactions: Vec<FlowTransaction> = pool_state.flow_transactions
+            .iter()
+            .filter(|tx| tx.user == user)
+            .rev() // Most recent first
+            .take(limit)
+            .cloned()
+            .collect();
+        
+        Ok(user_transactions)
+    })
+}
+
+/// Admin function: Initialize token airdrop for early users
+#[update]
+fn initialize_token_airdrop(recipients: Vec<(Principal, u64)>) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Only managers and above can initiate airdrops
+    if !is_manager_or_above(caller) {
+        return Err("Access denied: Only managers can initialize airdrops".to_string());
+    }
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        let mut total_airdrop = 0u64;
+        for (_, amount) in &recipients {
+            total_airdrop += amount;
+        }
+        
+        // Check if public launch pool has sufficient balance
+        if pool_state.flow_token_reserve.public_launch_pool < total_airdrop {
+            return Err("Insufficient public launch pool balance for airdrop".to_string());
+        }
+        
+        let current_time = ic_cdk::api::time();
+        let recipients_len = recipients.len();
+        
+        // Distribute tokens
+        for (user, amount) in recipients {
+            // Get or create user balance
+            let user_balance = pool_state.user_flow_balances.entry(user).or_insert_with(|| {
+                UserFlowBalance {
+                    user,
+                    total_balance: 0,
+                    available_balance: 0,
+                    staked_balance: 0,
+                    pending_rewards: 0,
+                    stake_lock_period: None,
+                    stake_end_time: None,
+                    stake_multiplier: 1.0,
+                    defi_operations_count: 0,
+                    social_posts_count: 0,
+                    last_activity_timestamp: current_time,
+                    activity_streak_days: 0,
+                    lifetime_rewards_earned: 0,
+                    lifetime_fees_paid_in_flow: 0,
+                }
+            });
+            
+            // Add airdrop tokens
+            user_balance.available_balance += amount;
+            user_balance.total_balance += amount;
+            
+            // Record transaction
+            pool_state.flow_transactions.push(FlowTransaction {
+                transaction_id: format!("airdrop_{}_{}", user.to_text(), current_time),
+                user,
+                transaction_type: FlowTransactionType::Airdrop,
+                amount,
+                timestamp: current_time,
+                details: format!("Received {} FLOW tokens via airdrop", amount as f64 / 100_000_000.0),
+            });
+        }
+        
+        // Update reserve
+        pool_state.flow_token_reserve.public_launch_pool -= total_airdrop;
+        pool_state.flow_token_reserve.circulating_supply += total_airdrop;
+        
+        Ok(format!("Successfully airdropped {} total FLOW tokens to {} users", 
+                  total_airdrop as f64 / 100_000_000.0, recipients_len))
+    })
 }
 
 // Export Candid interface

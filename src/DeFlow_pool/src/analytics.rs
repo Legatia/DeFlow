@@ -345,6 +345,7 @@ Generated at: {}
             Asset::SOL => (100.0, 9),
             Asset::MATIC => (0.8, 18),
             Asset::AVAX => (25.0, 18),
+            Asset::FLOW => (0.10, 8), // $0.10 per FLOW token
         };
         
         price_usd / 10_u64.pow(decimals) as f64

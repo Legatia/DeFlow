@@ -30,6 +30,7 @@ pub enum Asset {
     SOL,
     MATIC,
     AVAX,
+    FLOW,  // DeFlow platform token
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -275,6 +276,12 @@ pub struct PoolState {
     // Bootstrap targets
     pub bootstrap_targets: HashMap<Asset, u64>,
     
+    // ===== $FLOW TOKEN MANAGEMENT =====
+    pub flow_token_reserve: FlowTokenReserve,
+    pub flow_reward_config: FlowRewardConfig,
+    pub user_flow_balances: HashMap<Principal, UserFlowBalance>,
+    pub flow_transactions: Vec<FlowTransaction>,
+    
     // ===== TREASURY MANAGEMENT FIELDS =====
     pub treasury_config: TreasuryConfig,
     pub payment_addresses: Vec<PaymentAddress>,
@@ -313,6 +320,12 @@ impl Default for PoolState {
             monthly_volume: 0.0,
             fee_collection_rate: 0.004, // 0.4% pool accumulation rate
             bootstrap_targets,
+            
+            // $FLOW Token management defaults
+            flow_token_reserve: FlowTokenReserve::default(),
+            flow_reward_config: FlowRewardConfig::default(),
+            user_flow_balances: HashMap::new(),
+            flow_transactions: Vec::new(),
             
             // Treasury management defaults
             treasury_config: TreasuryConfig::default(),
@@ -809,6 +822,7 @@ impl Asset {
             Asset::SOL => "SOL".to_string(),
             Asset::MATIC => "MATIC".to_string(),
             Asset::AVAX => "AVAX".to_string(),
+            Asset::FLOW => "FLOW".to_string(),
         }
     }
     
@@ -822,6 +836,7 @@ impl Asset {
             Asset::SOL => 9,
             Asset::MATIC => 18,
             Asset::AVAX => 18,
+            Asset::FLOW => 8,  // 8 decimals for micro-transactions
         }
     }
 }
@@ -837,6 +852,186 @@ impl ChainId {
             ChainId::Base => "Base".to_string(),
             ChainId::Solana => "Solana".to_string(),
             ChainId::Avalanche => "Avalanche".to_string(),
+        }
+    }
+}
+
+// =============================================================================
+// $FLOW TOKEN MANAGEMENT
+// =============================================================================
+
+/// $FLOW Token Supply and Distribution Management
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct FlowTokenReserve {
+    // Total supply: 1,000,000,000 FLOW (fixed supply)
+    pub total_supply: u64,             // 1B FLOW (with 8 decimals = 100,000,000,000,000,000)
+    pub circulating_supply: u64,       // Currently circulating tokens
+    
+    // Distribution pools
+    pub community_rewards_pool: u64,   // 300M FLOW (30%)
+    pub team_development_pool: u64,    // 250M FLOW (25%)
+    pub ecosystem_fund_pool: u64,      // 200M FLOW (20%)
+    pub public_launch_pool: u64,       // 150M FLOW (15%)
+    pub treasury_reserve_pool: u64,    // 100M FLOW (10%)
+    
+    // Reward distribution tracking
+    pub rewards_distributed_total: u64,
+    pub last_reward_distribution: u64,
+    
+    // Burn and buyback mechanics
+    pub tokens_burned_total: u64,
+    pub last_buyback_amount: u64,
+    pub last_buyback_timestamp: u64,
+}
+
+/// User's $FLOW token balance and staking information
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct UserFlowBalance {
+    pub user: Principal,
+    pub total_balance: u64,           // Total FLOW tokens owned
+    pub available_balance: u64,       // Available for transactions
+    pub staked_balance: u64,          // Currently staked tokens
+    pub pending_rewards: u64,         // Unclaimed rewards
+    
+    // Staking information
+    pub stake_lock_period: Option<u64>,    // Lock period in seconds (30d, 90d, 180d, 365d)
+    pub stake_end_time: Option<u64>,       // When stake unlocks
+    pub stake_multiplier: f64,             // Reward multiplier (1.2x to 3.0x)
+    
+    // Activity tracking for rewards
+    pub defi_operations_count: u64,        // Total DeFi operations
+    pub social_posts_count: u64,           // Social media automations
+    pub last_activity_timestamp: u64,      // For activity bonuses
+    pub activity_streak_days: u32,         // Consecutive active days
+    
+    // Lifetime stats
+    pub lifetime_rewards_earned: u64,
+    pub lifetime_fees_paid_in_flow: u64,
+}
+
+/// Reward calculation and distribution system
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct FlowRewardConfig {
+    // Base reward rates (per $1000 USD equivalent)
+    pub yield_farming_reward_rate: u64,    // 100 FLOW per $1K
+    pub arbitrage_reward_rate: u64,        // 50 FLOW per trade
+    pub rebalancing_reward_rate: u64,      // 25 FLOW per rebalance
+    pub social_automation_reward_rate: u64, // 10 FLOW per post
+    
+    // Multipliers
+    pub cross_chain_bonus: f64,            // +50% for multi-chain ops
+    pub premium_tier_multiplier: f64,      // 1.5x for Premium users
+    pub pro_tier_multiplier: f64,          // 2.0x for Pro users
+    
+    // Time-based bonuses
+    pub daily_active_bonus: f64,           // +10% for daily usage
+    pub weekly_streak_bonus: f64,          // +25% for 7+ day streak
+    pub monthly_power_user_bonus: f64,     // +50% for 30+ day streak
+    pub quarterly_champion_bonus: f64,     // +100% for 90+ day streak
+    
+    // Fee discount tiers
+    pub fee_discount_tiers: Vec<FeeDiscountTier>,
+}
+
+/// Fee discount based on FLOW token holdings
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct FeeDiscountTier {
+    pub minimum_flow_balance: u64,         // Minimum FLOW tokens required
+    pub transaction_fee_discount: f64,     // Percentage discount (0.0 to 0.6)
+    pub subscription_discount: f64,        // Percentage discount (0.0 to 0.4)
+}
+
+/// Transaction record for FLOW token operations
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct FlowTransaction {
+    pub transaction_id: String,
+    pub user: Principal,
+    pub transaction_type: FlowTransactionType,
+    pub amount: u64,
+    pub timestamp: u64,
+    pub details: String,
+}
+
+/// Types of FLOW token transactions
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum FlowTransactionType {
+    RewardEarned { operation_type: String },
+    FeePayment { service: String },
+    Staking { lock_period_days: u32 },
+    Unstaking,
+    TokenBurn,
+    Airdrop,
+    Transfer { recipient: Principal },
+}
+
+impl Default for FlowTokenReserve {
+    fn default() -> Self {
+        const TOTAL_SUPPLY: u64 = 100_000_000_000_000_000; // 1B FLOW with 8 decimals
+        
+        FlowTokenReserve {
+            total_supply: TOTAL_SUPPLY,
+            circulating_supply: 0,
+            
+            // Distribution pools (percentages of total supply)
+            community_rewards_pool: TOTAL_SUPPLY * 30 / 100,  // 30%
+            team_development_pool: TOTAL_SUPPLY * 25 / 100,   // 25%
+            ecosystem_fund_pool: TOTAL_SUPPLY * 20 / 100,     // 20%
+            public_launch_pool: TOTAL_SUPPLY * 15 / 100,      // 15%
+            treasury_reserve_pool: TOTAL_SUPPLY * 10 / 100,   // 10%
+            
+            rewards_distributed_total: 0,
+            last_reward_distribution: 0,
+            
+            tokens_burned_total: 0,
+            last_buyback_amount: 0,
+            last_buyback_timestamp: 0,
+        }
+    }
+}
+
+impl Default for FlowRewardConfig {
+    fn default() -> Self {
+        FlowRewardConfig {
+            // Base reward rates (in FLOW tokens, accounting for 8 decimals)
+            yield_farming_reward_rate: 10_000_000_000,      // 100 FLOW
+            arbitrage_reward_rate: 5_000_000_000,           // 50 FLOW
+            rebalancing_reward_rate: 2_500_000_000,         // 25 FLOW
+            social_automation_reward_rate: 1_000_000_000,   // 10 FLOW
+            
+            // Multipliers
+            cross_chain_bonus: 1.5,
+            premium_tier_multiplier: 1.5,
+            pro_tier_multiplier: 2.0,
+            
+            // Time-based bonuses
+            daily_active_bonus: 1.1,
+            weekly_streak_bonus: 1.25,
+            monthly_power_user_bonus: 1.5,
+            quarterly_champion_bonus: 2.0,
+            
+            // Fee discount tiers
+            fee_discount_tiers: vec![
+                FeeDiscountTier {
+                    minimum_flow_balance: 100_000_000_000,    // 1K FLOW
+                    transaction_fee_discount: 0.10,           // 10%
+                    subscription_discount: 0.05,              // 5%
+                },
+                FeeDiscountTier {
+                    minimum_flow_balance: 1_000_000_000_000,  // 10K FLOW
+                    transaction_fee_discount: 0.25,           // 25%
+                    subscription_discount: 0.15,              // 15%
+                },
+                FeeDiscountTier {
+                    minimum_flow_balance: 5_000_000_000_000,  // 50K FLOW
+                    transaction_fee_discount: 0.40,           // 40%
+                    subscription_discount: 0.25,              // 25%
+                },
+                FeeDiscountTier {
+                    minimum_flow_balance: 10_000_000_000_000, // 100K FLOW
+                    transaction_fee_discount: 0.60,           // 60%
+                    subscription_discount: 0.40,              // 40%
+                },
+            ],
         }
     }
 }
