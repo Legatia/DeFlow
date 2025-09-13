@@ -54,6 +54,31 @@ body {
   background: #94a3b8;
 }
 
+/* Sidebar animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+/* Additional utility classes */
+.bg-blue-25 {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.hover\:to-blue-25:hover {
+  background-image: linear-gradient(to right, var(--tw-gradient-stops), rgba(59, 130, 246, 0.05));
+}
+
 
 
 @layer base {
