@@ -663,6 +663,11 @@ fn is_dev_team_member(caller: Principal) -> bool {
     get_team_member_role(caller).is_some()
 }
 
+fn is_authorized_service(caller: Principal) -> bool {
+    // Allow managers and above, plus any authorized service canisters
+    is_manager_or_above(caller)
+}
+
 fn can_view_financial_data(caller: Principal) -> bool {
     matches!(get_team_member_role(caller), Some(TeamRole::Owner | TeamRole::SeniorManager))
 }
@@ -3350,6 +3355,8 @@ fn get_user_flow_balance(user: Principal) -> Result<UserFlowBalance, String> {
                 // Return default balance for new users
                 Ok(UserFlowBalance {
                     user,
+                    pre_launch_balance: 0,
+                    tradeable_balance: 0,
                     total_balance: 0,
                     available_balance: 0,
                     staked_balance: 0,
@@ -3360,6 +3367,10 @@ fn get_user_flow_balance(user: Principal) -> Result<UserFlowBalance, String> {
                     defi_operations_count: 0,
                     social_posts_count: 0,
                     last_activity_timestamp: 0,
+                    // Phase 1 specific fields
+                    phase1_airdrop_received: 0,
+                    phase1_activity_rewards: 0,
+                    eligible_for_phase2_conversion: false,
                     activity_streak_days: 0,
                     lifetime_rewards_earned: 0,
                     lifetime_fees_paid_in_flow: 0,
@@ -3378,7 +3389,7 @@ fn get_flow_token_reserve() -> Result<FlowTokenReserve, String> {
     })
 }
 
-/// Award $FLOW tokens to user for DeFi operations
+/// Award $FLOW tokens to user for DeFi operations (Phase 1: Pre-launch IOUs)
 #[update]
 fn award_flow_tokens(
     user: Principal, 
@@ -3421,11 +3432,44 @@ fn award_flow_tokens(
         let monthly_power_user_bonus = pool_state.flow_reward_config.monthly_power_user_bonus;
         let quarterly_champion_bonus = pool_state.flow_reward_config.quarterly_champion_bonus;
         let current_rewards_pool = pool_state.flow_token_reserve.community_rewards_pool;
+        let current_phase = pool_state.flow_token_reserve.current_phase.clone();
+        let current_time = ic_cdk::api::time();
         
-        // Get or create user balance
+        // Calculate multipliers first
+        let mut multiplier_data = (1.0, 0u32, false); // (final_multiplier, activity_streak, needs_creation)
+        
+        if let Some(user_balance) = pool_state.user_flow_balances.get(&user) {
+            let days_since_last_activity = (current_time - user_balance.last_activity_timestamp) / (24 * 60 * 60 * 1_000_000_000);
+            let streak_days = if days_since_last_activity <= 1 { 
+                user_balance.activity_streak_days + 1 
+            } else { 
+                1 
+            };
+            
+            let mut multiplier = user_balance.stake_multiplier;
+            if streak_days >= 1 { multiplier *= daily_active_bonus; }
+            if streak_days >= 7 { multiplier *= weekly_streak_bonus; }
+            if streak_days >= 30 { multiplier *= monthly_power_user_bonus; }
+            if streak_days >= 90 { multiplier *= quarterly_champion_bonus; }
+            
+            multiplier_data = (multiplier, streak_days, false);
+        } else {
+            multiplier_data = (1.0, 1, true); // New user, basic multiplier
+        }
+        
+        let reward_amount = (final_reward * multiplier_data.0) as u64;
+        
+        // Check if community rewards pool has sufficient balance
+        if current_rewards_pool < reward_amount {
+            return Err("Insufficient rewards pool balance".to_string());
+        }
+        
+        // Create or update user balance
         let user_balance = pool_state.user_flow_balances.entry(user).or_insert_with(|| {
             UserFlowBalance {
                 user,
+                pre_launch_balance: 0,
+                tradeable_balance: 0,
                 total_balance: 0,
                 available_balance: 0,
                 staked_balance: 0,
@@ -3435,61 +3479,64 @@ fn award_flow_tokens(
                 stake_multiplier: 1.0,
                 defi_operations_count: 0,
                 social_posts_count: 0,
-                last_activity_timestamp: ic_cdk::api::time(),
+                last_activity_timestamp: current_time,
                 activity_streak_days: 0,
                 lifetime_rewards_earned: 0,
                 lifetime_fees_paid_in_flow: 0,
+                phase1_airdrop_received: 0,
+                phase1_activity_rewards: 0,
+                eligible_for_phase2_conversion: false,
             }
         });
         
-        // Apply staking multiplier
-        final_reward *= user_balance.stake_multiplier;
+        // Update user multipliers and streak
+        user_balance.activity_streak_days = multiplier_data.1;
         
-        // Apply activity streak bonuses
-        let current_time = ic_cdk::api::time();
-        let days_since_last_activity = (current_time - user_balance.last_activity_timestamp) / (24 * 60 * 60 * 1_000_000_000);
-        
-        if days_since_last_activity <= 1 {
-            user_balance.activity_streak_days += 1;
-        } else {
-            user_balance.activity_streak_days = 1;
+        // Award tokens based on current phase
+        match current_phase {
+            crate::types::TokenLaunchPhase::Phase1PreLaunch => {
+                // Phase 1: Add to pre-launch balance (future value IOUs)
+                user_balance.pre_launch_balance += reward_amount;
+                user_balance.phase1_activity_rewards += reward_amount;
+                user_balance.pending_rewards += reward_amount; // For display purposes
+            },
+            crate::types::TokenLaunchPhase::Phase2AssetBacked => {
+                // Phase 2: Add to tradeable balance
+                user_balance.tradeable_balance += reward_amount;
+                user_balance.available_balance += reward_amount;
+                user_balance.pending_rewards += reward_amount;
+            }
         }
         
-        // Apply streak bonuses
-        if user_balance.activity_streak_days >= 1 {
-            final_reward *= daily_active_bonus;
-        }
-        if user_balance.activity_streak_days >= 7 {
-            final_reward *= weekly_streak_bonus;
-        }
-        if user_balance.activity_streak_days >= 30 {
-            final_reward *= monthly_power_user_bonus;
-        }
-        if user_balance.activity_streak_days >= 90 {
-            final_reward *= quarterly_champion_bonus;
-        }
-        
-        let reward_amount = final_reward as u64;
-        
-        // Check if community rewards pool has sufficient balance
-        if current_rewards_pool < reward_amount {
-            return Err("Insufficient rewards pool balance".to_string());
-        }
-        
-        // Award tokens
-        user_balance.pending_rewards += reward_amount;
+        // Update user totals
+        user_balance.total_balance = user_balance.pre_launch_balance + user_balance.tradeable_balance;
         user_balance.lifetime_rewards_earned += reward_amount;
         user_balance.last_activity_timestamp = current_time;
         
-        // Update operation counts
-        match operation_type.as_str() {
-            "yield_farming" | "arbitrage" | "rebalancing" => {
-                user_balance.defi_operations_count += 1;
+        // Drop the user_balance reference so we can borrow pool_state again
+        drop(user_balance);
+        
+        // Update pool-level tracking
+        match current_phase {
+            crate::types::TokenLaunchPhase::Phase1PreLaunch => {
+                pool_state.flow_token_reserve.pre_launch_distributed += reward_amount;
             },
-            "social_automation" => {
-                user_balance.social_posts_count += 1;
-            },
-            _ => {}
+            crate::types::TokenLaunchPhase::Phase2AssetBacked => {
+                pool_state.flow_token_reserve.circulating_supply += reward_amount;
+            }
+        }
+        
+        // Update operation counts after getting user balance again
+        if let Some(user_balance) = pool_state.user_flow_balances.get_mut(&user) {
+            match operation_type.as_str() {
+                "yield_farming" | "arbitrage" | "rebalancing" => {
+                    user_balance.defi_operations_count += 1;
+                },
+                "social_automation" => {
+                    user_balance.social_posts_count += 1;
+                },
+                _ => {}
+            }
         }
         
         // Update reserve
@@ -3497,19 +3544,34 @@ fn award_flow_tokens(
         pool_state.flow_token_reserve.rewards_distributed_total += reward_amount;
         pool_state.flow_token_reserve.last_reward_distribution = current_time;
         
-        // Record transaction
+        // Record transaction with phase-specific details
+        let (details, result_message) = match pool_state.flow_token_reserve.current_phase {
+            crate::types::TokenLaunchPhase::Phase1PreLaunch => {
+                let details = format!("Earned {} FLOW (Pre-Launch IOU) for {} operation (${} USD) - Will become tradeable when pool reaches $60K", 
+                              reward_amount as f64 / 100_000_000.0, operation_type, transaction_amount_usd);
+                let message = format!("Awarded {} FLOW pre-launch tokens to {} for {} operation (Phase 1: Future Value IOUs)", 
+                                    reward_amount as f64 / 100_000_000.0, user.to_text(), operation_type);
+                (details, message)
+            },
+            crate::types::TokenLaunchPhase::Phase2AssetBacked => {
+                let details = format!("Earned {} tradeable FLOW for {} operation (${} USD)", 
+                              reward_amount as f64 / 100_000_000.0, operation_type, transaction_amount_usd);
+                let message = format!("Awarded {} tradeable FLOW tokens to {} for {} operation", 
+                                    reward_amount as f64 / 100_000_000.0, user.to_text(), operation_type);
+                (details, message)
+            }
+        };
+        
         pool_state.flow_transactions.push(FlowTransaction {
             transaction_id: format!("reward_{}_{}_{}", user.to_text(), operation_type, current_time),
             user,
             transaction_type: FlowTransactionType::RewardEarned { operation_type: operation_type.clone() },
             amount: reward_amount,
             timestamp: current_time,
-            details: format!("Earned {} FLOW for {} operation (${} USD)", 
-                           reward_amount as f64 / 100_000_000.0, operation_type, transaction_amount_usd),
+            details,
         });
         
-        Ok(format!("Awarded {} FLOW tokens to {} for {} operation", 
-                  reward_amount as f64 / 100_000_000.0, user.to_text(), operation_type))
+        Ok(result_message)
     })
 }
 
@@ -3785,6 +3847,8 @@ fn initialize_token_airdrop(recipients: Vec<(Principal, u64)>) -> Result<String,
             let user_balance = pool_state.user_flow_balances.entry(user).or_insert_with(|| {
                 UserFlowBalance {
                     user,
+                    pre_launch_balance: 0,
+                    tradeable_balance: 0,
                     total_balance: 0,
                     available_balance: 0,
                     staked_balance: 0,
@@ -3798,6 +3862,9 @@ fn initialize_token_airdrop(recipients: Vec<(Principal, u64)>) -> Result<String,
                     activity_streak_days: 0,
                     lifetime_rewards_earned: 0,
                     lifetime_fees_paid_in_flow: 0,
+                    phase1_airdrop_received: 0,
+                    phase1_activity_rewards: 0,
+                    eligible_for_phase2_conversion: false,
                 }
             });
             
@@ -3822,6 +3889,398 @@ fn initialize_token_airdrop(recipients: Vec<(Principal, u64)>) -> Result<String,
         
         Ok(format!("Successfully airdropped {} total FLOW tokens to {} users", 
                   total_airdrop as f64 / 100_000_000.0, recipients_len))
+    })
+}
+
+// =============================================================================
+// PHASE 1 PRE-LAUNCH TOKEN FUNCTIONS
+// =============================================================================
+
+/// Phase 1 Airdrop: Distribute pre-launch tokens to early adopters
+#[update]
+fn phase1_early_adopter_airdrop(
+    recipients: Vec<Principal>
+) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Only managers and above can initiate airdrops
+    if !is_manager_or_above(caller) {
+        return Err("Access denied: Only managers can initialize airdrops".to_string());
+    }
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        // Ensure we're in Phase 1
+        if pool_state.flow_token_reserve.current_phase != crate::types::TokenLaunchPhase::Phase1PreLaunch {
+            return Err("Early adopter airdrops only available in Phase 1".to_string());
+        }
+        
+        const EARLY_ADOPTER_AMOUNT: u64 = 10_000_000_000; // 100 FLOW tokens
+        let total_airdrop = (recipients.len() as u64) * EARLY_ADOPTER_AMOUNT;
+        
+        // Check available tokens in public launch pool
+        if pool_state.flow_token_reserve.public_launch_pool < total_airdrop {
+            return Err("Insufficient tokens in public launch pool for airdrop".to_string());
+        }
+        
+        let current_time = ic_cdk::api::time();
+        let mut successful_drops = 0u64;
+        
+        for recipient in recipients {
+            // Get or create user balance
+            let user_balance = pool_state.user_flow_balances.entry(recipient)
+                .or_insert_with(|| UserFlowBalance {
+                    user: recipient,
+                    pre_launch_balance: 0,
+                    tradeable_balance: 0,
+                    total_balance: 0,
+                    available_balance: 0,
+                    staked_balance: 0,
+                    pending_rewards: 0,
+                    stake_lock_period: None,
+                    stake_end_time: None,
+                    stake_multiplier: 1.0,
+                    defi_operations_count: 0,
+                    social_posts_count: 0,
+                    last_activity_timestamp: current_time,
+                    activity_streak_days: 0,
+                    lifetime_rewards_earned: 0,
+                    lifetime_fees_paid_in_flow: 0,
+                    phase1_airdrop_received: 0,
+                    phase1_activity_rewards: 0,
+                    eligible_for_phase2_conversion: true,
+                });
+            
+            // Award Phase 1 pre-launch tokens
+            user_balance.pre_launch_balance += EARLY_ADOPTER_AMOUNT;
+            user_balance.phase1_airdrop_received += EARLY_ADOPTER_AMOUNT;
+            user_balance.total_balance = user_balance.pre_launch_balance + user_balance.tradeable_balance;
+            user_balance.lifetime_rewards_earned += EARLY_ADOPTER_AMOUNT;
+            
+            // Record transaction
+            pool_state.flow_transactions.push(FlowTransaction {
+                transaction_id: format!("phase1_airdrop_{}_{}", recipient.to_text(), current_time),
+                user: recipient,
+                transaction_type: FlowTransactionType::Airdrop,
+                amount: EARLY_ADOPTER_AMOUNT,
+                timestamp: current_time,
+                details: format!("Phase 1 Early Adopter Airdrop: {} FLOW (Future Value IOUs) - Will become tradeable when pool reaches $60K", 
+                                EARLY_ADOPTER_AMOUNT as f64 / 100_000_000.0),
+            });
+            
+            successful_drops += 1;
+        }
+        
+        // Update reserve tracking
+        pool_state.flow_token_reserve.public_launch_pool -= total_airdrop;
+        pool_state.flow_token_reserve.pre_launch_distributed += total_airdrop;
+        
+        Ok(format!("🚀 Phase 1 Airdrop Success: {} FLOW pre-launch tokens distributed to {} early adopters. Total Phase 1 distributed: {} FLOW", 
+                  total_airdrop as f64 / 100_000_000.0, 
+                  successful_drops,
+                  pool_state.flow_token_reserve.pre_launch_distributed as f64 / 100_000_000.0))
+    })
+}
+
+// =============================================================================
+// PHASE 1 TOKEN DISTRIBUTION FUNCTIONS
+// =============================================================================
+
+#[update]
+fn phase1_first_defi_bonus(user: Principal) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Only authorized services can award first DeFi bonuses
+    if !is_authorized_service(caller) {
+        return Err("Access denied: Only authorized services can award bonuses".to_string());
+    }
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        // Check if we're in Phase 1
+        if pool_state.flow_token_reserve.current_phase != crate::types::TokenLaunchPhase::Phase1PreLaunch {
+            return Err("First DeFi bonus only available during Phase 1".to_string());
+        }
+        
+        // Check if user already received first DeFi bonus
+        let user_balance = pool_state.flow_token_reserve.user_balances.entry(user).or_insert_with(|| {
+            UserFlowBalance {
+                user,
+                pre_launch_balance: 0,
+                tradeable_balance: 0,
+                total_balance: 0,
+                available_balance: 0,
+                staked_balance: 0,
+                pending_rewards: 0,
+                stake_lock_period: None,
+                stake_end_time: None,
+                stake_multiplier: 1.0,
+                defi_operations_count: 0,
+                social_posts_count: 0,
+                last_activity_timestamp: 0,
+                activity_streak_days: 0,
+                lifetime_rewards_earned: 0,
+                lifetime_fees_paid_in_flow: 0,
+                phase1_airdrop_received: 0,
+                phase1_activity_rewards: 0,
+                eligible_for_phase2_conversion: false,
+            }
+        });
+        if user_balance.phase1_activity_rewards > 0 {
+            return Err("User already received first DeFi operation bonus".to_string());
+        }
+        
+        const FIRST_DEFI_BONUS: u64 = 5_000_000_000; // 50 FLOW tokens
+        
+        // Award Phase 1 tokens
+        user_balance.pre_launch_balance += FIRST_DEFI_BONUS;
+        user_balance.phase1_activity_rewards += FIRST_DEFI_BONUS;
+        user_balance.total_balance += FIRST_DEFI_BONUS;
+        user_balance.eligible_for_phase2_conversion = true;
+        
+        // Update reserve tracking
+        pool_state.flow_token_reserve.pre_launch_distributed += FIRST_DEFI_BONUS;
+        
+        // Record transaction
+        let transaction = crate::types::FlowTransaction {
+            transaction_id: format!("FIRST_DEFI_{}", ic_cdk::api::time()),
+            user,
+            transaction_type: crate::types::FlowTransactionType::RewardEarned { operation_type: "FirstDeFiBonus".to_string() },
+            amount: FIRST_DEFI_BONUS,
+            timestamp: ic_cdk::api::time(),
+            details: "🎉 First DeFi Operation Bonus - Welcome to DeFlow! (Phase 1 pre-launch tokens)".to_string(),
+        };
+        pool_state.flow_token_reserve.transaction_history.push(transaction);
+        
+        ic_cdk::println!("AUDIT: First DeFi bonus awarded to {} - {} FLOW pre-launch tokens", 
+                        user.to_text(), FIRST_DEFI_BONUS as f64 / 100_000_000.0);
+        
+        Ok(format!("🎉 First DeFi Operation Bonus: {} FLOW pre-launch tokens awarded! These will become tradeable when DeFlow launches Phase 2.", 
+                  FIRST_DEFI_BONUS as f64 / 100_000_000.0))
+    })
+}
+
+#[update]
+fn phase1_referral_reward(referrer: Principal, referred: Principal) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Only authorized services can award referral rewards
+    if !is_authorized_service(caller) {
+        return Err("Access denied: Only authorized services can award referral rewards".to_string());
+    }
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        // Check if we're in Phase 1
+        if pool_state.flow_token_reserve.current_phase != crate::types::TokenLaunchPhase::Phase1PreLaunch {
+            return Err("Referral rewards only available during Phase 1".to_string());
+        }
+        
+        const REFERRER_REWARD: u64 = 2_000_000_000; // 20 FLOW tokens
+        const REFERRED_REWARD: u64 = 1_000_000_000; // 10 FLOW tokens
+        
+        // Award tokens to referrer
+        let referrer_balance = pool_state.flow_token_reserve.user_balances.entry(referrer).or_insert_with(|| {
+            UserFlowBalance {
+                user: referrer,
+                pre_launch_balance: 0,
+                tradeable_balance: 0,
+                total_balance: 0,
+                available_balance: 0,
+                staked_balance: 0,
+                pending_rewards: 0,
+                stake_lock_period: None,
+                stake_end_time: None,
+                stake_multiplier: 1.0,
+                defi_operations_count: 0,
+                social_posts_count: 0,
+                last_activity_timestamp: 0,
+                activity_streak_days: 0,
+                lifetime_rewards_earned: 0,
+                lifetime_fees_paid_in_flow: 0,
+                phase1_airdrop_received: 0,
+                phase1_activity_rewards: 0,
+                eligible_for_phase2_conversion: false,
+            }
+        });
+        referrer_balance.pre_launch_balance += REFERRER_REWARD;
+        referrer_balance.phase1_activity_rewards += REFERRER_REWARD;
+        referrer_balance.total_balance += REFERRER_REWARD;
+        referrer_balance.eligible_for_phase2_conversion = true;
+        
+        // Award tokens to referred user
+        let referred_balance = pool_state.flow_token_reserve.user_balances.entry(referred).or_insert_with(|| {
+            UserFlowBalance {
+                user: referred,
+                pre_launch_balance: 0,
+                tradeable_balance: 0,
+                total_balance: 0,
+                available_balance: 0,
+                staked_balance: 0,
+                pending_rewards: 0,
+                stake_lock_period: None,
+                stake_end_time: None,
+                stake_multiplier: 1.0,
+                defi_operations_count: 0,
+                social_posts_count: 0,
+                last_activity_timestamp: 0,
+                activity_streak_days: 0,
+                lifetime_rewards_earned: 0,
+                lifetime_fees_paid_in_flow: 0,
+                phase1_airdrop_received: 0,
+                phase1_activity_rewards: 0,
+                eligible_for_phase2_conversion: false,
+            }
+        });
+        referred_balance.pre_launch_balance += REFERRED_REWARD;
+        referred_balance.phase1_activity_rewards += REFERRED_REWARD;
+        referred_balance.total_balance += REFERRED_REWARD;
+        referred_balance.eligible_for_phase2_conversion = true;
+        
+        let total_awarded = REFERRER_REWARD + REFERRED_REWARD;
+        
+        // Update reserve tracking
+        pool_state.flow_token_reserve.pre_launch_distributed += total_awarded;
+        
+        // Record transactions
+        let referrer_tx = crate::types::FlowTransaction {
+            transaction_id: format!("REFERRAL_REWARD_{}", ic_cdk::api::time()),
+            user: referrer,
+            transaction_type: crate::types::FlowTransactionType::RewardEarned { operation_type: "ReferralReward".to_string() },
+            amount: REFERRER_REWARD,
+            timestamp: ic_cdk::api::time(),
+            details: format!("🤝 Referral Reward - Thanks for inviting {}! (Phase 1 pre-launch tokens)", referred.to_text()),
+        };
+        
+        let referred_tx = crate::types::FlowTransaction {
+            transaction_id: format!("REFERRED_BONUS_{}", ic_cdk::api::time()),
+            user: referred,
+            transaction_type: crate::types::FlowTransactionType::RewardEarned { operation_type: "ReferredBonus".to_string() },
+            amount: REFERRED_REWARD,
+            timestamp: ic_cdk::api::time(),
+            details: format!("🎁 Welcome Bonus - Invited by {}! (Phase 1 pre-launch tokens)", referrer.to_text()),
+        };
+        
+        pool_state.flow_token_reserve.transaction_history.push(referrer_tx);
+        pool_state.flow_token_reserve.transaction_history.push(referred_tx);
+        
+        ic_cdk::println!("AUDIT: Referral rewards - Referrer {} received {} FLOW, Referred {} received {} FLOW", 
+                        referrer.to_text(), REFERRER_REWARD as f64 / 100_000_000.0,
+                        referred.to_text(), REFERRED_REWARD as f64 / 100_000_000.0);
+        
+        Ok(format!("🤝 Referral Success: {} FLOW to referrer, {} FLOW to new user! Phase 1 pre-launch tokens awarded.", 
+                  REFERRER_REWARD as f64 / 100_000_000.0,
+                  REFERRED_REWARD as f64 / 100_000_000.0))
+    })
+}
+
+// =============================================================================
+// POOL ASSET TRACKING FOR PHASE 2 LAUNCH
+// =============================================================================
+
+#[update]
+fn update_pool_assets(btc_equivalent_usd: f64, actual_btc_amount: f64, other_assets_usd: f64) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    
+    // SECURITY: Only authorized services can update pool assets
+    if !is_authorized_service(caller) {
+        return Err("Access denied: Only authorized services can update pool assets".to_string());
+    }
+    
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        
+        // Update pool asset reserve
+        pool_state.flow_token_reserve.pool_assets.btc_equivalent_usd = btc_equivalent_usd;
+        pool_state.flow_token_reserve.pool_assets.actual_btc_amount = actual_btc_amount;
+        pool_state.flow_token_reserve.pool_assets.other_assets_usd = other_assets_usd;
+        pool_state.flow_token_reserve.pool_assets.last_updated = ic_cdk::api::time();
+        
+        let total_pool_value = btc_equivalent_usd + other_assets_usd;
+        let launch_threshold = pool_state.flow_token_reserve.pool_assets.launch_threshold_usd;
+        let progress_percentage = (total_pool_value / launch_threshold * 100.0).min(100.0);
+        
+        // Check if we should trigger Phase 2 launch
+        if total_pool_value >= launch_threshold && 
+           pool_state.flow_token_reserve.current_phase == crate::types::TokenLaunchPhase::Phase1PreLaunch {
+            
+            // Trigger Phase 2 launch
+            pool_state.flow_token_reserve.current_phase = crate::types::TokenLaunchPhase::Phase2AssetBacked;
+            
+            // Convert all pre-launch tokens to tradeable tokens
+            let mut total_converted = 0u64;
+            for (_, balance) in pool_state.flow_token_reserve.user_balances.iter_mut() {
+                if balance.eligible_for_phase2_conversion {
+                    balance.tradeable_balance += balance.pre_launch_balance;
+                    balance.available_balance += balance.pre_launch_balance;
+                    total_converted += balance.pre_launch_balance;
+                    balance.pre_launch_balance = 0;
+                }
+            }
+            
+            // Update circulating supply
+            pool_state.flow_token_reserve.circulating_supply += total_converted;
+            
+            ic_cdk::println!("🚀 PHASE 2 LAUNCH: Pool reached ${} threshold! {} FLOW tokens now tradeable", 
+                            launch_threshold, total_converted as f64 / 100_000_000.0);
+            
+            return Ok(format!("🚀 PHASE 2 LAUNCHED! Pool value: ${:.2} ({}% of threshold). {} FLOW tokens converted to tradeable!", 
+                            total_pool_value, progress_percentage, total_converted as f64 / 100_000_000.0));
+        }
+        
+        ic_cdk::println!("Pool assets updated: Total value ${:.2} ({:.1}% to Phase 2 launch)", 
+                        total_pool_value, progress_percentage);
+        
+        Ok(format!("Pool updated: ${:.2} total value ({:.1}% to Phase 2 launch at ${})", 
+                  total_pool_value, progress_percentage, launch_threshold))
+    })
+}
+
+#[query]
+fn get_phase1_status() -> crate::types::Phase1Status {
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        let total_pool_value = pool_state.flow_token_reserve.pool_assets.btc_equivalent_usd + 
+                              pool_state.flow_token_reserve.pool_assets.other_assets_usd;
+        let launch_threshold = pool_state.flow_token_reserve.pool_assets.launch_threshold_usd;
+        
+        crate::types::Phase1Status {
+            current_phase: pool_state.flow_token_reserve.current_phase.clone(),
+            total_pre_launch_distributed: pool_state.flow_token_reserve.pre_launch_distributed,
+            pool_asset_value_usd: total_pool_value,
+            launch_threshold_usd: launch_threshold,
+            progress_to_launch: (total_pool_value / launch_threshold * 100.0).min(100.0),
+            btc_amount: pool_state.flow_token_reserve.pool_assets.actual_btc_amount,
+            ckbtc_staked: pool_state.flow_token_reserve.pool_assets.ckbtc_staked_amount,
+            eligible_users: pool_state.flow_token_reserve.user_balances
+                .iter()
+                .filter(|(_, balance)| balance.eligible_for_phase2_conversion)
+                .count() as u64,
+        }
+    })
+}
+
+#[query]
+fn get_user_phase1_balance(user: Principal) -> crate::types::UserPhase1Balance {
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        
+        if let Some(balance) = pool_state.flow_token_reserve.user_balances.get(&user) {
+            crate::types::UserPhase1Balance {
+                pre_launch_balance: balance.pre_launch_balance,
+                tradeable_balance: balance.tradeable_balance,
+                total_balance: balance.total_balance,
+                phase1_airdrop_received: balance.phase1_airdrop_received,
+                phase1_activity_rewards: balance.phase1_activity_rewards,
+                eligible_for_phase2_conversion: balance.eligible_for_phase2_conversion,
+                estimated_phase2_value: balance.pre_launch_balance, // 1:1 conversion ratio
+            }
+        } else {
+            Default::default()
+        }
     })
 }
 

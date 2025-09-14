@@ -4,6 +4,7 @@ import PoolManagement from '../components/PoolManagement';
 import SystemHealth from '../components/SystemHealth';
 import TeamManagement from '../components/TeamManagement';
 import EarningsManagement from '../components/EarningsManagement';
+import FlowTokenDashboard from '../components/FlowTokenDashboard';
 
 interface AdminSession {
   principal: string;
@@ -18,7 +19,7 @@ interface AdminDashboardProps {
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminSession, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'treasury' | 'pool' | 'system' | 'team' | 'earnings'>('treasury');
+  const [activeTab, setActiveTab] = useState<'treasury' | 'pool' | 'system' | 'team' | 'earnings' | 'flow'>('flow');
 
   const formatSessionTime = (timestamp: number) => {
     const hours = Math.floor((Date.now() - timestamp) / (1000 * 60 * 60));
@@ -84,6 +85,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminSession, onLogout 
         <div className="border-b border-gray-700">
           <nav className="-mb-px flex space-x-8">
             {[
+              { id: 'flow', label: '$FLOW Token Dashboard', icon: '🪙' },
               { id: 'treasury', label: 'Treasury Management', icon: '💰' },
               { id: 'pool', label: 'Pool Management', icon: '🏊' },
               { id: 'system', label: 'System Health', icon: '📊' },
@@ -109,6 +111,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminSession, onLogout 
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeTab === 'flow' && (
+          <FlowTokenDashboard 
+            isOwner={adminSession.isOwner}
+            currentPrincipal={adminSession.principal}
+          />
+        )}
         {activeTab === 'treasury' && <TreasuryManagement />}
         {activeTab === 'pool' && <PoolManagement />}
         {activeTab === 'system' && <SystemHealth />}

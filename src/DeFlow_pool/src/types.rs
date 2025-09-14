@@ -860,12 +860,36 @@ impl ChainId {
 // $FLOW TOKEN MANAGEMENT
 // =============================================================================
 
+/// $FLOW Token Launch Phase Status
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
+pub enum TokenLaunchPhase {
+    Phase1PreLaunch,    // Tokens earned but not tradeable
+    Phase2AssetBacked,  // Tokens tradeable and backed by pool assets
+}
+
+/// Pool Asset Tracking for Phase 2 Launch
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct PoolAssetReserve {
+    pub btc_equivalent_usd: f64,        // Total BTC equivalent value in USD
+    pub actual_btc_amount: f64,         // Actual BTC amount in pool
+    pub other_assets_usd: f64,          // Other assets (ETH, USDC, etc.) in USD
+    pub ckbtc_staked_amount: f64,       // Amount staked as ckBTC for yield
+    pub launch_threshold_usd: f64,      // USD threshold for Phase 2 launch (default: $60,000)
+    pub last_updated: u64,              // Last update timestamp
+}
+
 /// $FLOW Token Supply and Distribution Management
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct FlowTokenReserve {
     // Total supply: 1,000,000,000 FLOW (fixed supply)
     pub total_supply: u64,             // 1B FLOW (with 8 decimals = 100,000,000,000,000,000)
-    pub circulating_supply: u64,       // Currently circulating tokens
+    pub circulating_supply: u64,       // Currently circulating tokens (0 in Phase 1)
+    pub pre_launch_distributed: u64,   // Tokens distributed in Phase 1 (future value IOUs)
+    
+    // Launch Phase Management
+    pub current_phase: TokenLaunchPhase,
+    pub pool_assets: PoolAssetReserve,
+    pub phase2_launch_timestamp: Option<u64>,  // When Phase 2 was activated
     
     // Distribution pools
     pub community_rewards_pool: u64,   // 300M FLOW (30%)
@@ -878,22 +902,30 @@ pub struct FlowTokenReserve {
     pub rewards_distributed_total: u64,
     pub last_reward_distribution: u64,
     
-    // Burn and buyback mechanics
+    // Burn and buyback mechanics (Phase 2 only)
     pub tokens_burned_total: u64,
     pub last_buyback_amount: u64,
     pub last_buyback_timestamp: u64,
+    
+    // User balances and transaction history
+    pub user_balances: std::collections::HashMap<Principal, UserFlowBalance>,
+    pub transaction_history: Vec<FlowTransaction>,
 }
 
 /// User's $FLOW token balance and staking information
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct UserFlowBalance {
     pub user: Principal,
-    pub total_balance: u64,           // Total FLOW tokens owned
-    pub available_balance: u64,       // Available for transactions
-    pub staked_balance: u64,          // Currently staked tokens
+    
+    // Phase-specific balances
+    pub pre_launch_balance: u64,      // Phase 1: Future value IOUs (not tradeable)
+    pub tradeable_balance: u64,       // Phase 2: Actual tradeable tokens
+    pub total_balance: u64,           // Combined total for display
+    pub available_balance: u64,       // Available for transactions (0 in Phase 1)
+    pub staked_balance: u64,          // Currently staked tokens (Phase 2 only)
     pub pending_rewards: u64,         // Unclaimed rewards
     
-    // Staking information
+    // Staking information (Phase 2 only)
     pub stake_lock_period: Option<u64>,    // Lock period in seconds (30d, 90d, 180d, 365d)
     pub stake_end_time: Option<u64>,       // When stake unlocks
     pub stake_multiplier: f64,             // Reward multiplier (1.2x to 3.0x)
@@ -907,6 +939,11 @@ pub struct UserFlowBalance {
     // Lifetime stats
     pub lifetime_rewards_earned: u64,
     pub lifetime_fees_paid_in_flow: u64,
+    
+    // Phase 1 specific tracking
+    pub phase1_airdrop_received: u64,     // Amount received via airdrops
+    pub phase1_activity_rewards: u64,     // Rewards earned through activity
+    pub eligible_for_phase2_conversion: bool,  // Can convert to tradeable tokens
 }
 
 /// Reward calculation and distribution system
@@ -964,6 +1001,19 @@ pub enum FlowTransactionType {
     Transfer { recipient: Principal },
 }
 
+impl Default for PoolAssetReserve {
+    fn default() -> Self {
+        PoolAssetReserve {
+            btc_equivalent_usd: 0.0,
+            actual_btc_amount: 0.0,
+            other_assets_usd: 0.0,
+            ckbtc_staked_amount: 0.0,
+            launch_threshold_usd: 60000.0,  // $60K = 1 BTC equivalent target
+            last_updated: 0,
+        }
+    }
+}
+
 impl Default for FlowTokenReserve {
     fn default() -> Self {
         const TOTAL_SUPPLY: u64 = 100_000_000_000_000_000; // 1B FLOW with 8 decimals
@@ -971,6 +1021,12 @@ impl Default for FlowTokenReserve {
         FlowTokenReserve {
             total_supply: TOTAL_SUPPLY,
             circulating_supply: 0,
+            pre_launch_distributed: 0,
+            
+            // Start in Phase 1
+            current_phase: TokenLaunchPhase::Phase1PreLaunch,
+            pool_assets: PoolAssetReserve::default(),
+            phase2_launch_timestamp: None,
             
             // Distribution pools (percentages of total supply)
             community_rewards_pool: TOTAL_SUPPLY * 30 / 100,  // 30%
@@ -985,6 +1041,10 @@ impl Default for FlowTokenReserve {
             tokens_burned_total: 0,
             last_buyback_amount: 0,
             last_buyback_timestamp: 0,
+            
+            // Initialize empty user balances and transaction history
+            user_balances: std::collections::HashMap::new(),
+            transaction_history: Vec::new(),
         }
     }
 }
@@ -1034,4 +1094,31 @@ impl Default for FlowRewardConfig {
             ],
         }
     }
+}
+
+// =============================================================================
+// PHASE 1 STATUS AND QUERY TYPES
+// =============================================================================
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct Phase1Status {
+    pub current_phase: TokenLaunchPhase,
+    pub total_pre_launch_distributed: u64,
+    pub pool_asset_value_usd: f64,
+    pub launch_threshold_usd: f64,
+    pub progress_to_launch: f64,           // Percentage (0-100)
+    pub btc_amount: f64,
+    pub ckbtc_staked: f64,
+    pub eligible_users: u64,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, Default)]
+pub struct UserPhase1Balance {
+    pub pre_launch_balance: u64,           // Phase 1: Future value IOUs (not tradeable)
+    pub tradeable_balance: u64,            // Phase 2: Actual tradeable tokens
+    pub total_balance: u64,                // Combined total for display
+    pub phase1_airdrop_received: u64,      // Total airdrop tokens received
+    pub phase1_activity_rewards: u64,      // Total activity reward tokens received
+    pub eligible_for_phase2_conversion: bool,
+    pub estimated_phase2_value: u64,       // Estimated tradeable tokens in Phase 2
 }
