@@ -3,8 +3,7 @@ import '../utils/bigint-polyfill'
 
 import { ReactNode, useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import MultiChainWalletComponent from './MultiChainWallet'
-import multiChainWalletService, { MultiChainWallet, SUPPORTED_CHAINS } from '../services/multiChainWalletService'
+import WalletConfiguration from './WalletConfiguration'
 import { useEnhancedAuth } from '../contexts/EnhancedAuthContext'
 import { AuthDropdown } from './AuthDropdown'
 import { NotificationDropdown } from './NotificationDropdown'
@@ -20,39 +19,82 @@ const Layout = ({ children }: LayoutProps) => {
   const location = useLocation()
   const navigate = useNavigate()
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
-  const [wallet, setWallet] = useState<MultiChainWallet>({ addresses: [], lastSyncAt: 0 })
+  const [walletCount, setWalletCount] = useState(0)
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [subscription, setSubscription] = useState<UserSubscription>(SubscriptionService.getCurrentSubscription())
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    // Load sidebar state from localStorage
+    const savedState = localStorage.getItem('deflow_sidebar_collapsed')
+    return savedState === 'true'
+  })
+  const [showToggleHint, setShowToggleHint] = useState(() => {
+    // Show hint if user hasn't seen it before
+    return !localStorage.getItem('deflow_sidebar_hint_seen')
+  })
   const auth = useEnhancedAuth()
 
-  // Initialize wallet asynchronously
+  // Load wallet count from localStorage
   useEffect(() => {
-    const initializeWallet = async () => {
+    const loadWalletCount = () => {
       try {
-        const currentWallet = await multiChainWalletService.getWallet()
-        setWallet(currentWallet)
+        const savedWallets = localStorage.getItem('deflow_wallets')
+        if (savedWallets) {
+          const wallets = JSON.parse(savedWallets)
+          setWalletCount(wallets.length || 0)
+        }
       } catch (error) {
-        console.error('Failed to initialize wallet in Layout:', error)
+        console.error('Failed to load wallet count:', error)
       }
     }
     
-    initializeWallet()
+    loadWalletCount()
+    
+    // Listen for storage changes to update wallet count
+    const handleStorageChange = () => {
+      loadWalletCount()
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
+
+  // Save sidebar state to localStorage
+  useEffect(() => {
+    localStorage.setItem('deflow_sidebar_collapsed', isSidebarCollapsed.toString())
+  }, [isSidebarCollapsed])
+
+  // Hide toggle hint after 5 seconds
+  useEffect(() => {
+    if (showToggleHint) {
+      const timer = setTimeout(() => {
+        setShowToggleHint(false)
+        localStorage.setItem('deflow_sidebar_hint_seen', 'true')
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [showToggleHint])
+
+  // Keyboard shortcut to toggle sidebar (Ctrl+B)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key === 'b') {
+        event.preventDefault()
+        setIsSidebarCollapsed(prev => !prev)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   useEffect(() => {
-    const handleWalletUpdate = (updatedWallet: MultiChainWallet) => {
-      setWallet(updatedWallet)
-    }
-
     const handleSubscriptionUpdate = (updatedSubscription: UserSubscription) => {
       setSubscription(updatedSubscription)
     }
 
-    multiChainWalletService.addListener(handleWalletUpdate)
     SubscriptionService.addSubscriptionListener(handleSubscriptionUpdate)
 
     return () => {
-      multiChainWalletService.removeListener(handleWalletUpdate)
       SubscriptionService.removeSubscriptionListener(handleSubscriptionUpdate)
     }
   }, [])
@@ -91,10 +133,21 @@ const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg">
-        <div className="p-4 border-b">
-          <h1 className="text-xl font-bold text-gray-800">DeFlow</h1>
-          <p className="text-sm text-gray-600">DeFi Automation Platform</p>
+      <div className={`${isSidebarCollapsed ? 'w-16' : 'w-64'} bg-white shadow-lg transition-all duration-300 ease-in-out relative`}>
+        {/* Sidebar Border Indicator */}
+        <div className="absolute top-0 right-0 w-px h-full bg-gradient-to-b from-purple-200 via-blue-200 to-purple-200"></div>
+        
+        <div className={`p-4 border-b ${isSidebarCollapsed ? 'text-center' : ''}`}>
+          {isSidebarCollapsed ? (
+            <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center mx-auto hover:shadow-md transition-shadow cursor-pointer">
+              <span className="text-white text-xl font-bold">D</span>
+            </div>
+          ) : (
+            <>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">DeFlow</h1>
+              <p className="text-sm text-gray-600">DeFi Automation Platform</p>
+            </>
+          )}
         </div>
         
         <nav className="mt-4">
@@ -102,17 +155,30 @@ const Layout = ({ children }: LayoutProps) => {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center px-4 py-3 text-sm font-medium transition-colors ${
+              className={`flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'px-4'} py-3 text-sm font-medium transition-all duration-200 group ${
                 isActive(item.path)
-                  ? 'bg-blue-50 border-r-2 border-blue-500 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-gradient-to-r from-blue-50 to-purple-50 border-r-2 border-blue-500 text-blue-700'
+                  : 'text-gray-600 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-25 hover:text-gray-900'
               }`}
+              title={isSidebarCollapsed ? item.label : ''}
             >
-              <span className="mr-3 text-lg">{item.icon}</span>
-              {item.label}
+              <span className={`${isSidebarCollapsed ? '' : 'mr-3'} text-lg transition-transform group-hover:scale-110`}>{item.icon}</span>
+              {!isSidebarCollapsed && (
+                <span className="transition-all duration-300 ease-in-out">{item.label}</span>
+              )}
             </Link>
           ))}
         </nav>
+        
+        {/* Collapsed State Helper */}
+        {isSidebarCollapsed && (
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+            <div className="text-xs text-gray-400 text-center">
+              <div className="w-6 h-px bg-gray-300 mx-auto mb-1"></div>
+              <span>Menu</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main content */}
@@ -120,9 +186,57 @@ const Layout = ({ children }: LayoutProps) => {
         {/* Header */}
         <header className="bg-white shadow-sm border-b px-6 py-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-800">
-              {navItems.find(item => isActive(item.path))?.label || 'Dashboard'}
-            </h2>
+            <div className="flex items-center space-x-4">
+              {/* Sidebar Toggle Button */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setIsSidebarCollapsed(!isSidebarCollapsed)
+                    if (showToggleHint) {
+                      setShowToggleHint(false)
+                      localStorage.setItem('deflow_sidebar_hint_seen', 'true')
+                    }
+                  }}
+                  className={`flex items-center space-x-2 p-2 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200 border border-gray-200 hover:border-blue-300 ${
+                    showToggleHint ? 'animate-pulse border-blue-300 bg-blue-25' : ''
+                  }`}
+                  title={`${isSidebarCollapsed ? 'Expand' : 'Collapse'} sidebar (Ctrl+B)`}
+                >
+                  <svg 
+                    className="w-4 h-4" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    {isSidebarCollapsed ? (
+                      // Expand icon (menu with arrows right)
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    ) : (
+                      // Collapse icon (sidebar with arrow left)
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7M19 5v14" />
+                    )}
+                  </svg>
+                  <span className="text-xs font-medium hidden sm:inline">
+                    {isSidebarCollapsed ? 'Show' : 'Hide'} Menu
+                  </span>
+                </button>
+                
+                {/* First-time user hint */}
+                {showToggleHint && (
+                  <div className="absolute top-full left-0 mt-2 p-2 bg-blue-600 text-white text-xs rounded-lg shadow-lg z-50 whitespace-nowrap animate-fade-in">
+                    <div className="flex items-center space-x-1">
+                      <span>💡</span>
+                      <span>Click here to hide menu and get more space!</span>
+                    </div>
+                    <div className="absolute -top-1 left-4 w-2 h-2 bg-blue-600 rotate-45"></div>
+                  </div>
+                )}
+              </div>
+              
+              <h2 className="text-lg font-semibold text-gray-800">
+                {navItems.find(item => isActive(item.path))?.label || 'Dashboard'}
+              </h2>
+            </div>
             
             <div className="flex items-center space-x-4">
               {/* User Plan Indicator */}
@@ -161,32 +275,17 @@ const Layout = ({ children }: LayoutProps) => {
                 </div>
               )}
 
-              {/* Multi-Chain Wallet Status */}
-              {wallet.addresses.length > 0 && (
+              {/* Wallet Status */}
+              {walletCount > 0 && (
                 <div className="flex items-center space-x-2">
-                  <div className="flex -space-x-1">
-                    {wallet.addresses.slice(0, 3).map((addr, index) => {
-                      const chainConfig = SUPPORTED_CHAINS[addr.chain]
-                      return (
-                        <div
-                          key={addr.chain}
-                          className="w-6 h-6 rounded-full flex items-center justify-center text-xs text-white border-2 border-white"
-                          style={{ backgroundColor: chainConfig.color }}
-                          title={`${chainConfig.name}: ${addr.address.slice(0, 8)}...`}
-                        >
-                          {chainConfig.icon}
-                        </div>
-                      )
-                    })}
-                    {wallet.addresses.length > 3 && (
-                      <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-xs text-white border-2 border-white">
-                        +{wallet.addresses.length - 3}
-                      </div>
-                    )}
+                  <div className="flex items-center space-x-1">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center text-xs text-white border-2 border-white">
+                      💰
+                    </div>
+                    <span className="text-sm text-gray-600">
+                      {walletCount} wallet{walletCount !== 1 ? 's' : ''} configured
+                    </span>
                   </div>
-                  <span className="text-sm text-gray-600">
-                    {wallet.addresses.length} chain{wallet.addresses.length !== 1 ? 's' : ''} connected
-                  </span>
                 </div>
               )}
 
@@ -224,7 +323,7 @@ const Layout = ({ children }: LayoutProps) => {
                 onClick={() => setIsWalletModalOpen(true)}
                 className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
               >
-                <span>{wallet.addresses.length > 0 ? 'Manage Wallets' : 'Connect Wallets'}</span>
+                <span>{walletCount > 0 ? `${walletCount} Wallet${walletCount !== 1 ? 's' : ''}` : 'Add Wallet'}</span>
               </button>
             </div>
           </div>
@@ -236,11 +335,41 @@ const Layout = ({ children }: LayoutProps) => {
         </main>
       </div>
 
-      {/* Multi-Chain Wallet Modal */}
-      <MultiChainWalletComponent 
-        isOpen={isWalletModalOpen}
-        onClose={() => setIsWalletModalOpen(false)}
-      />
+      {/* Wallet Configuration Modal */}
+      {isWalletModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-purple-600 to-blue-600">
+              <div>
+                <h2 className="text-xl font-semibold text-white">Wallet Configuration</h2>
+                <p className="text-purple-100 text-sm mt-1">
+                  Add seed phrases to enable automated DeFi strategies
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsWalletModalOpen(false)
+                  // Reload wallet count when modal closes
+                  const savedWallets = localStorage.getItem('deflow_wallets')
+                  if (savedWallets) {
+                    const wallets = JSON.parse(savedWallets)
+                    setWalletCount(wallets.length || 0)
+                  }
+                }}
+                className="text-white hover:text-purple-200 text-2xl font-light"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto max-h-[75vh]">
+              <WalletConfiguration />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

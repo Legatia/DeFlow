@@ -34,8 +34,7 @@ impl PoolAnalytics {
             
             // Business metrics
             monthly_revenue: self.calculate_monthly_revenue(&pool_state.dev_team_business),
-            dev_1_pending: pool_state.dev_team_business.team_member_earnings.get(&pool_state.dev_team_business.team_hierarchy.owner_principal).map(|e| e.total_usd_value).unwrap_or(0.0),
-            dev_2_pending: pool_state.dev_team_business.total_distributed_profits, // Show total distributed to all team members
+            total_team_pending: pool_state.dev_team_business.team_member_earnings.values().map(|e| e.total_usd_value).sum(),
             emergency_fund: pool_state.dev_team_business.emergency_fund,
             
             // Health indicators
@@ -257,8 +256,7 @@ POOL OVERVIEW:
 BUSINESS METRICS:
 - Monthly Revenue: ${:.2}
 - Business Health: {}
-- Dev 1 Pending: ${:.2}
-- Dev 2 Pending: ${:.2}
+- Total Team Pending: ${:.2}
 - Emergency Fund: ${:.2}
 
 CHAIN DISTRIBUTION:
@@ -282,8 +280,7 @@ Generated at: {}
             
             financial_overview.monthly_revenue,
             financial_overview.business_health,
-            financial_overview.dev_1_pending,
-            financial_overview.dev_2_pending,
+            financial_overview.total_team_pending,
             financial_overview.emergency_fund,
             
             chain_distribution.iter()
@@ -348,6 +345,7 @@ Generated at: {}
             Asset::SOL => (100.0, 9),
             Asset::MATIC => (0.8, 18),
             Asset::AVAX => (25.0, 18),
+            Asset::FLOW => (0.10, 8), // $0.10 per FLOW token
         };
         
         price_usd / 10_u64.pow(decimals) as f64

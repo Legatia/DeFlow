@@ -236,6 +236,7 @@ impl DevTeamBusinessManager {
             crate::types::Asset::SOL => crate::types::ChainId::Solana,
             crate::types::Asset::MATIC => crate::types::ChainId::Polygon,
             crate::types::Asset::AVAX => crate::types::ChainId::Avalanche,
+            crate::types::Asset::FLOW => crate::types::ChainId::Ethereum, // FLOW token on Ethereum/ICP
         }
     }
 

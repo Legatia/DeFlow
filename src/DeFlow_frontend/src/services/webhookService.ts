@@ -102,7 +102,9 @@ class WebhookService {
   private requests: Map<string, WebhookRequest> = new Map()
   private outgoingWebhooks: Map<string, OutgoingWebhook> = new Map()
   private rateLimitCache: Map<string, RateLimitState> = new Map()
-  private baseUrl: string = 'http://localhost:4943'
+  private baseUrl: string = import.meta.env.VITE_DFX_NETWORK === 'ic' 
+    ? `https://${import.meta.env.VITE_CANISTER_ID_DEFLOW_FRONTEND}.ic0.app`
+    : 'http://localhost:4943'
 
   constructor() {
     this.initializeDemoEndpoints()

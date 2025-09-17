@@ -1127,164 +1127,114 @@ export const NODE_TYPES: NodeType[] = [
     }
   },
 
-  // Tier 2 Components - Social Media & Community
+  // Social Media Authentication & Setup
   {
-    id: 'twitter-post',
-    name: 'Twitter/X Post',
-    description: 'Post tweets to X/Twitter - accepts text or JSON message data',
-    category: 'integrations',
-    icon: '✖️',
-    color: '#000000',
-    inputs: [
-      { id: 'message', name: 'Message Data', type: 'data', required: true }
-    ],
+    id: 'social-auth-setup',
+    name: 'Social Auth Setup',
+    description: 'Configure social media platform credentials once for your workflow',
+    category: 'utilities',
+    icon: '🔐',
+    color: '#6366f1',
+    inputs: [],
     outputs: [
-      { id: 'result', name: 'Twitter Result', type: 'data', required: true }
+      { id: 'auth_data', name: 'Auth Data', type: 'data', required: true }
     ],
     configSchema: [
       {
-        key: 'api_key',
-        name: 'API Key',
-        type: 'password',
-        required: true,
-        placeholder: 'X API Key',
-        description: 'X API Key from Developer Portal'
-      },
-      {
-        key: 'api_secret',
-        name: 'API Secret',
-        type: 'password',
-        required: true,
-        placeholder: 'X API Secret',
-        description: 'X API Secret from Developer Portal'
-      },
-      {
-        key: 'access_token',
-        name: 'Access Token',
-        type: 'password',
-        required: true,
-        placeholder: 'X Access Token',
-        description: 'X Access Token for your account'
-      },
-      {
-        key: 'access_token_secret',
-        name: 'Access Token Secret',
-        type: 'password',
-        required: true,
-        placeholder: 'X Access Token Secret',
-        description: 'X Access Token Secret'
-      }
-    ],
-    defaultConfig: {
-      api_key: '',
-      api_secret: '',
-      access_token: '',
-      access_token_secret: ''
-    },
-    requiredTier: 'premium'  // Twitter requires Premium tier
-  },
-
-  {
-    id: 'linkedin-post',
-    name: 'LinkedIn Post',
-    description: 'Post content to LinkedIn - accepts text or JSON message data',
-    category: 'integrations',
-    icon: '💼',
-    color: '#0077B5',
-    inputs: [
-      { id: 'message', name: 'Message Data', type: 'data', required: true }
-    ],
-    outputs: [
-      { id: 'result', name: 'LinkedIn Result', type: 'data', required: true }
-    ],
-    configSchema: [
-      {
-        key: 'access_token',
-        name: 'Access Token',
-        type: 'password',
-        required: true,
-        placeholder: 'LinkedIn OAuth 2.0 access token',
-        description: 'LinkedIn OAuth 2.0 access token'
-      },
-      {
-        key: 'post_type',
-        name: 'Post Type',
+        key: 'platform',
+        name: 'Platform',
         type: 'select',
         required: true,
         options: [
-          { label: 'Personal Post', value: 'person' },
-          { label: 'Company Page Post', value: 'organization' }
+          { label: 'Twitter/X', value: 'twitter' },
+          { label: 'LinkedIn', value: 'linkedin' },
+          { label: 'Facebook', value: 'facebook' },
+          { label: 'Instagram', value: 'instagram' },
+          { label: 'YouTube', value: 'youtube' }
         ],
-        defaultValue: 'person',
-        description: 'Type of LinkedIn post'
+        defaultValue: 'twitter',
+        description: 'Select social media platform'
       },
       {
-        key: 'organization_id',
-        name: 'Organization ID',
+        key: 'auth_token',
+        name: 'Access Token',
+        type: 'password',
+        required: true,
+        placeholder: 'Platform access token or API key',
+        description: 'Main authentication token for the platform'
+      }
+    ],
+    defaultConfig: {
+      platform: 'twitter',
+      auth_token: ''
+    },
+    requiredTier: 'premium'
+  },
+
+  {
+    id: 'select-platform',
+    name: 'Select Platform',
+    description: 'Choose target social media platform for posting',
+    category: 'utilities',
+    icon: '📱',
+    color: '#8b5cf6',
+    inputs: [
+      { id: 'auth_data', name: 'Auth Data', type: 'data', required: false }
+    ],
+    outputs: [
+      { id: 'platform_config', name: 'Platform Config', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'platform',
+        name: 'Platform',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Twitter/X', value: 'twitter' },
+          { label: 'LinkedIn Personal', value: 'linkedin_personal' },
+          { label: 'LinkedIn Company', value: 'linkedin_company' },
+          { label: 'Facebook Page', value: 'facebook_page' },
+          { label: 'Facebook Group', value: 'facebook_group' },
+          { label: 'Instagram', value: 'instagram' },
+          { label: 'YouTube Community', value: 'youtube' }
+        ],
+        defaultValue: 'twitter',
+        description: 'Target platform for posting'
+      },
+      {
+        key: 'target_id',
+        name: 'Target ID',
         type: 'text',
         required: false,
-        placeholder: '12345678',
-        description: 'LinkedIn organization ID (required for company posts)'
+        placeholder: 'Page ID, Group ID, or Company ID (if applicable)',
+        description: 'ID for specific page/group/company (required for some platforms)'
       }
     ],
     defaultConfig: {
-      access_token: '',
-      post_type: 'person',
-      organization_id: ''
+      platform: 'twitter',
+      target_id: ''
     },
-    requiredTier: 'premium'  // LinkedIn requires Premium tier
+    requiredTier: 'premium'
   },
 
   {
-    id: 'facebook-post',
-    name: 'Facebook Post',
-    description: 'Post content to Facebook pages or groups - accepts text or JSON data',
+    id: 'social-media-post',
+    name: 'Social Media Post',
+    description: 'Execute the social media post to the selected platform',
     category: 'integrations',
-    icon: '📘',
-    color: '#1877F2',
+    icon: '📝',
+    color: '#10b981',
     inputs: [
-      { id: 'message', name: 'Message Data', type: 'data', required: true }
+      { id: 'platform_config', name: 'Platform Config', type: 'data', required: true },
+      { id: 'content_data', name: 'Content Data', type: 'data', required: true }
     ],
     outputs: [
-      { id: 'result', name: 'Facebook Result', type: 'data', required: true }
+      { id: 'result', name: 'Post Result', type: 'data', required: true }
     ],
-    configSchema: [
-      {
-        key: 'access_token',
-        name: 'Page Access Token',
-        type: 'password',
-        required: true,
-        placeholder: 'Facebook Page access token (long-lived)',
-        description: 'Facebook Page access token (long-lived)'
-      },
-      {
-        key: 'page_id',
-        name: 'Page ID',
-        type: 'text',
-        required: true,
-        placeholder: '1234567890',
-        description: 'Facebook Page ID to post to'
-      },
-      {
-        key: 'post_type',
-        name: 'Post Type',
-        type: 'select',
-        required: true,
-        options: [
-          { label: 'Page Post', value: 'page' },
-          { label: 'Group Post', value: 'group' },
-          { label: 'Event Update', value: 'event' }
-        ],
-        defaultValue: 'page',
-        description: 'Type of Facebook post'
-      }
-    ],
-    defaultConfig: {
-      access_token: '',
-      page_id: '',
-      post_type: 'page'
-    },
-    requiredTier: 'premium'  // Facebook requires Premium tier
+    configSchema: [],
+    defaultConfig: {},
+    requiredTier: 'premium'
   },
 
   {
@@ -1883,59 +1833,63 @@ export const NODE_TYPES: NodeType[] = [
     }
   },
 
-  // AI-Enhanced Components
+  // AI Content Generation - Simplified Approach
   {
-    id: 'ai-content-generator',
-    name: 'AI Content Generator',
-    description: 'Generate content using LLM APIs (OpenAI, Anthropic, etc.)',
+    id: 'ai-content-setup',
+    name: 'AI Content Setup',
+    description: 'Configure AI provider and basic settings once',
     category: 'utilities',
     icon: '🤖',
-    color: '#7c3aed',
-    inputs: [
-      { id: 'trigger', name: 'Generate', type: 'trigger', required: true },
-      { id: 'data', name: 'Context Data', type: 'data', required: false }
-    ],
+    color: '#6366f1',
+    inputs: [],
     outputs: [
-      { id: 'content', name: 'Generated Content', type: 'data', required: true }
+      { id: 'ai_config', name: 'AI Config', type: 'data', required: true }
     ],
     configSchema: [
       {
-        key: 'llm_provider',
-        name: 'LLM Provider',
+        key: 'provider',
+        name: 'AI Provider',
         type: 'select',
         required: true,
         options: [
           { label: 'OpenAI (GPT-4)', value: 'openai' },
           { label: 'Anthropic (Claude)', value: 'anthropic' },
-          { label: 'Google (Gemini)', value: 'google' },
-          { label: 'Mistral AI', value: 'mistral' },
-          { label: 'Custom API', value: 'custom' }
+          { label: 'Google (Gemini)', value: 'google' }
         ],
-        defaultValue: 'openai'
+        defaultValue: 'openai',
+        description: 'Select AI provider'
       },
       {
         key: 'api_key',
         name: 'API Key',
         type: 'password',
         required: true,
-        placeholder: 'Your LLM API key',
-        description: 'API key for the selected LLM provider'
-      },
-      {
-        key: 'model',
-        name: 'Model',
-        type: 'select',
-        required: true,
-        options: [
-          { label: 'GPT-4 Turbo', value: 'gpt-4-turbo' },
-          { label: 'GPT-4', value: 'gpt-4' },
-          { label: 'GPT-3.5 Turbo', value: 'gpt-3.5-turbo' },
-          { label: 'Claude 3.5 Sonnet', value: 'claude-3-5-sonnet-20241022' },
-          { label: 'Claude 3 Haiku', value: 'claude-3-haiku-20240307' },
-          { label: 'Gemini Pro', value: 'gemini-pro' }
-        ],
-        defaultValue: 'gpt-4-turbo'
-      },
+        placeholder: 'Your AI API key',
+        description: 'API key for the selected AI provider'
+      }
+    ],
+    defaultConfig: {
+      provider: 'openai',
+      api_key: ''
+    },
+    requiredTier: 'premium'
+  },
+
+  {
+    id: 'generate-content',
+    name: 'Generate Content',
+    description: 'Generate AI content with simple prompt and data input',
+    category: 'utilities',
+    icon: '✍️',
+    color: '#8b5cf6',
+    inputs: [
+      { id: 'ai_config', name: 'AI Config', type: 'data', required: true },
+      { id: 'data', name: 'Input Data', type: 'data', required: false }
+    ],
+    outputs: [
+      { id: 'content', name: 'Generated Content', type: 'data', required: true }
+    ],
+    configSchema: [
       {
         key: 'content_type',
         name: 'Content Type',
@@ -1943,78 +1897,102 @@ export const NODE_TYPES: NodeType[] = [
         required: true,
         options: [
           { label: 'Social Media Post', value: 'social_post' },
+          { label: 'Twitter Thread', value: 'twitter_thread' },
           { label: 'Discord Message', value: 'discord_message' },
-          { label: 'Telegram Message', value: 'telegram_message' },
-          { label: 'Email Subject/Body', value: 'email_content' },
           { label: 'Market Analysis', value: 'market_analysis' },
           { label: 'Custom Prompt', value: 'custom' }
         ],
-        defaultValue: 'social_post'
+        defaultValue: 'social_post',
+        description: 'Type of content to generate'
       },
       {
-        key: 'prompt_template',
-        name: 'Prompt Template',
+        key: 'prompt',
+        name: 'Prompt',
         type: 'textarea',
         required: true,
-        placeholder: 'Generate a professional tweet about {{topic}} for a DeFi audience. Include relevant hashtags and keep it under 280 characters.',
-        description: 'Template prompt with {{variable}} placeholders'
+        placeholder: 'Generate a tweet about {{topic}} with portfolio value {{value}}',
+        description: 'Content prompt with {{variable}} placeholders'
       },
       {
-        key: 'context_fields',
-        name: 'Context Fields',
-        type: 'text',
-        required: false,
-        placeholder: 'price,volume,strategy_result',
-        description: 'Comma-separated fields from input data to include as context'
-      },
-      {
-        key: 'max_tokens',
-        name: 'Max Tokens',
+        key: 'max_length',
+        name: 'Max Length',
         type: 'number',
         required: true,
-        validation: { min: 1, max: 4000 },
+        validation: { min: 50, max: 2000 },
         defaultValue: 280,
-        description: 'Maximum tokens to generate'
-      },
-      {
-        key: 'temperature',
-        name: 'Temperature',
-        type: 'number',
-        required: true,
-        validation: { min: 0, max: 2 },
-        defaultValue: 0.7,
-        description: 'Creativity level (0 = deterministic, 2 = very creative)'
-      },
-      {
-        key: 'fallback_content',
-        name: 'Fallback Content',
-        type: 'textarea',
-        required: false,
-        placeholder: 'Default content if AI generation fails',
-        description: 'Backup content to use if AI request fails'
+        description: 'Maximum content length'
       }
     ],
-    defaultConfig: { 
-      llm_provider: 'openai',
-      api_key: '',
-      model: 'gpt-4-turbo',
+    defaultConfig: {
       content_type: 'social_post',
-      prompt_template: 'Generate a professional tweet about {{topic}} for a DeFi audience. Include relevant hashtags and keep it under 280 characters.',
-      context_fields: '',
-      max_tokens: 280,
-      temperature: 0.7,
-      fallback_content: ''
-    }
+      prompt: 'Generate a professional tweet about {{topic}}',
+      max_length: 280
+    },
+    requiredTier: 'premium'
   },
 
   {
-    id: 'smart-social-responder',
-    name: 'Smart Social Responder',
-    description: 'AI-powered responses to mentions/comments across platforms',
+    id: 'content-optimizer',
+    name: 'Content Optimizer',
+    description: 'Optimize generated content for specific platforms',
+    category: 'utilities',
+    icon: '⚡',
+    color: '#f59e0b',
+    inputs: [
+      { id: 'content', name: 'Raw Content', type: 'data', required: true }
+    ],
+    outputs: [
+      { id: 'optimized_content', name: 'Optimized Content', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'platform',
+        name: 'Target Platform',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Twitter/X (280 chars)', value: 'twitter' },
+          { label: 'LinkedIn (3000 chars)', value: 'linkedin' },
+          { label: 'Discord (2000 chars)', value: 'discord' },
+          { label: 'Facebook (no limit)', value: 'facebook' }
+        ],
+        defaultValue: 'twitter',
+        description: 'Platform to optimize for'
+      },
+      {
+        key: 'add_hashtags',
+        name: 'Add Hashtags',
+        type: 'boolean',
+        required: false,
+        defaultValue: true,
+        description: 'Automatically add relevant hashtags'
+      },
+      {
+        key: 'add_emojis',
+        name: 'Add Emojis',
+        type: 'boolean',
+        required: false,
+        defaultValue: true,
+        description: 'Add relevant emojis to content'
+      }
+    ],
+    defaultConfig: {
+      platform: 'twitter',
+      add_hashtags: true,
+      add_emojis: true
+    },
+    requiredTier: 'premium'
+  },
+
+  {
+    id: 'ai-responder',
+    name: 'AI Responder',
+    description: 'Generate AI responses to social media mentions or comments',
     category: 'integrations',
     icon: '🧠',
     color: '#10b981',
     inputs: [
+      { id: 'ai_config', name: 'AI Config', type: 'data', required: true },
       { id: 'mention', name: 'Social Mention', type: 'data', required: true }
     ],
     outputs: [
@@ -2022,87 +2000,32 @@ export const NODE_TYPES: NodeType[] = [
     ],
     configSchema: [
       {
-        key: 'response_platforms',
-        name: 'Response Platforms',
-        type: 'text',
-        required: true,
-        placeholder: 'x,discord,telegram',
-        description: 'Comma-separated platforms to respond on'
-      },
-      {
-        key: 'ai_personality',
-        name: 'AI Personality',
+        key: 'personality',
+        name: 'Response Style',
         type: 'select',
         required: true,
         options: [
           { label: 'Professional & Helpful', value: 'professional' },
           { label: 'Friendly & Casual', value: 'friendly' },
-          { label: 'Expert & Technical', value: 'expert' },
-          { label: 'Community Builder', value: 'community' },
-          { label: 'Custom Personality', value: 'custom' }
+          { label: 'Expert & Technical', value: 'expert' }
         ],
-        defaultValue: 'professional'
+        defaultValue: 'professional',
+        description: 'AI response personality'
       },
       {
-        key: 'custom_personality',
-        name: 'Custom Personality Prompt',
+        key: 'guidelines',
+        name: 'Response Guidelines',
         type: 'textarea',
-        required: false,
-        placeholder: 'You are a knowledgeable DeFi expert who explains complex concepts simply...',
-        description: 'Custom personality description (only if Custom Personality selected)'
-      },
-      {
-        key: 'response_triggers',
-        name: 'Response Triggers',
-        type: 'text',
         required: true,
-        placeholder: 'question,help,support,deflow',
-        description: 'Keywords that trigger automatic responses'
-      },
-      {
-        key: 'avoid_topics',
-        name: 'Topics to Avoid',
-        type: 'text',
-        required: false,
-        placeholder: 'price predictions,financial advice,illegal activities',
-        description: 'Topics the AI should not respond to'
-      },
-      {
-        key: 'max_response_length',
-        name: 'Max Response Length',
-        type: 'number',
-        required: true,
-        validation: { min: 50, max: 2000 },
-        defaultValue: 280,
-        description: 'Maximum character length for responses'
-      },
-      {
-        key: 'include_links',
-        name: 'Include Helpful Links',
-        type: 'boolean',
-        required: false,
-        defaultValue: true,
-        description: 'Include relevant documentation/help links in responses'
-      },
-      {
-        key: 'escalation_keywords',
-        name: 'Escalation Keywords',
-        type: 'text',
-        required: false,
-        placeholder: 'bug,error,funds,urgent',
-        description: 'Keywords that should escalate to human support'
+        placeholder: 'Always be helpful and accurate. Keep responses under 280 characters.',
+        description: 'Guidelines for AI responses'
       }
     ],
-    defaultConfig: { 
-      response_platforms: 'x,discord,telegram',
-      ai_personality: 'professional',
-      custom_personality: '',
-      response_triggers: 'question,help,support,deflow',
-      avoid_topics: 'price predictions,financial advice,illegal activities',
-      max_response_length: 280,
-      include_links: true,
-      escalation_keywords: 'bug,error,funds,urgent'
-    }
+    defaultConfig: {
+      personality: 'professional',
+      guidelines: 'Always be helpful and accurate. Keep responses under 280 characters.'
+    },
+    requiredTier: 'premium'
   }
 ]
 

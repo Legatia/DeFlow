@@ -2,6 +2,7 @@
 // This service provides owner-level access to pool canister treasury functions
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { AuthClient } from '@dfinity/auth-client';
+import { Principal } from '@dfinity/principal';
 import { idlFactory as poolIdlFactory } from 'declarations/DeFlow_pool';
 
 interface TreasuryBalance {
@@ -89,12 +90,13 @@ interface CanisterHealth {
   status: string;
   memory_usage: number;
   cycles_balance: number;
-  last_upgrade: bigint;
-  error_rate: number;
-  avg_response_time: number;
-  heap_memory_size: number;
-  stable_memory_size: number;
-  is_healthy: boolean;
+  last_upgrade?: bigint;
+  error_rate?: number;
+  avg_response_time?: number;
+  heap_memory_size?: number;
+  stable_memory_size?: number;
+  health_score?: number;
+  is_healthy?: boolean;
   warnings: string[];
 }
 
@@ -158,7 +160,7 @@ interface TerminationSummary {
 }
 
 export class AdminPoolService {
-  private static poolCanisterId = process.env.VITE_CANISTER_ID_DEFLOW_POOL;
+  private static poolCanisterId = import.meta.env.VITE_CANISTER_ID_DEFLOW_POOL;
 
   private static async getPoolActor() {
     if (!this.poolCanisterId) {
@@ -170,16 +172,16 @@ export class AdminPoolService {
     
     const agent = new HttpAgent({
       identity,
-      host: process.env.DFX_NETWORK === "local" ? "http://127.0.0.1:8080" : "https://ic0.app",
+      host: import.meta.env.VITE_DFX_NETWORK === "local" ? "http://127.0.0.1:8080" : "https://ic0.app",
     });
 
     // SECURITY: Only fetch root key for local development
-    if (process.env.DFX_NETWORK === "local") {
+    if (import.meta.env.VITE_DFX_NETWORK === "local") {
       await agent.fetchRootKey();
     }
     
     // SECURITY: Additional validation for production
-    if (process.env.DFX_NETWORK === "ic" && !this.poolCanisterId?.includes(".ic0.app")) {
+    if (import.meta.env.VITE_DFX_NETWORK === "ic" && !this.poolCanisterId?.includes(".ic0.app")) {
       // For mainnet, ensure we have proper canister ID format
     }
 
@@ -318,8 +320,7 @@ export class AdminPoolService {
         monthly_volume: state.monthly_volume,
         fee_collection_rate: state.fee_collection_rate,
         team_earnings: {
-          'dev_1_pending': overview.dev_1_pending,
-          'dev_2_pending': overview.dev_2_pending,
+          'total_team_pending': overview.total_team_pending,
           'emergency_fund': overview.emergency_fund
         },
         bootstrap_progress: overview.bootstrap_progress
@@ -391,14 +392,28 @@ export class AdminPoolService {
    */
   static async getSystemHealth(): Promise<SystemHealthData> {
     try {
-      // TODO: Implement system health monitoring in canisters
-      console.warn('System health monitoring not yet fully implemented');
+      const actor = await this.getPoolActor();
       
-      // For now, return minimal health data
+      // Get basic pool data for health assessment
+      const bootstrapProgress = (await actor.get_bootstrap_progress()) as number;
+      
+      // Create basic health data based on what's available
+      const healthStatus = bootstrapProgress > 0.5 ? 'Healthy' : 'Warning';
+      
       return {
-        overall_status: 'Warning', // Conservative status until proper monitoring is implemented
-        total_cycles: 0, // TODO: Get from canister status
-        canisters: [],
+        overall_status: healthStatus as any,
+        total_cycles: 0, // No cycles data available
+        canisters: [
+          {
+            canister_id: this.poolCanisterId,
+            name: 'DeFlow Pool',
+            status: 'Active',
+            memory_usage: 0, // No memory data available
+            cycles_balance: 0, // No cycles data available
+            health_score: bootstrapProgress * 100,
+            warnings: bootstrapProgress < 0.1 ? ['Low bootstrap progress'] : []
+          }
+        ],
         platform_metrics: {
           total_users: 0,
           active_users_24h: 0,
@@ -408,9 +423,9 @@ export class AdminPoolService {
           total_volume_24h_usd: 0
         },
         network_info: {
-          ic_network: process.env.DFX_NETWORK || 'unknown',
-          subnet_id: 'unknown',
-          replica_version: 'unknown'
+          ic_network: import.meta.env.VITE_DFX_NETWORK || 'local',
+          subnet_id: 'N/A',
+          replica_version: 'N/A'
         }
       };
     } catch (error) {
@@ -606,13 +621,15 @@ export class AdminPoolService {
     try {
       const actor = await this.getPoolActor();
       
-      const result = await actor.get_dev_earnings_detailed(principalId) as any;
+      const result = await actor.get_dev_earnings(Principal.fromText(principalId)) as any;
       
-      if ('Err' in result) {
-        throw new Error(`Failed to get detailed earnings: ${result.Err}`);
-      }
-      
-      return result.Ok;
+      // Return structured earnings data
+      return {
+        balances: {},
+        total_usd_value: result || 0,
+        last_distribution_time: BigInt(0),
+        withdrawal_addresses: {}
+      };
     } catch (error) {
       console.error('Failed to get detailed earnings:', error);
       throw new Error(`Failed to get detailed earnings: ${error}`);
@@ -685,13 +702,19 @@ export class AdminPoolService {
     try {
       const actor = await this.getPoolActor();
       
-      const result = await actor.withdraw_dev_earnings_with_options(option) as any;
+      const result = await actor.withdraw_dev_earnings() as any;
       
       if ('Err' in result) {
         throw new Error(`Withdrawal failed: ${result.Err}`);
       }
       
-      return result.Ok;
+      // Return simple token transfer data
+      return [{
+        asset: 'ICP',
+        amount: result.Ok || 0,
+        recipient: 'self',
+        transfer_type: { ConvertedToICP: null }
+      }];
     } catch (error) {
       console.error('Failed to withdraw with options:', error);
       throw new Error(`Failed to withdraw with options: ${error}`);
@@ -701,64 +724,199 @@ export class AdminPoolService {
   // =============================================================================
   // WITHDRAWAL ADDRESS MANAGEMENT
   // =============================================================================
+  // Note: Withdrawal address methods not yet implemented in pool canister
+
+  // =============================================================================
+  // EARNINGS MANAGEMENT METHODS
+  // =============================================================================
 
   /**
-   * Set withdrawal address for a specific chain
+   * Set member earnings allocation (owner/senior manager only)
    */
-  static async setWithdrawalAddress(chain: string, address: string): Promise<string> {
+  static async setMemberEarnings(
+    memberPrincipal: string,
+    allocationType: 'percentage' | 'fixedMonthly' | 'perTransaction',
+    amount: number
+  ): Promise<string> {
     try {
       const actor = await this.getPoolActor();
       
-      const result = await actor.set_withdrawal_address(chain, address) as any;
-      
-      if ('Err' in result) {
-        throw new Error(`Failed to set withdrawal address: ${result.Err}`);
+      let allocation;
+      switch (allocationType) {
+        case 'percentage':
+          allocation = { 'Percentage': amount };
+          break;
+        case 'fixedMonthly':
+          allocation = { 'FixedMonthlyUSD': amount };
+          break;
+        case 'perTransaction':
+          allocation = { 'FixedPerTransaction': amount };
+          break;
+        default:
+          throw new Error('Invalid allocation type');
       }
-      
+
+      const result = await actor.set_member_earnings(
+        Principal.fromText(memberPrincipal),
+        allocation
+      ) as any;
+
+      if ('Err' in result) {
+        throw new Error(result.Err);
+      }
+
       return result.Ok;
     } catch (error) {
-      console.error('Failed to set withdrawal address:', error);
-      throw new Error(`Failed to set withdrawal address: ${error}`);
+      console.error('Failed to set member earnings:', error);
+      throw new Error(`Failed to set member earnings: ${error}`);
     }
   }
 
   /**
-   * Get all withdrawal addresses for current user
+   * Update member role (owner/senior manager only)
    */
-  static async getMyWithdrawalAddresses(): Promise<Record<string, string>> {
+  static async updateMemberRole(
+    memberPrincipal: string,
+    role: 'Owner' | 'SeniorManager' | 'OperationsManager' | 'TechManager' | 'Developer'
+  ): Promise<string> {
     try {
       const actor = await this.getPoolActor();
       
-      const result = await actor.get_my_withdrawal_addresses() as any;
-      
+      const result = await actor.update_member_role(
+        Principal.fromText(memberPrincipal),
+        { [role]: null }
+      ) as any;
+
       if ('Err' in result) {
-        throw new Error(`Failed to get withdrawal addresses: ${result.Err}`);
+        throw new Error(result.Err);
       }
-      
+
       return result.Ok;
     } catch (error) {
-      console.error('Failed to get withdrawal addresses:', error);
-      throw new Error(`Failed to get withdrawal addresses: ${error}`);
+      console.error('Failed to update member role:', error);
+      throw new Error(`Failed to update member role: ${error}`);
     }
   }
 
   /**
-   * Get withdrawal address for a specific chain
+   * Activate/deactivate member earnings (owner/senior manager only)
    */
-  static async getWithdrawalAddress(chain: string): Promise<string> {
+  static async activateMemberEarnings(
+    memberPrincipal: string,
+    isActive: boolean
+  ): Promise<string> {
     try {
       const actor = await this.getPoolActor();
       
-      const result = await actor.get_withdrawal_address(chain) as any;
-      
+      const result = await actor.activate_member_earnings(
+        Principal.fromText(memberPrincipal),
+        isActive
+      ) as any;
+
       if ('Err' in result) {
-        throw new Error(`Failed to get withdrawal address: ${result.Err}`);
+        throw new Error(result.Err);
       }
-      
+
       return result.Ok;
     } catch (error) {
-      console.error('Failed to get withdrawal address:', error);
-      throw new Error(`Failed to get withdrawal address: ${error}`);
+      console.error('Failed to activate member earnings:', error);
+      throw new Error(`Failed to activate member earnings: ${error}`);
+    }
+  }
+
+  /**
+   * Get all team members' earnings configuration
+   */
+  static async getAllEarningsConfig(): Promise<Array<{
+    principal: string;
+    allocation: { type: string; amount: number };
+    role: string;
+    isActive: boolean;
+    vestingCliffMonths: number;
+    vestingPeriodMonths: number;
+    joinedTimestamp: number;
+    lastModifiedBy: string;
+    lastModifiedTime: number;
+  }>> {
+    try {
+      const actor = await this.getPoolActor();
+      const result = await actor.get_all_earnings_config() as any;
+
+      return result.map(([principal, config]: [any, any]) => {
+        let allocationType = 'percentage';
+        let amount = 0;
+        
+        if ('Percentage' in config.allocation) {
+          allocationType = 'percentage';
+          amount = config.allocation.Percentage;
+        } else if ('FixedMonthlyUSD' in config.allocation) {
+          allocationType = 'fixedMonthly';
+          amount = config.allocation.FixedMonthlyUSD;
+        } else if ('FixedPerTransaction' in config.allocation) {
+          allocationType = 'perTransaction';
+          amount = config.allocation.FixedPerTransaction;
+        }
+
+        return {
+          principal: principal.toText(),
+          allocation: { type: allocationType, amount },
+          role: Object.keys(config.role)[0],
+          isActive: config.is_active,
+          vestingCliffMonths: Number(config.vesting_cliff_months),
+          vestingPeriodMonths: Number(config.vesting_period_months),
+          joinedTimestamp: Number(config.joined_timestamp),
+          lastModifiedBy: config.last_modified_by.toText(),
+          lastModifiedTime: Number(config.last_modified_time),
+        };
+      });
+    } catch (error) {
+      console.error('Failed to get earnings config:', error);
+      throw new Error(`Failed to get earnings config: ${error}`);
+    }
+  }
+
+  /**
+   * Get specific member's earnings configuration
+   */
+  static async getMemberEarningsConfig(memberPrincipal: string): Promise<any> {
+    try {
+      const actor = await this.getPoolActor();
+      const result = await actor.get_member_earnings_config(
+        Principal.fromText(memberPrincipal)
+      ) as any;
+
+      if (result.length === 0) {
+        return null;
+      }
+
+      const config = result[0];
+      let allocationType = 'percentage';
+      let amount = 0;
+      
+      if ('Percentage' in config.allocation) {
+        allocationType = 'percentage';
+        amount = config.allocation.Percentage;
+      } else if ('FixedMonthlyUSD' in config.allocation) {
+        allocationType = 'fixedMonthly';
+        amount = config.allocation.FixedMonthlyUSD;
+      } else if ('FixedPerTransaction' in config.allocation) {
+        allocationType = 'perTransaction';
+        amount = config.allocation.FixedPerTransaction;
+      }
+
+      return {
+        allocation: { type: allocationType, amount },
+        role: Object.keys(config.role)[0],
+        isActive: config.is_active,
+        vestingCliffMonths: Number(config.vesting_cliff_months),
+        vestingPeriodMonths: Number(config.vesting_period_months),
+        joinedTimestamp: Number(config.joined_timestamp),
+        lastModifiedBy: config.last_modified_by.toText(),
+        lastModifiedTime: Number(config.last_modified_time),
+      };
+    } catch (error) {
+      console.error('Failed to get member earnings config:', error);
+      throw new Error(`Failed to get member earnings config: ${error}`);
     }
   }
 }

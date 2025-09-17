@@ -30,6 +30,7 @@ pub enum Asset {
     SOL,
     MATIC,
     AVAX,
+    FLOW,  // DeFlow platform token
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -150,6 +151,40 @@ pub struct TeamHierarchy {
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum EarningsAllocation {
+    Percentage(f64),           // e.g., 25.0 for 25% of profits
+    FixedMonthlyUSD(f64),      // e.g., 5000.0 for $5,000/month
+    FixedPerTransaction(f64),  // e.g., 10.0 for $10 per transaction
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct MemberEarningsConfig {
+    pub allocation: EarningsAllocation,
+    pub role: TeamRole,
+    pub is_active: bool,           // Can be temporarily disabled
+    pub vesting_cliff_months: u64, // Months before earning starts
+    pub vesting_period_months: u64, // Total vesting period
+    pub joined_timestamp: u64,
+    pub last_modified_by: Principal,
+    pub last_modified_time: u64,
+}
+
+impl Default for MemberEarningsConfig {
+    fn default() -> Self {
+        MemberEarningsConfig {
+            allocation: EarningsAllocation::Percentage(0.0),
+            role: TeamRole::Developer,
+            is_active: true,
+            vesting_cliff_months: 0,
+            vesting_period_months: 12, // 1 year default vesting
+            joined_timestamp: ic_cdk::api::time(),
+            last_modified_by: Principal::anonymous(),
+            last_modified_time: ic_cdk::api::time(),
+        }
+    }
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct DevTeamBusinessModel {
     // TEAM HIERARCHY: Internet Identity based team management
     pub team_hierarchy: TeamHierarchy,
@@ -172,6 +207,7 @@ pub struct DevTeamBusinessModel {
     pub minimum_distribution_threshold: f64,  // $5,000 minimum
     pub distribution_frequency: u64,          // Monthly (2,629,800 seconds)
     pub last_distribution_time: u64,
+    pub member_earnings_config: HashMap<Principal, MemberEarningsConfig>, // Individual earnings allocation
 }
 
 impl Default for TeamHierarchy {
@@ -212,6 +248,7 @@ impl Default for DevTeamBusinessModel {
             minimum_distribution_threshold: 5000.0,
             distribution_frequency: 2_629_800, // 30 days
             last_distribution_time: ic_cdk::api::time(),
+            member_earnings_config: HashMap::new(), // No earnings allocated by default
         }
     }
 }
@@ -238,6 +275,12 @@ pub struct PoolState {
     
     // Bootstrap targets
     pub bootstrap_targets: HashMap<Asset, u64>,
+    
+    // ===== $FLOW TOKEN MANAGEMENT =====
+    pub flow_token_reserve: FlowTokenReserve,
+    pub flow_reward_config: FlowRewardConfig,
+    pub user_flow_balances: HashMap<Principal, UserFlowBalance>,
+    pub flow_transactions: Vec<FlowTransaction>,
     
     // ===== TREASURY MANAGEMENT FIELDS =====
     pub treasury_config: TreasuryConfig,
@@ -277,6 +320,12 @@ impl Default for PoolState {
             monthly_volume: 0.0,
             fee_collection_rate: 0.004, // 0.4% pool accumulation rate
             bootstrap_targets,
+            
+            // $FLOW Token management defaults
+            flow_token_reserve: FlowTokenReserve::default(),
+            flow_reward_config: FlowRewardConfig::default(),
+            user_flow_balances: HashMap::new(),
+            flow_transactions: Vec::new(),
             
             // Treasury management defaults
             treasury_config: TreasuryConfig::default(),
@@ -369,8 +418,7 @@ pub struct FinancialOverview {
     
     // Business metrics
     pub monthly_revenue: f64,
-    pub dev_1_pending: f64,
-    pub dev_2_pending: f64,
+    pub total_team_pending: f64,
     pub emergency_fund: f64,
     
     // Health indicators
@@ -774,6 +822,7 @@ impl Asset {
             Asset::SOL => "SOL".to_string(),
             Asset::MATIC => "MATIC".to_string(),
             Asset::AVAX => "AVAX".to_string(),
+            Asset::FLOW => "FLOW".to_string(),
         }
     }
     
@@ -787,6 +836,7 @@ impl Asset {
             Asset::SOL => 9,
             Asset::MATIC => 18,
             Asset::AVAX => 18,
+            Asset::FLOW => 8,  // 8 decimals for micro-transactions
         }
     }
 }
@@ -804,4 +854,271 @@ impl ChainId {
             ChainId::Avalanche => "Avalanche".to_string(),
         }
     }
+}
+
+// =============================================================================
+// $FLOW TOKEN MANAGEMENT
+// =============================================================================
+
+/// $FLOW Token Launch Phase Status
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
+pub enum TokenLaunchPhase {
+    Phase1PreLaunch,    // Tokens earned but not tradeable
+    Phase2AssetBacked,  // Tokens tradeable and backed by pool assets
+}
+
+/// Pool Asset Tracking for Phase 2 Launch
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct PoolAssetReserve {
+    pub btc_equivalent_usd: f64,        // Total BTC equivalent value in USD
+    pub actual_btc_amount: f64,         // Actual BTC amount in pool
+    pub other_assets_usd: f64,          // Other assets (ETH, USDC, etc.) in USD
+    pub ckbtc_staked_amount: f64,       // Amount staked as ckBTC for yield
+    pub launch_threshold_usd: f64,      // USD threshold for Phase 2 launch (default: $60,000)
+    pub last_updated: u64,              // Last update timestamp
+}
+
+/// $FLOW Token Supply and Distribution Management
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct FlowTokenReserve {
+    // Total supply: 1,000,000,000 FLOW (fixed supply)
+    pub total_supply: u64,             // 1B FLOW (with 8 decimals = 100,000,000,000,000,000)
+    pub circulating_supply: u64,       // Currently circulating tokens (0 in Phase 1)
+    pub pre_launch_distributed: u64,   // Tokens distributed in Phase 1 (future value IOUs)
+    
+    // Launch Phase Management
+    pub current_phase: TokenLaunchPhase,
+    pub pool_assets: PoolAssetReserve,
+    pub phase2_launch_timestamp: Option<u64>,  // When Phase 2 was activated
+    
+    // Distribution pools
+    pub community_rewards_pool: u64,   // 300M FLOW (30%)
+    pub team_development_pool: u64,    // 250M FLOW (25%)
+    pub ecosystem_fund_pool: u64,      // 200M FLOW (20%)
+    pub public_launch_pool: u64,       // 150M FLOW (15%)
+    pub treasury_reserve_pool: u64,    // 100M FLOW (10%)
+    
+    // Reward distribution tracking
+    pub rewards_distributed_total: u64,
+    pub last_reward_distribution: u64,
+    
+    // Burn and buyback mechanics (Phase 2 only)
+    pub tokens_burned_total: u64,
+    pub last_buyback_amount: u64,
+    pub last_buyback_timestamp: u64,
+    
+    // User balances and transaction history
+    pub user_balances: std::collections::HashMap<Principal, UserFlowBalance>,
+    pub transaction_history: Vec<FlowTransaction>,
+}
+
+/// User's $FLOW token balance and staking information
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct UserFlowBalance {
+    pub user: Principal,
+    
+    // Phase-specific balances
+    pub pre_launch_balance: u64,      // Phase 1: Future value IOUs (not tradeable)
+    pub tradeable_balance: u64,       // Phase 2: Actual tradeable tokens
+    pub total_balance: u64,           // Combined total for display
+    pub available_balance: u64,       // Available for transactions (0 in Phase 1)
+    pub staked_balance: u64,          // Currently staked tokens (Phase 2 only)
+    pub pending_rewards: u64,         // Unclaimed rewards
+    
+    // Staking information (Phase 2 only)
+    pub stake_lock_period: Option<u64>,    // Lock period in seconds (30d, 90d, 180d, 365d)
+    pub stake_end_time: Option<u64>,       // When stake unlocks
+    pub stake_multiplier: f64,             // Reward multiplier (1.2x to 3.0x)
+    
+    // Activity tracking for rewards
+    pub defi_operations_count: u64,        // Total DeFi operations
+    pub social_posts_count: u64,           // Social media automations
+    pub last_activity_timestamp: u64,      // For activity bonuses
+    pub activity_streak_days: u32,         // Consecutive active days
+    
+    // Lifetime stats
+    pub lifetime_rewards_earned: u64,
+    pub lifetime_fees_paid_in_flow: u64,
+    
+    // Phase 1 specific tracking
+    pub phase1_airdrop_received: u64,     // Amount received via airdrops
+    pub phase1_activity_rewards: u64,     // Rewards earned through activity
+    pub eligible_for_phase2_conversion: bool,  // Can convert to tradeable tokens
+}
+
+/// Reward calculation and distribution system
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct FlowRewardConfig {
+    // Base reward rates (per $1000 USD equivalent)
+    pub yield_farming_reward_rate: u64,    // 100 FLOW per $1K
+    pub arbitrage_reward_rate: u64,        // 50 FLOW per trade
+    pub rebalancing_reward_rate: u64,      // 25 FLOW per rebalance
+    pub social_automation_reward_rate: u64, // 10 FLOW per post
+    
+    // Multipliers
+    pub cross_chain_bonus: f64,            // +50% for multi-chain ops
+    pub premium_tier_multiplier: f64,      // 1.5x for Premium users
+    pub pro_tier_multiplier: f64,          // 2.0x for Pro users
+    
+    // Time-based bonuses
+    pub daily_active_bonus: f64,           // +10% for daily usage
+    pub weekly_streak_bonus: f64,          // +25% for 7+ day streak
+    pub monthly_power_user_bonus: f64,     // +50% for 30+ day streak
+    pub quarterly_champion_bonus: f64,     // +100% for 90+ day streak
+    
+    // Fee discount tiers
+    pub fee_discount_tiers: Vec<FeeDiscountTier>,
+}
+
+/// Fee discount based on FLOW token holdings
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct FeeDiscountTier {
+    pub minimum_flow_balance: u64,         // Minimum FLOW tokens required
+    pub transaction_fee_discount: f64,     // Percentage discount (0.0 to 0.6)
+    pub subscription_discount: f64,        // Percentage discount (0.0 to 0.4)
+}
+
+/// Transaction record for FLOW token operations
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct FlowTransaction {
+    pub transaction_id: String,
+    pub user: Principal,
+    pub transaction_type: FlowTransactionType,
+    pub amount: u64,
+    pub timestamp: u64,
+    pub details: String,
+}
+
+/// Types of FLOW token transactions
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum FlowTransactionType {
+    RewardEarned { operation_type: String },
+    FeePayment { service: String },
+    Staking { lock_period_days: u32 },
+    Unstaking,
+    TokenBurn,
+    Airdrop,
+    Transfer { recipient: Principal },
+}
+
+impl Default for PoolAssetReserve {
+    fn default() -> Self {
+        PoolAssetReserve {
+            btc_equivalent_usd: 0.0,
+            actual_btc_amount: 0.0,
+            other_assets_usd: 0.0,
+            ckbtc_staked_amount: 0.0,
+            launch_threshold_usd: 60000.0,  // $60K = 1 BTC equivalent target
+            last_updated: 0,
+        }
+    }
+}
+
+impl Default for FlowTokenReserve {
+    fn default() -> Self {
+        const TOTAL_SUPPLY: u64 = 100_000_000_000_000_000; // 1B FLOW with 8 decimals
+        
+        FlowTokenReserve {
+            total_supply: TOTAL_SUPPLY,
+            circulating_supply: 0,
+            pre_launch_distributed: 0,
+            
+            // Start in Phase 1
+            current_phase: TokenLaunchPhase::Phase1PreLaunch,
+            pool_assets: PoolAssetReserve::default(),
+            phase2_launch_timestamp: None,
+            
+            // Distribution pools (percentages of total supply)
+            community_rewards_pool: TOTAL_SUPPLY * 30 / 100,  // 30%
+            team_development_pool: TOTAL_SUPPLY * 25 / 100,   // 25%
+            ecosystem_fund_pool: TOTAL_SUPPLY * 20 / 100,     // 20%
+            public_launch_pool: TOTAL_SUPPLY * 15 / 100,      // 15%
+            treasury_reserve_pool: TOTAL_SUPPLY * 10 / 100,   // 10%
+            
+            rewards_distributed_total: 0,
+            last_reward_distribution: 0,
+            
+            tokens_burned_total: 0,
+            last_buyback_amount: 0,
+            last_buyback_timestamp: 0,
+            
+            // Initialize empty user balances and transaction history
+            user_balances: std::collections::HashMap::new(),
+            transaction_history: Vec::new(),
+        }
+    }
+}
+
+impl Default for FlowRewardConfig {
+    fn default() -> Self {
+        FlowRewardConfig {
+            // Base reward rates (in FLOW tokens, accounting for 8 decimals)
+            yield_farming_reward_rate: 10_000_000_000,      // 100 FLOW
+            arbitrage_reward_rate: 5_000_000_000,           // 50 FLOW
+            rebalancing_reward_rate: 2_500_000_000,         // 25 FLOW
+            social_automation_reward_rate: 1_000_000_000,   // 10 FLOW
+            
+            // Multipliers
+            cross_chain_bonus: 1.5,
+            premium_tier_multiplier: 1.5,
+            pro_tier_multiplier: 2.0,
+            
+            // Time-based bonuses
+            daily_active_bonus: 1.1,
+            weekly_streak_bonus: 1.25,
+            monthly_power_user_bonus: 1.5,
+            quarterly_champion_bonus: 2.0,
+            
+            // Fee discount tiers
+            fee_discount_tiers: vec![
+                FeeDiscountTier {
+                    minimum_flow_balance: 100_000_000_000,    // 1K FLOW
+                    transaction_fee_discount: 0.10,           // 10%
+                    subscription_discount: 0.05,              // 5%
+                },
+                FeeDiscountTier {
+                    minimum_flow_balance: 1_000_000_000_000,  // 10K FLOW
+                    transaction_fee_discount: 0.25,           // 25%
+                    subscription_discount: 0.15,              // 15%
+                },
+                FeeDiscountTier {
+                    minimum_flow_balance: 5_000_000_000_000,  // 50K FLOW
+                    transaction_fee_discount: 0.40,           // 40%
+                    subscription_discount: 0.25,              // 25%
+                },
+                FeeDiscountTier {
+                    minimum_flow_balance: 10_000_000_000_000, // 100K FLOW
+                    transaction_fee_discount: 0.60,           // 60%
+                    subscription_discount: 0.40,              // 40%
+                },
+            ],
+        }
+    }
+}
+
+// =============================================================================
+// PHASE 1 STATUS AND QUERY TYPES
+// =============================================================================
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct Phase1Status {
+    pub current_phase: TokenLaunchPhase,
+    pub total_pre_launch_distributed: u64,
+    pub pool_asset_value_usd: f64,
+    pub launch_threshold_usd: f64,
+    pub progress_to_launch: f64,           // Percentage (0-100)
+    pub btc_amount: f64,
+    pub ckbtc_staked: f64,
+    pub eligible_users: u64,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, Default)]
+pub struct UserPhase1Balance {
+    pub pre_launch_balance: u64,           // Phase 1: Future value IOUs (not tradeable)
+    pub tradeable_balance: u64,            // Phase 2: Actual tradeable tokens
+    pub total_balance: u64,                // Combined total for display
+    pub phase1_airdrop_received: u64,      // Total airdrop tokens received
+    pub phase1_activity_rewards: u64,      // Total activity reward tokens received
+    pub eligible_for_phase2_conversion: bool,
+    pub estimated_phase2_value: u64,       // Estimated tradeable tokens in Phase 2
 }
