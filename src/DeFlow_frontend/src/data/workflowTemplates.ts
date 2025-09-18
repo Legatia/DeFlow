@@ -1663,6 +1663,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
 
 // Group templates by category
 export const TEMPLATE_CATEGORIES = [
+  { id: 'defi', name: 'DeFi Strategies', icon: '💰', description: 'Automated DeFi trading and yield strategies' },
   { id: 'automation', name: 'Automation', icon: '🤖', description: 'Automated workflows and scheduled tasks' },
   { id: 'notification', name: 'Notifications', icon: '📢', description: 'Email alerts and messaging' },
   { id: 'data-processing', name: 'Data Processing', icon: '⚙️', description: 'Transform and process data' },
@@ -1670,9 +1671,9 @@ export const TEMPLATE_CATEGORIES = [
 ]
 
 export const getTemplatesByCategory = (category: string) => {
-  return WORKFLOW_TEMPLATES.filter(template => template.category === category)
+  return WORKFLOW_TEMPLATES.filter(template => template && template.category === category)
 }
 
 export const getTemplatesByDifficulty = (difficulty: string) => {
-  return WORKFLOW_TEMPLATES.filter(template => template.difficulty === difficulty)
+  return WORKFLOW_TEMPLATES.filter(template => template && template.difficulty === difficulty)
 }

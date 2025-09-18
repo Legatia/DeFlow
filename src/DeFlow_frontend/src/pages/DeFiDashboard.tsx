@@ -77,7 +77,7 @@ const DeFiDashboard = () => {
         let currentAPY = strategy.template.estimated_apy;
         let protocolStatus = 'unknown';
         
-        if (yieldData && strategy.template.category === 'YieldFarming') {
+        if (yieldData && (strategy.template.category || '') === 'YieldFarming') {
           const matchingOpportunity = yieldData.opportunities.find(opp => 
             opp.protocol.toLowerCase().includes(strategy.template.id.toLowerCase())
           );
@@ -313,7 +313,7 @@ const DeFiDashboard = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="text-3xl">
-                      {simpleDefiTemplateService.getCategoryIcon(strategy.template.category)}
+                      {simpleDefiTemplateService.getCategoryIcon(strategy.template.category || 'unknown')}
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900">
@@ -349,7 +349,7 @@ const DeFiDashboard = () => {
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500">Category:</span>
-                    <span className="ml-2 font-medium">{strategy.template.category}</span>
+                    <span className="ml-2 font-medium">{strategy.template.category || 'unknown'}</span>
                   </div>
                   <div>
                     <span className="text-gray-500">Risk:</span>

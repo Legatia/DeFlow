@@ -4,7 +4,7 @@
 [![Internet Computer](https://img.shields.io/badge/Internet%20Computer-Protocol-green?style=for-the-badge)](https://internetcomputer.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-**DeFlow** is a next-generation decentralized finance (DeFi) automation platform built on the Internet Computer Protocol (ICP). It enables users to create, deploy, and manage sophisticated DeFi strategies through an intuitive visual workflow builder and pre-built strategy templates.
+**DeFlow** is a next-generation decentralized finance (DeFi) automation platform built on the Internet Computer Protocol (ICP). It enables users to create, deploy, and manage sophisticated DeFi strategies through an intuitive visual workflow builder and pre-built strategy templates. IC mainnet: https://75eof-jyaaa-aaaad-abtwq-cai.icp0.io/
 
 ## 🚀 Key Features
 

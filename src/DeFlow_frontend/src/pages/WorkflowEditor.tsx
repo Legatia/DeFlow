@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { Node, Edge } from 'reactflow'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { Workflow } from '../types'
 import WorkflowBuilder from '../components/WorkflowBuilder'
 import WorkflowTemplates from '../components/WorkflowTemplates'
-import { WorkflowTemplate } from '../data/workflowTemplates'
+import { WorkflowTemplate, WORKFLOW_TEMPLATES } from '../data/workflowTemplates'
 
 const WorkflowEditor = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { 
     currentWorkflow, 
     isLoading, 
@@ -36,6 +37,34 @@ const WorkflowEditor = () => {
       loadWorkflow(id)
     }
   }, [id, isEditing, loadWorkflow])
+
+  // Define handleSelectTemplate first
+  const handleSelectTemplate = useCallback((template: WorkflowTemplate) => {
+    setFormData({
+      name: template.name,
+      description: template.description,
+      active: true
+    })
+    setWorkflowNodes(template.nodes)
+    setWorkflowEdges(template.edges)
+    setShowTemplates(false)
+    setShowBuilder(true)
+  }, [])
+
+  // Check for template parameter and auto-load template
+  useEffect(() => {
+    if (!isEditing) {
+      const templateId = searchParams.get('template')
+      if (templateId) {
+        const template = WORKFLOW_TEMPLATES.find(t => t.id === templateId)
+        if (template) {
+          handleSelectTemplate(template)
+          // Clear the template parameter from URL
+          navigate('/workflows/new', { replace: true })
+        }
+      }
+    }
+  }, [searchParams, isEditing, navigate, handleSelectTemplate])
 
   useEffect(() => {
     if (currentWorkflow && isEditing) {
@@ -144,18 +173,6 @@ const WorkflowEditor = () => {
     e.preventDefault()
     setShowBuilder(true)
   }
-
-  const handleSelectTemplate = useCallback((template: WorkflowTemplate) => {
-    setFormData({
-      name: template.name,
-      description: template.description,
-      active: true
-    })
-    setWorkflowNodes(template.nodes)
-    setWorkflowEdges(template.edges)
-    setShowTemplates(false)
-    setShowBuilder(true)
-  }, [])
 
   const handleCreateBlank = useCallback(() => {
     setShowTemplates(false)

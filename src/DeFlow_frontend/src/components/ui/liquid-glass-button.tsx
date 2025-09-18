@@ -41,14 +41,7 @@ const LiquidGlassButton = React.forwardRef<
         'font-medium transition-all duration-300 ease-out',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         'disabled:pointer-events-none disabled:opacity-50',
-        // Liquid animation effects
-        'before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-r',
-        'before:from-transparent before:via-white/10 before:to-transparent',
-        'before:translate-x-[-100%] before:transition-transform before:duration-700',
-        'hover:before:translate-x-[100%]',
-        // Glass reflection effect
-        'after:absolute after:inset-[1px] after:rounded-[7px]',
-        'after:bg-gradient-to-b after:from-white/10 after:to-transparent after:opacity-60',
+        // Clean glass style without reflection overlays
         // Variants and sizes
         variants[variant],
         sizes[size],

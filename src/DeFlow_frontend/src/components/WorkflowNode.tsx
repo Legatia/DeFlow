@@ -63,7 +63,7 @@ const WorkflowNode = memo(({ data, selected }: NodeProps<WorkflowNodeData>) => {
   return (
     <div
       className={cn(
-        // Base liquid glass styles
+        // Base styles with blur effects
         'relative rounded-xl backdrop-blur-md min-w-[180px] max-w-[220px]',
         'border transition-all duration-300 ease-out',
         'bg-gradient-to-br',
@@ -73,15 +73,7 @@ const WorkflowNode = memo(({ data, selected }: NodeProps<WorkflowNodeData>) => {
         selected ? 'border-white/30 shadow-2xl' : cn(categoryStyle.borderColor, 'hover:border-white/20'),
         !isValid && 'border-red-400/60 shadow-red-500/25',
         
-        // Liquid animation effects
-        'before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r',
-        'before:from-transparent before:via-white/10 before:to-transparent',
-        'before:translate-x-[-100%] before:transition-transform before:duration-700',
-        'hover:before:translate-x-[100%]',
-        
-        // Glass reflection effect
-        'after:absolute after:inset-[1px] after:rounded-[11px]',
-        'after:bg-gradient-to-b after:from-white/20 after:to-transparent after:opacity-60',
+        // Simplified visual effects without overlays
         
         // Transform effects
         'hover:scale-105 hover:rotate-1 hover:shadow-xl',
@@ -151,21 +143,21 @@ const WorkflowNode = memo(({ data, selected }: NodeProps<WorkflowNodeData>) => {
 
       {/* Node Body - Enhanced with liquid glass */}
       <div className="relative z-10 px-4 py-3 rounded-b-xl">
-        <div className="text-xs text-gray-700 mb-2 truncate font-medium">
+        <div className="text-xs text-gray-300 mb-2 truncate font-medium">
           {nodeType.description}
         </div>
         
         {/* Show key configuration */}
         {config && Object.keys(config).length > 0 && (
-          <div className="text-xs text-gray-600 space-y-1 bg-white/10 rounded-lg p-2 backdrop-blur-sm">
+          <div className="text-xs space-y-1 bg-white/10 rounded-lg p-2 backdrop-blur-sm">
             {Object.entries(config).slice(0, 2).map(([key, value]) => (
               <div key={key} className="truncate">
-                <span className="font-semibold text-gray-700">{key}:</span>{' '}
-                <span className="text-gray-600">{formatConfigValue(value)}</span>
+                <span className="font-semibold text-gray-200">{key}:</span>{' '}
+                <span className="text-gray-300">{formatConfigValue(value)}</span>
               </div>
             ))}
             {Object.keys(config).length > 2 && (
-              <div className="text-gray-500 font-medium">
+              <div className="text-gray-400 font-medium">
                 +{Object.keys(config).length - 2} more...
               </div>
             )}
@@ -175,7 +167,7 @@ const WorkflowNode = memo(({ data, selected }: NodeProps<WorkflowNodeData>) => {
         {/* Error indicators */}
         {!isValid && errors.length > 0 && (
           <div className="mt-2 text-xs bg-red-500/20 border border-red-400/40 rounded-lg p-2 backdrop-blur-sm">
-            <div className="flex items-center space-x-1 text-red-700">
+            <div className="flex items-center space-x-1 text-red-200">
               <span>⚠️</span>
               <span className="font-semibold">{errors.length} error{errors.length > 1 ? 's' : ''}</span>
             </div>
@@ -185,7 +177,7 @@ const WorkflowNode = memo(({ data, selected }: NodeProps<WorkflowNodeData>) => {
 
       {/* Category badge - Enhanced with liquid glass */}
       <div className="absolute -top-2 -right-2 z-20">
-        <div className="bg-white/20 backdrop-blur-md text-gray-700 text-xs px-2 py-1 rounded-full border border-white/30 shadow-lg">
+        <div className="bg-white/20 backdrop-blur-md text-gray-200 text-xs px-2 py-1 rounded-full border border-white/30 shadow-lg">
           {nodeType.category}
         </div>
       </div>
@@ -195,13 +187,13 @@ const WorkflowNode = memo(({ data, selected }: NodeProps<WorkflowNodeData>) => {
         {nodeType.inputs.length > 0 && (
           <div className="flex items-center space-x-1 bg-blue-500/20 backdrop-blur-sm rounded-full px-2 py-0.5 border border-blue-400/30">
             <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-            <span className="text-blue-700 font-medium">{nodeType.inputs.length}</span>
+            <span className="text-blue-200 font-medium">{nodeType.inputs.length}</span>
           </div>
         )}
         {nodeType.outputs.length > 0 && (
           <div className="flex items-center space-x-1 bg-green-500/20 backdrop-blur-sm rounded-full px-2 py-0.5 border border-green-400/30">
             <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-            <span className="text-green-700 font-medium">{nodeType.outputs.length}</span>
+            <span className="text-green-200 font-medium">{nodeType.outputs.length}</span>
           </div>
         )}
       </div>
