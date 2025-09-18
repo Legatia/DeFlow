@@ -59,19 +59,19 @@ export const DEFI_NODE_TYPES: NodeType[] = [
     }
   },
 
-  // DeFi Strategy Actions - Simplified Yield Farming
+  // Consolidated Yield Farming Strategy
   {
-    id: 'select-yield-protocol',
-    name: 'Select Yield Protocol',
-    description: 'Choose DeFi protocol for farming',
+    id: 'yield-farming-strategy',
+    name: 'Yield Farming Strategy',
+    description: 'Complete yield farming workflow in one node',
     category: 'actions',
-    icon: '🏦',
+    icon: '🌾',
     color: '#10b981',
     inputs: [
       { id: 'trigger', name: 'Execute', type: 'trigger', required: true }
     ],
     outputs: [
-      { id: 'protocol_data', name: 'Protocol Data', type: 'data', required: true }
+      { id: 'farm_result', name: 'Farm Result', type: 'data', required: true }
     ],
     configSchema: [
       {
@@ -83,33 +83,24 @@ export const DEFI_NODE_TYPES: NodeType[] = [
           { label: 'Aave', value: 'Aave' },
           { label: 'Compound', value: 'Compound' },
           { label: 'Uniswap V3', value: 'UniswapV3' },
-          { label: 'Curve', value: 'Curve' }
+          { label: 'Curve', value: 'Curve' },
+          { label: 'Yearn Finance', value: 'Yearn' }
         ],
         defaultValue: 'Aave'
-      }
-    ],
-    defaultConfig: { protocol: 'Aave' },
-    tieredPricing: {
-      standard: { executionFee: 0.05, description: 'Basic protocol selection' },
-      premium: { executionFee: 0.03, description: 'Fast protocol selection' },
-      pro: { executionFee: 0.01, description: 'Instant protocol selection' }
-    }
-  },
-
-  {
-    id: 'set-farm-amount',
-    name: 'Set Farm Amount',
-    description: 'Configure farming amount and token',
-    category: 'actions',
-    icon: '💰',
-    color: '#10b981',
-    inputs: [
-      { id: 'protocol_data', name: 'Protocol Data', type: 'data', required: true }
-    ],
-    outputs: [
-      { id: 'farm_config', name: 'Farm Config', type: 'data', required: true }
-    ],
-    configSchema: [
+      },
+      {
+        key: 'chain',
+        name: 'Chain',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Ethereum', value: 'Ethereum' },
+          { label: 'Arbitrum', value: 'Arbitrum' },
+          { label: 'Optimism', value: 'Optimism' },
+          { label: 'Polygon', value: 'Polygon' }
+        ],
+        defaultValue: 'Ethereum'
+      },
       {
         key: 'token',
         name: 'Token to Farm',
@@ -128,32 +119,20 @@ export const DEFI_NODE_TYPES: NodeType[] = [
         name: 'Amount (USD)',
         type: 'number',
         required: true,
-        validation: { min: 1 },
+        validation: { min: 10 },
         defaultValue: 1000
-      }
-    ],
-    defaultConfig: { token: 'USDC', amount: 1000 },
-    tieredPricing: {
-      standard: { executionFee: 0.02, description: 'Basic amount configuration' },
-      premium: { executionFee: 0.01, description: 'Fast configuration' },
-      pro: { executionFee: 0.005, description: 'Instant configuration' }
-    }
-  },
-
-  {
-    id: 'execute-yield-farm',
-    name: 'Execute Yield Farm',
-    description: 'Execute the yield farming operation',
-    category: 'actions',
-    icon: '🌾',
-    color: '#10b981',
-    inputs: [
-      { id: 'farm_config', name: 'Farm Config', type: 'data', required: true }
-    ],
-    outputs: [
-      { id: 'result', name: 'Farm Result', type: 'data', required: true }
-    ],
-    configSchema: [
+      },
+      {
+        key: 'amount_type',
+        name: 'Amount Type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Fixed USD Amount', value: 'fixed' },
+          { label: 'Percentage of Balance', value: 'percentage' }
+        ],
+        defaultValue: 'fixed'
+      },
       {
         key: 'min_apy',
         name: 'Minimum APY (%)',
@@ -168,29 +147,50 @@ export const DEFI_NODE_TYPES: NodeType[] = [
         type: 'boolean',
         required: false,
         defaultValue: true
+      },
+      {
+        key: 'gas_priority',
+        name: 'Gas Priority',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Low (Cheapest)', value: 'low' },
+          { label: 'Medium (Standard)', value: 'medium' },
+          { label: 'High (Fast)', value: 'high' }
+        ],
+        defaultValue: 'medium'
       }
     ],
-    defaultConfig: { min_apy: 5.0, auto_compound: true },
+    defaultConfig: { 
+      protocol: 'Aave', 
+      chain: 'Ethereum', 
+      token: 'USDC', 
+      amount: 1000, 
+      amount_type: 'fixed',
+      min_apy: 5.0, 
+      auto_compound: true,
+      gas_priority: 'medium' 
+    },
     tieredPricing: {
-      standard: { executionFee: 0.1, description: 'Basic execution with standard speed' },
-      premium: { executionFee: 0.05, description: 'Faster execution with priority processing' },
-      pro: { executionFee: 0.02, description: 'Fastest execution with advanced features' }
+      standard: { executionFee: 0.15, description: 'Complete yield farming execution' },
+      premium: { executionFee: 0.08, description: 'Priority yield farming with optimization' },
+      pro: { executionFee: 0.04, description: 'Advanced yield farming with MEV protection' }
     }
   },
 
-  // Simplified Arbitrage Blocks
+  // Consolidated Arbitrage Strategy
   {
-    id: 'select-arbitrage-asset',
-    name: 'Select Arbitrage Asset',
-    description: 'Choose asset for arbitrage trading',
+    id: 'arbitrage-strategy',
+    name: 'Arbitrage Strategy',
+    description: 'Complete cross-chain arbitrage in one node',
     category: 'actions',
-    icon: '💎',
+    icon: '⚖️',
     color: '#10b981',
     inputs: [
       { id: 'trigger', name: 'Execute', type: 'trigger', required: true }
     ],
     outputs: [
-      { id: 'asset_data', name: 'Asset Data', type: 'data', required: true }
+      { id: 'arbitrage_result', name: 'Arbitrage Result', type: 'data', required: true }
     ],
     configSchema: [
       {
@@ -201,33 +201,12 @@ export const DEFI_NODE_TYPES: NodeType[] = [
         options: [
           { label: 'Bitcoin (BTC)', value: 'BTC' },
           { label: 'Ethereum (ETH)', value: 'ETH' },
-          { label: 'USDC', value: 'USDC' }
+          { label: 'USDC', value: 'USDC' },
+          { label: 'USDT', value: 'USDT' },
+          { label: 'DAI', value: 'DAI' }
         ],
         defaultValue: 'BTC'
-      }
-    ],
-    defaultConfig: { asset: 'BTC' },
-    tieredPricing: {
-      standard: { executionFee: 0.02, description: 'Basic asset selection' },
-      premium: { executionFee: 0.01, description: 'Fast selection' },
-      pro: { executionFee: 0.005, description: 'Instant selection' }
-    }
-  },
-
-  {
-    id: 'set-arbitrage-chains',
-    name: 'Set Arbitrage Chains',
-    description: 'Configure buy and sell chains',
-    category: 'actions',
-    icon: '🔗',
-    color: '#10b981',
-    inputs: [
-      { id: 'asset_data', name: 'Asset Data', type: 'data', required: true }
-    ],
-    outputs: [
-      { id: 'chain_config', name: 'Chain Config', type: 'data', required: true }
-    ],
-    configSchema: [
+      },
       {
         key: 'buy_chain',
         name: 'Buy Chain',
@@ -236,7 +215,9 @@ export const DEFI_NODE_TYPES: NodeType[] = [
         options: [
           { label: 'Ethereum', value: 'Ethereum' },
           { label: 'Arbitrum', value: 'Arbitrum' },
+          { label: 'Optimism', value: 'Optimism' },
           { label: 'Polygon', value: 'Polygon' },
+          { label: 'Base', value: 'Base' },
           { label: 'Solana', value: 'Solana' },
           { label: 'ICP', value: 'ICP' }
         ],
@@ -250,35 +231,14 @@ export const DEFI_NODE_TYPES: NodeType[] = [
         options: [
           { label: 'Ethereum', value: 'Ethereum' },
           { label: 'Arbitrum', value: 'Arbitrum' },
+          { label: 'Optimism', value: 'Optimism' },
           { label: 'Polygon', value: 'Polygon' },
+          { label: 'Base', value: 'Base' },
           { label: 'Solana', value: 'Solana' },
           { label: 'ICP', value: 'ICP' }
         ],
         defaultValue: 'Arbitrum'
-      }
-    ],
-    defaultConfig: { buy_chain: 'Ethereum', sell_chain: 'Arbitrum' },
-    tieredPricing: {
-      standard: { executionFee: 0.03, description: 'Basic chain configuration' },
-      premium: { executionFee: 0.02, description: 'Fast configuration' },
-      pro: { executionFee: 0.01, description: 'Instant configuration' }
-    }
-  },
-
-  {
-    id: 'execute-arbitrage',
-    name: 'Execute Arbitrage',
-    description: 'Execute arbitrage opportunity',
-    category: 'actions',
-    icon: '⚖️',
-    color: '#10b981',
-    inputs: [
-      { id: 'chain_config', name: 'Chain Config', type: 'data', required: true }
-    ],
-    outputs: [
-      { id: 'result', name: 'Arbitrage Result', type: 'data', required: true }
-    ],
-    configSchema: [
+      },
       {
         key: 'min_profit_percent',
         name: 'Min Profit (%)',
@@ -294,13 +254,32 @@ export const DEFI_NODE_TYPES: NodeType[] = [
         required: true,
         validation: { min: 100 },
         defaultValue: 5000
+      },
+      {
+        key: 'gas_optimization',
+        name: 'Gas Optimization',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Standard', value: 'standard' },
+          { label: 'Aggressive', value: 'aggressive' },
+          { label: 'Conservative', value: 'conservative' }
+        ],
+        defaultValue: 'standard'
       }
     ],
-    defaultConfig: { min_profit_percent: 1.0, max_amount: 5000 },
+    defaultConfig: { 
+      asset: 'BTC', 
+      buy_chain: 'Ethereum', 
+      sell_chain: 'Arbitrum', 
+      min_profit_percent: 1.0, 
+      max_amount: 5000,
+      gas_optimization: 'standard'
+    },
     tieredPricing: {
-      standard: { executionFee: 0.1, description: 'Basic execution with standard speed' },
-      premium: { executionFee: 0.05, description: 'Faster execution with priority processing' },
-      pro: { executionFee: 0.02, description: 'Fastest execution with advanced features' }
+      standard: { executionFee: 0.12, description: 'Complete arbitrage execution' },
+      premium: { executionFee: 0.07, description: 'Priority arbitrage with MEV protection' },
+      pro: { executionFee: 0.04, description: 'Advanced arbitrage with flash loans' }
     }
   },
 
@@ -557,19 +536,21 @@ export const DEFI_NODE_TYPES: NodeType[] = [
     }
   },
 
-  // Simplified Cycles Monitoring
+  // Consolidated Cycles Monitor
   {
-    id: 'check-cycles',
-    name: 'Check Cycles',
-    description: 'Check current canister cycle balance',
+    id: 'cycles-monitor',
+    name: 'Cycles Monitor',
+    description: 'Monitor cycles and auto top-up when low',
     category: 'utilities',
     icon: '🔋',
     color: '#8b5cf6',
     inputs: [
-      { id: 'trigger', name: 'Check Cycles', type: 'trigger', required: true }
+      { id: 'trigger', name: 'Monitor Cycles', type: 'trigger', required: true }
     ],
     outputs: [
-      { id: 'cycles_data', name: 'Cycles Data', type: 'data', required: true }
+      { id: 'cycles_status', name: 'Cycles Status', type: 'data', required: true },
+      { id: 'low_cycles', name: 'Low Cycles Alert', type: 'condition', required: false },
+      { id: 'topup_result', name: 'Top-up Result', type: 'data', required: false }
     ],
     configSchema: [
       {
@@ -579,31 +560,7 @@ export const DEFI_NODE_TYPES: NodeType[] = [
         required: false,
         placeholder: 'rdmx6-jaaaa-aaaah-qdrva-cai',
         description: 'Leave empty to monitor current canister'
-      }
-    ],
-    defaultConfig: { canister_id: '' },
-    tieredPricing: {
-      standard: { executionFee: 0.02, description: 'Basic cycles check' },
-      premium: { executionFee: 0.01, description: 'Fast cycles check' },
-      pro: { executionFee: 0.005, description: 'Instant cycles check' }
-    }
-  },
-
-  {
-    id: 'cycles-alert',
-    name: 'Cycles Alert',
-    description: 'Alert when cycles are running low',
-    category: 'conditions',
-    icon: '⚠️',
-    color: '#f59e0b',
-    inputs: [
-      { id: 'cycles_data', name: 'Cycles Data', type: 'data', required: true }
-    ],
-    outputs: [
-      { id: 'low_cycles', name: 'Low Cycles Alert', type: 'condition', required: true },
-      { id: 'cycles_ok', name: 'Cycles OK', type: 'condition', required: true }
-    ],
-    configSchema: [
+      },
       {
         key: 'warning_threshold',
         name: 'Warning Threshold (T Cycles)',
@@ -612,35 +569,20 @@ export const DEFI_NODE_TYPES: NodeType[] = [
         validation: { min: 1 },
         defaultValue: 10,
         description: 'Alert when cycles drop below this level (in trillions)'
-      }
-    ],
-    defaultConfig: { warning_threshold: 10 },
-    tieredPricing: {
-      standard: { executionFee: 0.01, description: 'Basic threshold check' },
-      premium: { executionFee: 0.005, description: 'Fast threshold check' },
-      pro: { executionFee: 0.002, description: 'Instant threshold check' }
-    }
-  },
-
-  {
-    id: 'auto-topup-cycles',
-    name: 'Auto Top-up Cycles',
-    description: 'Automatically request cycles top-up',
-    category: 'actions',
-    icon: '⛽',
-    color: '#8b5cf6',
-    inputs: [
-      { id: 'low_cycles', name: 'Low Cycles Alert', type: 'condition', required: true }
-    ],
-    outputs: [
-      { id: 'topup_result', name: 'Top-up Result', type: 'data', required: true }
-    ],
-    configSchema: [
+      },
+      {
+        key: 'auto_topup',
+        name: 'Auto Top-up',
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        description: 'Automatically top-up when threshold is reached'
+      },
       {
         key: 'topup_amount',
         name: 'Top-up Amount (T Cycles)',
         type: 'number',
-        required: true,
+        required: false,
         validation: { min: 1 },
         defaultValue: 20,
         description: 'Amount to request for top-up (in trillions)'
@@ -657,13 +599,33 @@ export const DEFI_NODE_TYPES: NodeType[] = [
           { label: 'Slack', value: 'slack' }
         ],
         defaultValue: 'email'
+      },
+      {
+        key: 'check_interval',
+        name: 'Check Interval',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Every Hour', value: '1h' },
+          { label: 'Every 6 Hours', value: '6h' },
+          { label: 'Daily', value: '24h' },
+          { label: 'Weekly', value: '168h' }
+        ],
+        defaultValue: '6h'
       }
     ],
-    defaultConfig: { topup_amount: 20, notification_channel: 'email' },
+    defaultConfig: { 
+      canister_id: '', 
+      warning_threshold: 10, 
+      auto_topup: false, 
+      topup_amount: 20, 
+      notification_channel: 'email',
+      check_interval: '6h'
+    },
     tieredPricing: {
-      standard: { executionFee: 0.1, description: 'Basic auto top-up' },
-      premium: { executionFee: 0.05, description: 'Priority top-up with notifications' },
-      pro: { executionFee: 0.02, description: 'Enterprise top-up with custom alerts' }
+      standard: { executionFee: 0.08, description: 'Complete cycles monitoring with alerts' },
+      premium: { executionFee: 0.04, description: 'Advanced monitoring with auto top-up' },
+      pro: { executionFee: 0.02, description: 'Enterprise monitoring with custom thresholds' }
     }
   },
 
