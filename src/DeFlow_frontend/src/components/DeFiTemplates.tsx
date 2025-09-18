@@ -1,97 +1,68 @@
 import React, { useState, useEffect } from 'react';
-import simpleDefiTemplateService, { DeFiWorkflowTemplate } from '../services/defiTemplateServiceSimple';
+import { WORKFLOW_TEMPLATES, TEMPLATE_CATEGORIES, WorkflowTemplate } from '../data/workflowTemplates';
+import { useNavigate } from 'react-router-dom';
 
 interface DeFiTemplatesProps {
-  onSelectTemplate: (template: DeFiWorkflowTemplate) => void;
+  onSelectTemplate?: (template: any) => void;
   onCreateCustom: () => void;
 }
 
 const DeFiTemplates = ({ onSelectTemplate, onCreateCustom }: DeFiTemplatesProps) => {
-  const [templates, setTemplates] = useState<DeFiWorkflowTemplate[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   
-  // User preferences for recommendations
-  const [riskTolerance, setRiskTolerance] = useState(5);
-  const [capitalAmount, setCapitalAmount] = useState(1000);
-  const [experienceLevel, setExperienceLevel] = useState('Beginner');
-  const [showRecommendations, setShowRecommendations] = useState(false);
-  const [recommendations, setRecommendations] = useState<DeFiWorkflowTemplate[]>([]);
+  // No DeFi templates available - return empty array
+  const defiTemplates: WorkflowTemplate[] = [];
+  
+  // Get unique subcategories from DeFi templates based on their tags
+  const defiCategories = ['all', ...new Set(defiTemplates.flatMap(template => 
+    (template.tags || []).filter(tag => ['arbitrage', 'yield-farming', 'rebalancing', 'cross-chain', 'solana'].includes(tag))
+  ))];
 
-  useEffect(() => {
-    loadTemplatesAndCategories();
-  }, []);
-
-  const loadTemplatesAndCategories = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Initialize the service
-      await simpleDefiTemplateService.initialize();
-      
-      // Load templates and categories in parallel
-      const [templatesData, categoriesData] = await Promise.all([
-        simpleDefiTemplateService.listWorkflowTemplates(),
-        simpleDefiTemplateService.getTemplateCategories()
-      ]);
-      
-      setTemplates(templatesData);
-      setCategories(categoriesData);
-    } catch (err) {
-      console.error('Error loading templates:', err);
-      setError('Failed to load DeFi templates. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadRecommendations = async () => {
-    try {
-      setLoading(true);
-      const recs = await simpleDefiTemplateService.getTemplateRecommendations(
-        riskTolerance,
-        capitalAmount,
-        experienceLevel
-      );
-      setRecommendations(recs);
-      setShowRecommendations(true);
-    } catch (err) {
-      console.error('Error loading recommendations:', err);
-      setError('Failed to load recommendations. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Filter templates based on selection
-  const filteredTemplates = showRecommendations ? recommendations : templates.filter(template => {
-    const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory;
-    const matchesDifficulty = selectedDifficulty === 'all' || template.difficulty.toLowerCase() === selectedDifficulty;
+  // Filter templates based on selection with safety checks
+  const filteredTemplates = defiTemplates.filter(template => {
+    if (!template || !template.tags || !Array.isArray(template.tags)) return false;
+    const matchesCategory = selectedCategory === 'all' || template.tags.includes(selectedCategory);
+    const matchesDifficulty = selectedDifficulty === 'all' || template.difficulty === selectedDifficulty;
     return matchesCategory && matchesDifficulty;
   });
 
-  const handleCreateStrategy = async (template: DeFiWorkflowTemplate) => {
-    try {
-      // For now, just select the template. In a full implementation, 
-      // you might want to show a capital input dialog here
-      onSelectTemplate(template);
-    } catch (err) {
-      console.error('Error creating strategy:', err);
-      setError('Failed to create strategy. Please try again.');
+  const handleCreateStrategy = (template: WorkflowTemplate) => {
+    // Navigate to workflow editor with the template
+    navigate(`/workflows/new?template=${template.id}`);
+  };
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'beginner': return 'bg-green-100 text-green-800';
+      case 'intermediate': return 'bg-yellow-100 text-yellow-800';
+      case 'advanced': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+  const getEstimatedAPY = (template: WorkflowTemplate) => {
+    if (!template.tags || !Array.isArray(template.tags)) return '6-10%';
+    if (template.tags.includes('yield-farming')) return '8-15%';
+    if (template.tags.includes('arbitrage')) return '5-12%';
+    if (template.tags.includes('rebalancing')) return '4-8%';
+    return '6-10%';
+  };
+
+  const getRiskScore = (template: WorkflowTemplate) => {
+    if (!template.difficulty) return 5;
+    if (template.difficulty === 'beginner') return 3;
+    if (template.difficulty === 'intermediate') return 5;
+    return 7;
+  };
+
+  const getMinCapital = (template: WorkflowTemplate) => {
+    if (!template.tags || !Array.isArray(template.tags)) return '$500';
+    if (template.tags.includes('solana')) return '$100';
+    if (template.tags.includes('arbitrage')) return '$1,000';
+    return '$500';
+  };
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -101,18 +72,6 @@ const DeFiTemplates = ({ onSelectTemplate, onCreateCustom }: DeFiTemplatesProps)
           Choose from battle-tested DeFi strategies or create your own
         </p>
       </div>
-
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-800">{error}</p>
-          <button 
-            onClick={loadTemplatesAndCategories}
-            className="mt-2 text-red-600 hover:text-red-800 font-medium"
-          >
-            Try Again
-          </button>
-        </div>
-      )}
 
       {/* Create Custom Strategy Option */}
       <div className="mb-8">
@@ -132,111 +91,42 @@ const DeFiTemplates = ({ onSelectTemplate, onCreateCustom }: DeFiTemplatesProps)
         </div>
       </div>
 
-      {/* Personalized Recommendations */}
-      <div className="mb-8 bg-blue-50 rounded-xl p-6">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">Get Personalized Recommendations</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Risk Tolerance (1-10)
-            </label>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              value={riskTolerance}
-              onChange={(e) => setRiskTolerance(parseInt(e.target.value))}
-              className="w-full"
-            />
-            <span className="text-sm text-gray-600">{riskTolerance}/10</span>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Capital Amount ($)
-            </label>
-            <input
-              type="number"
-              value={capitalAmount}
-              onChange={(e) => setCapitalAmount(parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              min="50"
-              step="50"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Experience Level
-            </label>
-            <select
-              value={experienceLevel}
-              onChange={(e) => setExperienceLevel(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value="Beginner">Beginner</option>
-              <option value="Intermediate">Intermediate</option>
-              <option value="Advanced">Advanced</option>
-              <option value="Expert">Expert</option>
-            </select>
-          </div>
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4 mb-6 p-4 bg-gray-50 rounded-xl">
+        <div className="flex items-center space-x-2">
+          <label className="text-sm font-medium text-gray-700">Category:</label>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="all">All Categories</option>
+            {defiCategories.filter(cat => cat !== 'all').map(category => (
+              <option key={category} value={category}>
+                {category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ')}
+              </option>
+            ))}
+          </select>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={loadRecommendations}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+
+        <div className="flex items-center space-x-2">
+          <label className="text-sm font-medium text-gray-700">Difficulty:</label>
+          <select
+            value={selectedDifficulty}
+            onChange={(e) => setSelectedDifficulty(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            Get Recommendations
-          </button>
-          <button
-            onClick={() => {
-              setShowRecommendations(false);
-              setSelectedCategory('all');
-              setSelectedDifficulty('all');
-            }}
-            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-          >
-            View All Templates
-          </button>
+            <option value="all">All Levels</option>
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </div>
+
+        <div className="ml-auto text-sm text-gray-600">
+          {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''} found
         </div>
       </div>
-
-      {/* Filters */}
-      {!showRecommendations && (
-        <div className="flex flex-wrap gap-4 mb-6 p-4 bg-gray-50 rounded-xl">
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-700">Category:</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Categories</option>
-              {categories.map(category => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-700">Difficulty:</label>
-            <select
-              value={selectedDifficulty}
-              onChange={(e) => setSelectedDifficulty(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Levels</option>
-              <option value="beginner">Beginner</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="advanced">Advanced</option>
-            </select>
-          </div>
-
-          <div className="ml-auto text-sm text-gray-600">
-            {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''} found
-          </div>
-        </div>
-      )}
 
       {/* Templates Grid */}
       {filteredTemplates.length === 0 ? (
@@ -250,27 +140,26 @@ const DeFiTemplates = ({ onSelectTemplate, onCreateCustom }: DeFiTemplatesProps)
           {filteredTemplates.map((template) => (
             <div
               key={template.id}
+              onClick={() => handleCreateStrategy(template)}
               className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-xl transition-all duration-200 cursor-pointer group overflow-hidden"
             >
               {/* Template Header */}
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center space-x-3">
-                    <span className="text-3xl">
-                      {simpleDefiTemplateService.getCategoryIcon(template.category)}
-                    </span>
+                    <span className="text-3xl">💰</span>
                     <div>
                       <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
                         {template.name}
                       </h3>
-                      <span className={`inline-block px-2 py-1 text-xs rounded-full ${simpleDefiTemplateService.getDifficultyColor(template.difficulty)}`}>
+                      <span className={`inline-block px-2 py-1 text-xs rounded-full ${getDifficultyColor(template.difficulty)}`}>
                         {template.difficulty}
                       </span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className={`inline-block px-2 py-1 text-xs rounded-full ${simpleDefiTemplateService.getRiskColor(template.risk_score)}`}>
-                      Risk: {template.risk_score}/10
+                    <div className={`inline-block px-2 py-1 text-xs rounded-full ${getRiskScore(template) <= 3 ? 'bg-green-100 text-green-800' : getRiskScore(template) <= 6 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
+                      Risk: {getRiskScore(template)}/10
                     </div>
                   </div>
                 </div>
@@ -284,29 +173,34 @@ const DeFiTemplates = ({ onSelectTemplate, onCreateCustom }: DeFiTemplatesProps)
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-green-600">
-                      {template.estimated_apy.toFixed(1)}%
+                      {getEstimatedAPY(template)}
                     </div>
                     <div className="text-xs text-gray-500">Est. APY</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600">
-                      ${template.min_capital_usd.toLocaleString()}
+                      {getMinCapital(template)}
                     </div>
                     <div className="text-xs text-gray-500">Min Capital</div>
                   </div>
                 </div>
 
-                <div className="text-center">
-                  <span className={`inline-block px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-700`}>
-                    {template.category}
-                  </span>
+                <div className="text-center mb-4">
+                  <span className="text-xs text-gray-500">{template.estimatedTime || '15 minutes'}</span>
+                </div>
+
+                <div className="flex flex-wrap gap-1 mb-4">
+                  {(template.tags || []).slice(0, 3).map(tag => (
+                    <span key={tag} className="inline-block px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
+                      {tag}
+                    </span>
+                  ))}
                 </div>
               </div>
 
               {/* Template Actions */}
               <div className="p-6 pt-0">
                 <button
-                  onClick={() => handleCreateStrategy(template)}
                   className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium group-hover:shadow-md"
                 >
                   Create Strategy
@@ -316,44 +210,6 @@ const DeFiTemplates = ({ onSelectTemplate, onCreateCustom }: DeFiTemplatesProps)
           ))}
         </div>
       )}
-
-      {/* Footer with categories overview */}
-      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {categories.map(category => {
-          const categoryTemplates = templates.filter(t => t.category === category);
-          const avgAPY = categoryTemplates.length > 0 
-            ? (categoryTemplates.reduce((sum, t) => sum + t.estimated_apy, 0) / categoryTemplates.length).toFixed(1)
-            : '0.0';
-          
-          return (
-            <div
-              key={category}
-              onClick={() => {
-                setSelectedCategory(category);
-                setShowRecommendations(false);
-              }}
-              className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                selectedCategory === category && !showRecommendations
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <div className="text-center">
-                <div className="text-4xl mb-2">
-                  {simpleDefiTemplateService.getCategoryIcon(category)}
-                </div>
-                <h4 className="font-semibold text-gray-900">{category}</h4>
-                <div className="text-sm text-gray-600 mt-1">
-                  {categoryTemplates.length} template{categoryTemplates.length !== 1 ? 's' : ''}
-                </div>
-                <div className="text-sm text-green-600 font-medium">
-                  Avg APY: {avgAPY}%
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 };

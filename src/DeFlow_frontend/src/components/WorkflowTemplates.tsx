@@ -11,8 +11,9 @@ const WorkflowTemplates = ({ onSelectTemplate, onCreateBlank }: WorkflowTemplate
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all')
 
-  // Filter templates based on selection
+  // Filter templates based on selection with safety checks
   const filteredTemplates = WORKFLOW_TEMPLATES.filter(template => {
+    if (!template || !template.category || !template.difficulty) return false
     const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory
     const matchesDifficulty = selectedDifficulty === 'all' || template.difficulty === selectedDifficulty
     return matchesCategory && matchesDifficulty
@@ -115,17 +116,17 @@ const WorkflowTemplates = ({ onSelectTemplate, onCreateBlank }: WorkflowTemplate
               <div className="p-4 border-b border-gray-100">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center space-x-2">
-                    <span className="text-2xl">{getCategoryIcon(template.category)}</span>
+                    <span className="text-2xl">{getCategoryIcon(template.category || 'automation')}</span>
                     <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                      {template.name}
+                      {template.name || 'Unnamed Template'}
                     </h3>
                   </div>
-                  <span className={`px-2 py-1 text-xs rounded-full ${getDifficultyColor(template.difficulty)}`}>
-                    {template.difficulty}
+                  <span className={`px-2 py-1 text-xs rounded-full ${getDifficultyColor(template.difficulty || 'beginner')}`}>
+                    {template.difficulty || 'beginner'}
                   </span>
                 </div>
                 <p className="text-sm text-gray-600 line-clamp-2">
-                  {template.description}
+                  {template.description || 'No description available'}
                 </p>
               </div>
 
@@ -134,22 +135,22 @@ const WorkflowTemplates = ({ onSelectTemplate, onCreateBlank }: WorkflowTemplate
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">Setup time:</span>
-                    <span className="font-medium text-gray-900">{template.estimatedTime}</span>
+                    <span className="font-medium text-gray-900">{template.estimatedTime || '15 minutes'}</span>
                   </div>
                   
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">Nodes:</span>
-                    <span className="font-medium text-gray-900">{template.nodes.length}</span>
+                    <span className="font-medium text-gray-900">{(template.nodes || []).length}</span>
                   </div>
 
                   <div className="text-sm">
                     <span className="text-gray-500">Use case:</span>
-                    <p className="text-gray-700 mt-1 line-clamp-2">{template.useCase}</p>
+                    <p className="text-gray-700 mt-1 line-clamp-2">{template.useCase || 'General automation'}</p>
                   </div>
 
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1">
-                    {template.tags.slice(0, 3).map(tag => (
+                    {(template.tags || []).slice(0, 3).map(tag => (
                       <span
                         key={tag}
                         className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded"
@@ -157,9 +158,9 @@ const WorkflowTemplates = ({ onSelectTemplate, onCreateBlank }: WorkflowTemplate
                         {tag}
                       </span>
                     ))}
-                    {template.tags.length > 3 && (
+                    {(template.tags || []).length > 3 && (
                       <span className="px-2 py-1 bg-gray-50 text-gray-500 text-xs rounded">
-                        +{template.tags.length - 3}
+                        +{(template.tags || []).length - 3}
                       </span>
                     )}
                   </div>

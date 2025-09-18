@@ -110,7 +110,7 @@ const ConnectionTest = ({ onConnectionVerified }: ConnectionTestProps) => {
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium text-gray-900">{template.name}</h4>
                   <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                    {template.category}
+                    {template.category || 'unknown'}
                   </span>
                 </div>
                 <p className="text-sm text-gray-600 mb-3">{template.description}</p>
@@ -124,11 +124,11 @@ const ConnectionTest = ({ onConnectionVerified }: ConnectionTestProps) => {
                 </div>
                 <div className="mt-2 flex justify-between text-xs">
                   <span className={`px-2 py-1 rounded-full ${
-                    template.difficulty === 'Beginner' ? 'bg-green-100 text-green-800' :
-                    template.difficulty === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                    (template.difficulty || 'beginner') === 'Beginner' ? 'bg-green-100 text-green-800' :
+                    (template.difficulty || 'beginner') === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
                     'bg-red-100 text-red-800'
                   }`}>
-                    {template.difficulty}
+                    {template.difficulty || 'beginner'}
                   </span>
                   <span className="text-gray-500">
                     Risk: {template.risk_score}/10

@@ -64,7 +64,7 @@ const StrategyCreationFlow = ({ template, onStrategyCreated, onCancel }: Strateg
           <div className="space-y-6">
             <div className="text-center">
               <div className="text-6xl mb-4">
-                {simpleDefiTemplateService.getCategoryIcon(template.category)}
+                {simpleDefiTemplateService.getCategoryIcon(template.category || 'unknown')}
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
                 {template.name}
@@ -92,7 +92,7 @@ const StrategyCreationFlow = ({ template, onStrategyCreated, onCancel }: Strateg
               </div>
               <div className="text-center p-4 bg-purple-50 rounded-lg">
                 <div className="text-2xl font-bold text-purple-600 mb-1">
-                  {template.difficulty}
+                  {template.difficulty || 'beginner'}
                 </div>
                 <div className="text-sm text-gray-600">Difficulty</div>
               </div>
@@ -101,7 +101,7 @@ const StrategyCreationFlow = ({ template, onStrategyCreated, onCancel }: Strateg
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="font-semibold text-gray-900 mb-2">Strategy Details:</h3>
               <ul className="space-y-1 text-sm text-gray-600">
-                <li>• Category: {template.category}</li>
+                <li>• Category: {template.category || 'unknown'}</li>
                 <li>• Minimum Capital: ${template.min_capital_usd.toLocaleString()}</li>
                 <li>• Automated execution and management</li>
                 <li>• Real-time monitoring and alerts</li>
@@ -231,11 +231,11 @@ const StrategyCreationFlow = ({ template, onStrategyCreated, onCancel }: Strateg
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-600">Category:</span>
-                  <span className="ml-2 font-medium">{template.category}</span>
+                  <span className="ml-2 font-medium">{template.category || 'unknown'}</span>
                 </div>
                 <div>
                   <span className="text-gray-600">Difficulty:</span>
-                  <span className="ml-2 font-medium">{template.difficulty}</span>
+                  <span className="ml-2 font-medium">{template.difficulty || 'beginner'}</span>
                 </div>
                 <div>
                   <span className="text-gray-600">Investment Amount:</span>

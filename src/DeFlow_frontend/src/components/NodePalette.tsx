@@ -20,12 +20,13 @@ const NodePalette = () => {
   // Get all node types
   const allNodeTypes = getAllNodeTypes()
   
-  // Filter nodes based on category and search
+  // Filter nodes based on category and search with safety checks
   const filteredNodes = allNodeTypes.filter(node => {
+    if (!node || !node.category) return false
     const matchesCategory = node.category === selectedCategory
     const matchesSearch = searchTerm === '' || 
-      node.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      node.description.toLowerCase().includes(searchTerm.toLowerCase())
+      (node.name && node.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (node.description && node.description.toLowerCase().includes(searchTerm.toLowerCase()))
     return matchesCategory && matchesSearch
   })
 
@@ -62,7 +63,7 @@ const NodePalette = () => {
       <div className="border-b border-gray-200">
         <div className="grid grid-cols-2 gap-1 p-2">
           {CATEGORIES.map((category) => {
-            const nodeCount = allNodeTypes.filter((n) => n.category === category.id).length
+            const nodeCount = allNodeTypes.filter((n) => n && n.category === category.id).length
             return (
               <button
                 key={category.id}
