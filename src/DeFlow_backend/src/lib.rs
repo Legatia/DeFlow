@@ -11,6 +11,7 @@ mod user_management;
 mod security;
 mod scheduler_service;
 mod cycles_monitor_service;
+mod cycle_optimization_best_practices;
 mod fee_collection;
 
 // Re-export types for external use
@@ -36,6 +37,10 @@ pub use events::{
     schedule_workflow_execution, list_persistent_scheduled_executions, cancel_persistent_execution
 };
 // DeFi functions are available as canister endpoints in defi::api module
+// Trading Styles API functions - Smart cost management with user-friendly styles
+pub use defi::api::{
+    get_trading_styles, get_trading_style_params, create_smart_cost_manager, evaluate_position_move
+};
 // Strategy API functions - Advanced DeFi strategy management
 pub use defi::strategy_api::{
     get_strategy_yield_opportunities, scan_arbitrage_opportunities, get_strategy_portfolio_analytics,
@@ -112,27 +117,18 @@ fn init(pool_canister_id: Option<String>) {
     
     initialize_fee_collection(pool_id);
     
-    // Initialize DeFi system
-    ic_cdk::spawn(async {
-        if let Err(e) = defi::initialize_defi_system().await {
-        }
-    });
-    
     // Initialize portfolio management system
     defi::portfolio_api::init_portfolio_system();
-    
-    // Initialize automated strategy system
-    ic_cdk::spawn(async {
-        if let Err(e) = defi::automated_strategy_api::init_automated_strategy_system().await {
-        }
-    });
     
     // Initialize strategy API system
     defi::strategy_api::init_strategy_api();
     
     // Initialize workflow template system
     defi::simple_template_api::init_simple_workflow_template_system();
-    
+
+    // Initialize real-time APY fetcher timer (no HTTP calls during init)
+    defi::realtime_apy_fetcher::init_apy_fetcher_timer();
+
 }
 
 #[pre_upgrade]
@@ -171,18 +167,15 @@ fn post_upgrade() {
     // Re-initialize portfolio management system
     defi::portfolio_api::init_portfolio_system();
     
-    // Re-initialize automated strategy system  
-    ic_cdk::spawn(async {
-        if let Err(e) = defi::automated_strategy_api::init_automated_strategy_system().await {
-        }
-    });
-    
     // Re-initialize strategy API system
     defi::strategy_api::init_strategy_api();
-    
+
     // Re-initialize workflow template system
     defi::simple_template_api::init_simple_workflow_template_system();
-    
+
+    // Initialize real-time APY fetcher timer (no HTTP calls during post_upgrade)
+    defi::realtime_apy_fetcher::init_apy_fetcher_timer();
+
 }
 
 #[heartbeat]
@@ -1125,4 +1118,54 @@ async fn remove_cycles_monitor(monitor_id: String) -> Result<String, String> {
 #[query]
 fn get_cycles_monitor_examples() -> String {
     CyclesMonitorService::usage_examples()
+}
+
+// =============================================================================
+// CYCLE OPTIMIZATION API ENDPOINTS
+// =============================================================================
+
+use cycle_optimization_best_practices::{CycleOptimizer, OptimizationReport, PerformanceTracker};
+
+thread_local! {
+    static CYCLE_OPTIMIZER: RefCell<CycleOptimizer> = RefCell::new(CycleOptimizer::new());
+}
+
+/// Get cycle optimization report with recommendations
+#[query]
+fn get_cycle_optimization_report() -> OptimizationReport {
+    CYCLE_OPTIMIZER.with(|optimizer| {
+        optimizer.borrow().get_optimization_report()
+    })
+}
+
+/// Start performance tracking for a specific function
+#[update]
+fn start_performance_tracking(function_name: String) -> String {
+    CYCLE_OPTIMIZER.with(|optimizer| {
+        let tracker = optimizer.borrow_mut().start_performance_tracking(&function_name);
+        format!("Performance tracking started for: {}", function_name)
+    })
+}
+
+/// Add operation to batch for cycle optimization
+#[update]
+fn add_to_batch_optimization(operation_type: String, data: Vec<u8>, priority: u8) -> String {
+    CYCLE_OPTIMIZER.with(|optimizer| {
+        optimizer.borrow_mut().add_to_batch(operation_type.clone(), data, priority);
+        format!("Added operation '{}' to batch with priority {}", operation_type, priority)
+    })
+}
+
+/// Optimize memory usage
+#[update]
+fn optimize_memory_usage() -> Result<String, String> {
+    CYCLE_OPTIMIZER.with(|optimizer| {
+        optimizer.borrow_mut().optimize_memory_usage()
+    })
+}
+
+/// Get cycle optimization best practices guide
+#[query]
+fn get_cycle_optimization_guide() -> String {
+    CycleOptimizer::best_practices_guide()
 }

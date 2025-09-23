@@ -4284,5 +4284,99 @@ fn get_user_phase1_balance(user: Principal) -> crate::types::UserPhase1Balance {
     })
 }
 
+// =============================================================================
+// CYCLE OPTIMIZATION IMPLEMENTATION
+// =============================================================================
+
+/// Get current cycles balance and optimization recommendations
+#[query]
+fn get_cycles_optimization_status() -> CycleOptimizationStatus {
+    let current_cycles = ic_cdk::api::canister_balance128();
+    let instruction_count = ic_cdk::api::instruction_counter();
+    
+    CycleOptimizationStatus {
+        current_cycles,
+        current_instructions: instruction_count,
+        optimization_level: if current_cycles > 10_000_000_000_000 { // 10T cycles
+            "Healthy".to_string()
+        } else if current_cycles > 1_000_000_000_000 { // 1T cycles
+            "Monitor".to_string()
+        } else {
+            "Critical".to_string()
+        },
+        recommended_actions: get_cycle_optimization_recommendations(current_cycles),
+        batch_operations_enabled: true,
+        memory_optimization_active: true,
+    }
+}
+
+fn get_cycle_optimization_recommendations(cycles: u128) -> Vec<String> {
+    let mut recommendations = Vec::new();
+    
+    if cycles < 1_000_000_000_000 { // Less than 1T cycles
+        recommendations.push("URGENT: Top up cycles immediately".to_string());
+        recommendations.push("Enable batch operations for fee collection".to_string());
+    }
+    
+    if cycles < 5_000_000_000_000 { // Less than 5T cycles
+        recommendations.push("Optimize memory usage".to_string());
+        recommendations.push("Reduce inter-canister call frequency".to_string());
+    }
+    
+    recommendations.push("Use timers instead of heartbeat for periodic tasks".to_string());
+    recommendations.push("Batch DeFi operations across multiple users".to_string());
+    recommendations.push("Cache frequently accessed price data".to_string());
+    
+    recommendations
+}
+
+#[derive(candid::CandidType, serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct CycleOptimizationStatus {
+    pub current_cycles: u128,
+    pub current_instructions: u64,
+    pub optimization_level: String,
+    pub recommended_actions: Vec<String>,
+    pub batch_operations_enabled: bool,
+    pub memory_optimization_active: bool,
+}
+
+/// Batch multiple fee deposits to optimize cycles
+#[update]
+fn batch_deposit_fees(deposits: Vec<BatchFeeDeposit>) -> Result<String, String> {
+    if deposits.is_empty() {
+        return Err("No deposits provided".to_string());
+    }
+    
+    if deposits.len() > 50 {
+        return Err("Batch size too large (max 50 operations)".to_string());
+    }
+    
+    let total_deposits = deposits.len();
+    let mut total_processed = 0;
+    let mut errors = Vec::new();
+    
+    for deposit in deposits {
+        match deposit_fee(deposit.asset, deposit.amount, deposit.transaction_hash, deposit.user) {
+            Ok(_) => total_processed += 1,
+            Err(e) => errors.push(format!("User {}: {}", deposit.user.to_text(), e)),
+        }
+    }
+    
+    if errors.is_empty() {
+        Ok(format!("Successfully processed {} fee deposits in batch", total_processed))
+    } else {
+        Ok(format!("Processed {}/{} deposits. Errors: {}", 
+            total_processed, total_deposits, errors.join("; ")))
+    }
+}
+
+#[derive(candid::CandidType, serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct BatchFeeDeposit {
+    pub asset: Asset,
+    pub amount: u64,
+    pub transaction_hash: String,
+    pub user: Principal,
+}
+
 // Export Candid interface
 ic_cdk::export_candid!();

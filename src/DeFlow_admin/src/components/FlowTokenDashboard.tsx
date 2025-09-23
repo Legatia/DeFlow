@@ -29,25 +29,12 @@ const FlowTokenDashboard: React.FC<FlowTokenDashboardProps> = ({ isOwner, curren
       setLoading(true);
       setError(null);
       
-      // Use real service call
       const status = await flowTokenService.getPhase1Status();
       setPhase1Status(status);
     } catch (err) {
-      // Fallback to mock data for demo purposes if canister is not available
-      console.warn('Failed to load from canister, using mock data:', err);
-      
-      const mockStatus: Phase1Status = {
-        current_phase: { Phase1PreLaunch: null },
-        total_pre_launch_distributed: 50000000000000, // 500,000 FLOW (with 8 decimals)
-        pool_asset_value_usd: 25000.50,
-        launch_threshold_usd: 60000.0,
-        progress_to_launch: 41.7,
-        btc_amount: 0.42,
-        ckbtc_staked: 0.38,
-        eligible_users: 157
-      };
-      
-      setPhase1Status(mockStatus);
+      console.error('Failed to load phase 1 status:', err);
+      setError('Unable to connect to Flow Token service. Please check canister status.');
+      setPhase1Status(null);
     } finally {
       setLoading(false);
     }
@@ -64,20 +51,9 @@ const FlowTokenDashboard: React.FC<FlowTokenDashboardProps> = ({ isOwner, curren
       const balance = await flowTokenService.getUserPhase1Balance(userPrincipal);
       setSelectedUserBalance(balance);
     } catch (err) {
-      // Fallback to mock data if canister call fails
-      console.warn('Failed to fetch user balance from canister, using mock data:', err);
-      
-      const mockBalance: UserPhase1Balance = {
-        pre_launch_balance: 15000000000, // 150 FLOW
-        tradeable_balance: 0,
-        total_balance: 15000000000,
-        phase1_airdrop_received: 10000000000, // 100 FLOW
-        phase1_activity_rewards: 5000000000, // 50 FLOW
-        eligible_for_phase2_conversion: true,
-        estimated_phase2_value: 15000000000
-      };
-      
-      setSelectedUserBalance(mockBalance);
+      console.error('Failed to fetch user balance:', err);
+      setError('Unable to fetch user balance. Please check the principal ID and try again.');
+      setSelectedUserBalance(null);
     } finally {
       setLoading(false);
     }
@@ -93,14 +69,8 @@ const FlowTokenDashboard: React.FC<FlowTokenDashboardProps> = ({ isOwner, curren
       // For now, using empty recipients array - this would be filled from a UI form
       const recipients: Principal[] = [];
       
-      try {
-        const result = await flowTokenService.triggerEarlyAdopterAirdrop(recipients);
-        alert(`Airdrop triggered successfully!\n${result}`);
-      } catch (canisterError) {
-        // Fallback for demo purposes
-        console.warn('Canister call failed, showing demo message:', canisterError);
-        alert('Early adopter airdrop triggered successfully! (Demo mode)');
-      }
+      const result = await flowTokenService.triggerEarlyAdopterAirdrop(recipients);
+      alert(`Airdrop triggered successfully!\n${result}`);
       
       await loadPhase1Status(); // Refresh data
     } catch (err) {
@@ -118,14 +88,8 @@ const FlowTokenDashboard: React.FC<FlowTokenDashboardProps> = ({ isOwner, curren
       setLoading(true);
       setError(null);
       
-      try {
-        const result = await flowTokenService.updatePoolAssets(btcEquivalent, actualBtc, otherAssets);
-        alert(`Pool assets updated successfully!\n${result}`);
-      } catch (canisterError) {
-        // Fallback for demo purposes
-        console.warn('Canister call failed, showing demo message:', canisterError);
-        alert(`Pool assets updated! (Demo mode)\nBTC Equivalent: $${btcEquivalent}\nActual BTC: ${actualBtc}\nOther Assets: $${otherAssets}`);
-      }
+      const result = await flowTokenService.updatePoolAssets(btcEquivalent, actualBtc, otherAssets);
+      alert(`Pool assets updated successfully!\n${result}`);
       
       await loadPhase1Status(); // Refresh data
     } catch (err) {
@@ -414,11 +378,29 @@ const FlowTokenDashboard: React.FC<FlowTokenDashboardProps> = ({ isOwner, curren
             <div className="space-y-6">
               <h2 className="text-lg font-semibold text-gray-900">Recent FLOW Token Activity</h2>
               
-              <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-500">
-                <div className="text-4xl mb-2">📋</div>
-                <div className="font-medium">Transaction History</div>
-                <div className="text-sm mt-1">Recent token transactions will appear here once the pool canister is integrated.</div>
-              </div>
+              {recentTransactions.length > 0 ? (
+                <div className="space-y-3">
+                  {recentTransactions.map((tx, index) => (
+                    <div key={index} className="bg-white border border-gray-200 rounded-lg p-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium text-gray-900">{tx.transaction_type}</p>
+                          <p className="text-sm text-gray-500">{new Date(Number(tx.timestamp) / 1000000).toLocaleString()}</p>
+                        </div>
+                        <span className="text-green-600 font-medium">
+                          {formatFlowAmount(tx.amount)} FLOW
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-500">
+                  <div className="text-4xl mb-2">📋</div>
+                  <div className="font-medium">Transaction History</div>
+                  <div className="text-sm mt-1">No FLOW token transactions yet</div>
+                </div>
+              )}
             </div>
           )}
 

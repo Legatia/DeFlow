@@ -6,6 +6,7 @@ use super::types::ChainId;
 use super::yield_farming::{DeFiProtocol, YieldStrategy};
 use super::arbitrage::ArbitrageOpportunity;
 use super::price_oracle::{CrossChainPriceOracle, Price, OracleError};
+use super::pendle_integration::{PendleIntegration, PendleYieldOpportunity, PendleOpportunityType};
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -20,6 +21,7 @@ pub struct DeFiProtocolIntegrations {
     pub curve_integration: CurveIntegration,
     pub raydium_integration: RaydiumIntegration,
     pub jupiter_integration: JupiterIntegration,
+    pub pendle_integration: PendleIntegration,
     pub price_oracle: CrossChainPriceOracle,
     pub gas_tracker: GasPriceTracker,
     pub integration_cache: HashMap<String, CachedIntegrationData>,
@@ -36,6 +38,7 @@ impl DeFiProtocolIntegrations {
             curve_integration: CurveIntegration::new(),
             raydium_integration: RaydiumIntegration::new(),
             jupiter_integration: JupiterIntegration::new(),
+            pendle_integration: PendleIntegration::new(),
             price_oracle: CrossChainPriceOracle::new(),
             gas_tracker: GasPriceTracker::new(),
             integration_cache: HashMap::new(),
@@ -58,6 +61,7 @@ impl DeFiProtocolIntegrations {
         self.curve_integration.initialize().await?;
         self.raydium_integration.initialize().await?;
         self.jupiter_integration.initialize().await?;
+        self.pendle_integration.initialize().await?;
         self.gas_tracker.initialize().await?;
 
         Ok(())
@@ -167,6 +171,39 @@ impl DeFiProtocolIntegrations {
             last_updated: time(),
         }));
 
+        // Pendle Finance opportunities (Yield Tokenization)
+        let pendle_opportunities = self.pendle_integration.get_yield_opportunities().await?;
+        all_opportunities.extend(pendle_opportunities.into_iter().map(|opp| LiveYieldOpportunity {
+            id: opp.id.clone(),
+            protocol: DeFiProtocol::Curve, // Use Curve as fallback for now
+            chain: opp.chain.clone(),
+            opportunity_type: match opp.opportunity_type {
+                PendleOpportunityType::PrincipalToken => YieldOpportunityType::Lending,
+                PendleOpportunityType::YieldToken => YieldOpportunityType::YieldFarming,
+                PendleOpportunityType::LiquidityProvider => YieldOpportunityType::LiquidityMining,
+            },
+            apy: opp.get_effective_apy(),
+            tokens: vec![opp.underlying_asset.clone()],
+            pool_address: opp.market_id.clone(),
+            total_liquidity_usd: opp.total_liquidity_usd,
+            min_deposit_usd: opp.min_deposit_usd,
+            max_deposit_usd: opp.max_deposit_usd,
+            risk_factors: vec![format!("Risk Score: {}/10", opp.risk_score)],
+            impermanent_loss_estimate: match opp.opportunity_type {
+                PendleOpportunityType::LiquidityProvider => Some(2.5), // LP has IL risk
+                _ => None, // PT and YT don't have traditional IL
+            },
+            gas_cost_estimate_usd: match opp.chain {
+                ChainId::Ethereum => 25.0,
+                ChainId::Arbitrum => 3.0,
+                ChainId::Optimism => 2.0,
+                ChainId::Polygon => 0.5,
+                ChainId::Base => 1.0,
+                _ => 10.0,
+            },
+            last_updated: opp.last_updated,
+        }));
+
         Ok(all_opportunities)
     }
 
@@ -257,6 +294,7 @@ impl DeFiProtocolIntegrations {
         protocol_health.insert("Curve".to_string(), self.curve_integration.get_health_status());
         protocol_health.insert("Raydium".to_string(), self.raydium_integration.get_health_status());
         protocol_health.insert("Jupiter".to_string(), self.jupiter_integration.get_health_status());
+        protocol_health.insert("Pendle".to_string(), self.pendle_integration.get_health_status());
 
         let healthy_count = protocol_health.values().filter(|&status| status.is_healthy).count();
         let total_count = protocol_health.len();

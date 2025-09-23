@@ -8,9 +8,11 @@ use crate::defi::{with_defi_manager_mut, with_defi_manager};
 use crate::defi::bitcoin::{FeePriority, BitcoinFeeEstimate};
 use crate::defi::bitcoin::service::{BitcoinSendResult, BitcoinNetworkInfo};
 use crate::defi::ethereum::{
-    EvmChain, EthereumAddress, EthereumPortfolio, EthereumTransactionResult, 
-    GasPriority, L2OptimizationResult, MinimalIcpEthereumService, TransactionType
+    EvmChain, EthereumAddress, EthereumPortfolio, EthereumTransactionResult,
+    GasPriority, L2OptimizationResult, MinimalIcpEthereumService, TransactionType,
+    TradingStyle, TradingStyleParams
 };
+use crate::defi::yield_farming::{SmartCostManager, PositionInfo, MoveDecision};
 use candid::{CandidType, Deserialize, Principal};
 use serde::Serialize;
 use ic_cdk::{query, update, caller};
@@ -1042,4 +1044,137 @@ pub struct SolanaNetworkInfo {
     pub supported_features: Vec<String>,
     pub current_slot: Option<u64>,
     pub tps: Option<f64>,
+}
+
+// ================== TRADING STYLES API ==================
+
+/// Get all available trading styles with their parameters
+#[query]
+pub fn get_trading_styles() -> Vec<(TradingStyle, TradingStyleParams)> {
+    vec![
+        (TradingStyle::WaveRider, TradingStyle::WaveRider.get_params()),
+        (TradingStyle::SteadyEarner, TradingStyle::SteadyEarner.get_params()),
+        (TradingStyle::GasHunter, TradingStyle::GasHunter.get_params()),
+        (TradingStyle::YieldChaser, TradingStyle::YieldChaser.get_params()),
+        (TradingStyle::Balanced, TradingStyle::Balanced.get_params()),
+    ]
+}
+
+/// Get parameters for a specific trading style
+#[query]
+pub fn get_trading_style_params(style: TradingStyle) -> TradingStyleParams {
+    style.get_params()
+}
+
+/// Create a smart cost manager for position management
+#[update]
+pub fn create_smart_cost_manager(trading_style: TradingStyle) -> SmartCostManager {
+    SmartCostManager::new(trading_style)
+}
+
+/// Evaluate whether to move a position based on smart cost management
+#[query]
+pub fn evaluate_position_move(
+    trading_style: TradingStyle,
+    position_amount_usd: f64,
+    current_apy: f64,
+    target_apy: f64,
+    estimated_gas_cost: f64,
+    is_eth_l1: bool,
+) -> MoveDecision {
+    let cost_manager = SmartCostManager::new(trading_style.clone());
+    let style_params = trading_style.get_params();
+
+    // Create mock strategies for evaluation
+    let current_strategy = crate::defi::yield_farming::YieldStrategy {
+        id: "current".to_string(),
+        protocol: crate::defi::yield_farming::DeFiProtocol::Aave,
+        chain: if is_eth_l1 {
+            crate::defi::yield_farming::ChainId::Ethereum
+        } else {
+            crate::defi::yield_farming::ChainId::Arbitrum
+        },
+        strategy_type: crate::defi::yield_farming::YieldStrategyType::Lending {
+            asset: "USDC".to_string(),
+            variable_rate: true,
+        },
+        current_apy,
+        historical_apy_7d: current_apy,
+        historical_apy_30d: current_apy,
+        risk_score: 3,
+        liquidity_usd: 1000000,
+        min_deposit_usd: 100,
+        max_deposit_usd: None,
+        deposit_fee: 0.0,
+        withdrawal_fee: 0.0,
+        performance_fee: 0.0,
+        lock_period: None,
+        auto_compound: false,
+        verified: true,
+        last_updated: ic_cdk::api::time(),
+        entry_apy: Some(current_apy),
+        entry_timestamp: Some(ic_cdk::api::time()),
+    };
+
+    let target_strategy = crate::defi::yield_farming::YieldStrategy {
+        id: "target".to_string(),
+        protocol: crate::defi::yield_farming::DeFiProtocol::Uniswap(
+            crate::defi::yield_farming::UniswapVersion::V3
+        ),
+        chain: if is_eth_l1 {
+            crate::defi::yield_farming::ChainId::Ethereum
+        } else {
+            crate::defi::yield_farming::ChainId::Arbitrum
+        },
+        strategy_type: crate::defi::yield_farming::YieldStrategyType::LiquidityProvision {
+            pool_address: "0x123...".to_string(),
+            token_a: "USDC".to_string(),
+            token_b: "WETH".to_string(),
+            fee_tier: 3000,
+        },
+        current_apy: target_apy,
+        historical_apy_7d: target_apy,
+        historical_apy_30d: target_apy,
+        risk_score: 5,
+        liquidity_usd: 1000000,
+        min_deposit_usd: 100,
+        max_deposit_usd: None,
+        deposit_fee: 0.0,
+        withdrawal_fee: 0.0,
+        performance_fee: 0.0,
+        lock_period: None,
+        auto_compound: false,
+        verified: true,
+        last_updated: ic_cdk::api::time(),
+        entry_apy: None,
+        entry_timestamp: None,
+    };
+
+    // Create position info
+    let position_info = PositionInfo {
+        strategy_id: "current".to_string(),
+        amount_usd: position_amount_usd,
+        entry_apy: current_apy,
+        entry_timestamp: ic_cdk::api::time(),
+        chain: if is_eth_l1 {
+            crate::defi::yield_farming::ChainId::Ethereum
+        } else {
+            crate::defi::yield_farming::ChainId::Arbitrum
+        },
+    };
+
+    // Add position to manager temporarily
+    let mut temp_manager = cost_manager;
+    temp_manager.add_position("test_position".to_string(), position_info);
+
+    // Apply chain penalty multiplier (1.0 for L2, higher for ETH L1)
+    let chain_penalty = if is_eth_l1 { 1.0 } else { 1.0 };
+
+    temp_manager.should_move_position(
+        "test_position",
+        &current_strategy,
+        &target_strategy,
+        estimated_gas_cost,
+        chain_penalty,
+    )
 }

@@ -127,6 +127,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/workflows', label: 'Custom Workflows', icon: '⚡' },
     { path: '/executions', label: 'Executions', icon: '📋' },
+    { path: '/demo/yield-optimization', label: 'Yield Optimization Demo', icon: '🚀' },
     { path: '/settings', label: 'Settings', icon: '⚙️' }
   ]
 
