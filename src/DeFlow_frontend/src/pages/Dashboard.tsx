@@ -85,6 +85,44 @@ const Dashboard = () => {
         
       </div>
 
+      {/* Yield Optimization Demo Highlight */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="flex-shrink-0">
+              <span className="text-3xl">🚀</span>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Try Our Yield Optimization Demo
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Experience automated stable coin yield optimization with real protocol data. 
+                See how DeFlow automatically selects the best yields while managing gas costs and bridge fees.
+              </p>
+              <div className="flex items-center space-x-4 mt-2">
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  📊 Real Data Simulation
+                </span>
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  💰 Cost Optimization
+                </span>
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  🎯 Risk Management
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex-shrink-0">
+            <Link 
+              to="/demo/yield-optimization" 
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            >
+              Launch Demo
+            </Link>
+          </div>
+        </div>
+      </div>
       
       {/* Recent Workflows */}
       <div className="bg-white rounded-lg shadow">

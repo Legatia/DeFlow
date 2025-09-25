@@ -1,15 +1,21 @@
 // DeFlow Workflow Template API - User-friendly strategy creation endpoints
+// Updated to support both legacy and modern template systems
 
-use super::workflow_templates::{WorkflowTemplateManager, WorkflowTemplate, WorkflowCategory, DifficultyLevel};
+use super::workflow_templates::{
+    WorkflowTemplateManager, WorkflowTemplate, WorkflowCategory, DifficultyLevel,
+    ModernWorkflowTemplateManager, ModernWorkflowTemplate,
+    ModernWorkflowCategory, ModernDifficultyLevel
+};
 use super::automated_strategies::StrategyConfig;
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-// Global workflow template manager
+// Global workflow template managers
 thread_local! {
     static TEMPLATE_MANAGER: RefCell<WorkflowTemplateManager> = RefCell::new(WorkflowTemplateManager::new());
+    static MODERN_TEMPLATE_MANAGER: RefCell<ModernWorkflowTemplateManager> = RefCell::new(ModernWorkflowTemplateManager::new());
 }
 
 // API Response types
@@ -433,4 +439,216 @@ fn is_suitable_difficulty(template_difficulty: &DifficultyLevel, user_experience
 
 /// Initialize the workflow template system
 pub fn init_workflow_template_system() {
+    // Initialize both legacy and modern template managers
+    TEMPLATE_MANAGER.with(|_| {});
+    MODERN_TEMPLATE_MANAGER.with(|_| {});
+}
+
+// =============================================================================
+// MODERN TEMPLATE API ENDPOINTS
+// =============================================================================
+
+/// Get all modern workflow templates
+#[ic_cdk::query]
+pub fn get_modern_workflow_templates() -> TemplateApiResponse<ModernTemplateListResponse> {
+    MODERN_TEMPLATE_MANAGER.with(|manager| {
+        let mgr = manager.borrow();
+        let templates = mgr.get_all_templates();
+
+        let template_summaries: Vec<ModernTemplateSummary> = templates.iter().map(|template| {
+            ModernTemplateSummary {
+                id: template.id.clone(),
+                name: template.name.clone(),
+                description: template.description.clone(),
+                category: format!("{:?}", template.category),
+                difficulty: format!("{:?}", template.difficulty),
+                estimated_apy: template.estimated_apy,
+                risk_score: template.risk_score,
+                min_capital_usd: template.min_capital_usd,
+                node_count: template.nodes.len(),
+                connection_count: template.connections.len(),
+            }
+        }).collect();
+
+        let categories: Vec<String> = vec![
+            "YieldFarming".to_string(),
+            "Arbitrage".to_string(),
+            "Rebalancing".to_string(),
+            "DCA".to_string(),
+            "RiskManagement".to_string(),
+            "Social".to_string(),
+            "Portfolio".to_string(),
+            "CrossChain".to_string(),
+        ];
+
+        let response = ModernTemplateListResponse {
+            templates: template_summaries,
+            total_count: templates.len(),
+            categories,
+        };
+
+        TemplateApiResponse::success(response)
+    })
+}
+
+/// Get a specific modern workflow template by ID
+#[ic_cdk::query]
+pub fn get_modern_workflow_template(template_id: String) -> TemplateApiResponse<ModernTemplateDetailResponse> {
+    MODERN_TEMPLATE_MANAGER.with(|manager| {
+        let mgr = manager.borrow();
+
+        match mgr.get_template(&template_id) {
+            Some(template) => {
+                let response = ModernTemplateDetailResponse {
+                    template: template.clone(),
+                    input_parameter_count: template.nodes.iter().map(|n| n.input_parameters.len()).sum(),
+                    output_parameter_count: template.nodes.iter().map(|n| n.output_parameters.len()).sum(),
+                    configuration_parameter_count: template.nodes.iter().map(|n| n.configuration_parameters.len()).sum(),
+                    estimated_execution_time: estimate_modern_template_execution_time(template),
+                };
+
+                TemplateApiResponse::success(response)
+            },
+            None => TemplateApiResponse::error(format!("Modern template {} not found", template_id)),
+        }
+    })
+}
+
+/// Get modern templates by category
+#[ic_cdk::query]
+pub fn get_modern_templates_by_category(category: String) -> TemplateApiResponse<Vec<ModernTemplateSummary>> {
+    MODERN_TEMPLATE_MANAGER.with(|manager| {
+        let mgr = manager.borrow();
+
+        let category_enum = match category.as_str() {
+            "YieldFarming" => ModernWorkflowCategory::YieldFarming,
+            "Arbitrage" => ModernWorkflowCategory::Arbitrage,
+            "Rebalancing" => ModernWorkflowCategory::Rebalancing,
+            "DCA" => ModernWorkflowCategory::DCA,
+            "RiskManagement" => ModernWorkflowCategory::RiskManagement,
+            "Social" => ModernWorkflowCategory::Social,
+            "Portfolio" => ModernWorkflowCategory::Portfolio,
+            "CrossChain" => ModernWorkflowCategory::CrossChain,
+            _ => return TemplateApiResponse::error(format!("Invalid category: {}", category)),
+        };
+
+        let templates = mgr.get_templates_by_category(&category_enum);
+        let template_summaries: Vec<ModernTemplateSummary> = templates.iter().map(|template| {
+            ModernTemplateSummary {
+                id: template.id.clone(),
+                name: template.name.clone(),
+                description: template.description.clone(),
+                category: format!("{:?}", template.category),
+                difficulty: format!("{:?}", template.difficulty),
+                estimated_apy: template.estimated_apy,
+                risk_score: template.risk_score,
+                min_capital_usd: template.min_capital_usd,
+                node_count: template.nodes.len(),
+                connection_count: template.connections.len(),
+            }
+        }).collect();
+
+        TemplateApiResponse::success(template_summaries)
+    })
+}
+
+/// Check if legacy template has modern equivalent
+#[ic_cdk::query]
+pub fn check_modern_equivalent(legacy_template_id: String) -> TemplateApiResponse<ModernEquivalentResponse> {
+    TEMPLATE_MANAGER.with(|manager| {
+        let mgr = manager.borrow();
+
+        let response = if let Some(modern_id) = mgr.convert_to_modern(&legacy_template_id) {
+            MODERN_TEMPLATE_MANAGER.with(|modern_manager| {
+                let modern_mgr = modern_manager.borrow();
+                let modern_template = modern_mgr.get_template(&modern_id);
+
+                ModernEquivalentResponse {
+                    has_equivalent: true,
+                    modern_template_id: Some(modern_id),
+                    migration_notes: Some("This template has been updated with proper input/output/configuration segregation for better workflow management.".to_string()),
+                    benefits: vec![
+                        "Clearer parameter separation".to_string(),
+                        "Better type safety".to_string(),
+                        "Enhanced social media integration".to_string(),
+                        "Multi-chain optimization".to_string(),
+                    ],
+                    is_available: modern_template.is_some(),
+                }
+            })
+        } else {
+            ModernEquivalentResponse {
+                has_equivalent: false,
+                modern_template_id: None,
+                migration_notes: Some("No modern equivalent available yet. Consider using similar templates in the modern system.".to_string()),
+                benefits: vec![],
+                is_available: false,
+            }
+        };
+
+        TemplateApiResponse::success(response)
+    })
+}
+
+// =============================================================================
+// MODERN TEMPLATE DATA TYPES
+// =============================================================================
+
+#[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
+pub struct ModernTemplateListResponse {
+    pub templates: Vec<ModernTemplateSummary>,
+    pub total_count: usize,
+    pub categories: Vec<String>,
+}
+
+#[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
+pub struct ModernTemplateSummary {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub category: String,
+    pub difficulty: String,
+    pub estimated_apy: f64,
+    pub risk_score: u8,
+    pub min_capital_usd: f64,
+    pub node_count: usize,
+    pub connection_count: usize,
+}
+
+#[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
+pub struct ModernTemplateDetailResponse {
+    pub template: ModernWorkflowTemplate,
+    pub input_parameter_count: usize,
+    pub output_parameter_count: usize,
+    pub configuration_parameter_count: usize,
+    pub estimated_execution_time: u64,
+}
+
+#[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
+pub struct ModernEquivalentResponse {
+    pub has_equivalent: bool,
+    pub modern_template_id: Option<String>,
+    pub migration_notes: Option<String>,
+    pub benefits: Vec<String>,
+    pub is_available: bool,
+}
+
+// =============================================================================
+// MODERN TEMPLATE UTILITY FUNCTIONS
+// =============================================================================
+
+fn estimate_modern_template_execution_time(template: &ModernWorkflowTemplate) -> u64 {
+    // Estimate execution time based on node complexity and connections
+    let base_time_per_node = 2000; // 2 seconds per node in milliseconds
+    let connection_overhead = template.connections.len() as u64 * 500; // 0.5s per connection
+
+    let complexity_multiplier = match template.difficulty {
+        ModernDifficultyLevel::Beginner => 1.0,
+        ModernDifficultyLevel::Intermediate => 1.5,
+        ModernDifficultyLevel::Advanced => 2.0,
+        ModernDifficultyLevel::Expert => 3.0,
+    };
+
+    let total_time = (template.nodes.len() as u64 * base_time_per_node) + connection_overhead;
+    (total_time as f64 * complexity_multiplier) as u64
 }

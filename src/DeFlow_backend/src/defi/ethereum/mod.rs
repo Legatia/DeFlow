@@ -163,6 +163,110 @@ pub enum GasPriority {
     Urgent,
 }
 
+/// Trading styles with smart cost management and APY optimization
+#[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
+pub enum TradingStyle {
+    WaveRider,    // Patient, catches big waves, holds longer
+    SteadyEarner, // Conservative, stable yields, minimal costs
+    GasHunter,    // Ultra low-cost focused, L2-only
+    YieldChaser,  // Aggressive APY hunter, willing to pay gas
+    Balanced,     // Smart balance of yield and costs
+}
+
+/// Trading style parameters for decision making
+#[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
+pub struct TradingStyleParams {
+    pub name: String,
+    pub description: String,
+    pub min_apy: f64,
+    pub max_gas_cost_usd: f64,
+    pub position_stickiness_multiplier: f64,
+    pub payback_days: u32,
+    pub preferred_chains: Vec<EvmChain>,
+    pub gas_priority: GasPriority,
+    pub eth_l1_penalty_multiplier: f64, // Extra penalty for ETH L1 gas costs
+    pub apy_degradation_threshold: f64, // % drop from entry APY to trigger move
+}
+
+/// Convert string to TradingStyle enum
+pub fn convertTradingStyleFromString(style_str: &str) -> TradingStyle {
+    match style_str {
+        "WaveRider" => TradingStyle::WaveRider,
+        "SteadyEarner" => TradingStyle::SteadyEarner,
+        "GasHunter" => TradingStyle::GasHunter,
+        "YieldChaser" => TradingStyle::YieldChaser,
+        "Balanced" | _ => TradingStyle::Balanced, // Default to Balanced
+    }
+}
+
+impl TradingStyle {
+    /// Get trading style parameters with smart cost management
+    pub fn get_params(&self) -> TradingStyleParams {
+        match self {
+            TradingStyle::WaveRider => TradingStyleParams {
+                name: "Wave Rider".to_string(),
+                description: "Patient strategy that catches high APY waves and holds positions longer".to_string(),
+                min_apy: 1.0,
+                max_gas_cost_usd: 25.0, // Max $25, prefer L2
+                position_stickiness_multiplier: 1.5, // More patient
+                payback_days: 10, // Longer payback period
+                preferred_chains: vec![EvmChain::Arbitrum, EvmChain::Polygon, EvmChain::Optimism, EvmChain::Base],
+                gas_priority: GasPriority::Low,
+                eth_l1_penalty_multiplier: 3.0, // 3x penalty for ETH L1
+                apy_degradation_threshold: 25.0, // Move if APY drops 25%
+            },
+            TradingStyle::SteadyEarner => TradingStyleParams {
+                name: "Steady Earner".to_string(),
+                description: "Conservative strategy focused on stable yields with minimal gas costs".to_string(),
+                min_apy: 2.5,
+                max_gas_cost_usd: 15.0, // Max $15, very cost conscious
+                position_stickiness_multiplier: 0.8, // Less sticky, takes profits
+                payback_days: 5,
+                preferred_chains: vec![EvmChain::Polygon, EvmChain::Base, EvmChain::Arbitrum],
+                gas_priority: GasPriority::Low,
+                eth_l1_penalty_multiplier: 5.0, // 5x penalty for ETH L1
+                apy_degradation_threshold: 15.0, // Move if APY drops 15%
+            },
+            TradingStyle::GasHunter => TradingStyleParams {
+                name: "Gas Hunter".to_string(),
+                description: "Ultra low-cost strategy obsessed with minimizing transaction fees".to_string(),
+                min_apy: 1.5,
+                max_gas_cost_usd: 8.0, // Max $8, ultra low
+                position_stickiness_multiplier: 0.5, // Low stickiness for cost optimization
+                payback_days: 3,
+                preferred_chains: vec![EvmChain::Polygon, EvmChain::Base], // Cheapest only
+                gas_priority: GasPriority::Low,
+                eth_l1_penalty_multiplier: 10.0, // 10x penalty - basically never use ETH L1
+                apy_degradation_threshold: 10.0, // Move quickly if APY drops 10%
+            },
+            TradingStyle::YieldChaser => TradingStyleParams {
+                name: "Yield Chaser".to_string(),
+                description: "Aggressive strategy that hunts for maximum APY and will pay gas for opportunities".to_string(),
+                min_apy: 3.0,
+                max_gas_cost_usd: 30.0, // Max $30, willing to pay more
+                position_stickiness_multiplier: 0.3, // Low stickiness, always looking for better
+                payback_days: 2, // Very aggressive payback
+                preferred_chains: vec![EvmChain::Arbitrum, EvmChain::Optimism, EvmChain::Polygon, EvmChain::Ethereum],
+                gas_priority: GasPriority::High,
+                eth_l1_penalty_multiplier: 1.5, // Small penalty, willing to use ETH L1 for high APY
+                apy_degradation_threshold: 8.0, // Move quickly if APY drops 8%
+            },
+            TradingStyle::Balanced => TradingStyleParams {
+                name: "Balanced".to_string(),
+                description: "Smart balance of yield optimization and cost management".to_string(),
+                min_apy: 2.0,
+                max_gas_cost_usd: 20.0, // Max $20, reasonable
+                position_stickiness_multiplier: 1.0, // Balanced approach
+                payback_days: 7, // Week payback
+                preferred_chains: vec![EvmChain::Arbitrum, EvmChain::Polygon, EvmChain::Optimism, EvmChain::Base],
+                gas_priority: GasPriority::Medium,
+                eth_l1_penalty_multiplier: 2.5, // 2.5x penalty for ETH L1
+                apy_degradation_threshold: 20.0, // Move if APY drops 20%
+            },
+        }
+    }
+}
+
 /// Ethereum portfolio containing addresses across multiple chains
 #[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
 pub struct EthereumPortfolio {

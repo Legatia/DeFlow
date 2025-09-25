@@ -1,0 +1,930 @@
+{
+  "metadata": {
+    "generatedAt": "2025-09-22T06:58:56.292Z",
+    "strategy": "DeFlow Wave-Riding Optimization",
+    "totalDays": 90,
+    "initialAmount": 10000
+  },
+  "dailyResults": [
+    {
+      "day": 1,
+      "date": "2024-07-01",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "12.71",
+      "portfolioValue": "9996.85",
+      "dailyYield": "3.48",
+      "costs": "6.63"
+    },
+    {
+      "day": 2,
+      "date": "2024-07-02",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.60",
+      "portfolioValue": "10000.02",
+      "dailyYield": "4.00",
+      "costs": "0.83"
+    },
+    {
+      "day": 3,
+      "date": "2024-07-03",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "16.29",
+      "portfolioValue": "10004.48",
+      "dailyYield": "4.46",
+      "costs": "0.00"
+    },
+    {
+      "day": 4,
+      "date": "2024-07-04",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.47",
+      "portfolioValue": "10007.38",
+      "dailyYield": "3.96",
+      "costs": "1.07"
+    },
+    {
+      "day": 5,
+      "date": "2024-07-05",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.63",
+      "portfolioValue": "10011.66",
+      "dailyYield": "4.28",
+      "costs": "0.00"
+    },
+    {
+      "day": 6,
+      "date": "2024-07-06",
+      "protocol": "Balancer",
+      "chain": "Arbitrum",
+      "apy": "12.54",
+      "portfolioValue": "10013.27",
+      "dailyYield": "3.44",
+      "costs": "1.82"
+    },
+    {
+      "day": 7,
+      "date": "2024-07-07",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.91",
+      "portfolioValue": "10015.56",
+      "dailyYield": "4.08",
+      "costs": "1.80"
+    },
+    {
+      "day": 8,
+      "date": "2024-07-08",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.15",
+      "portfolioValue": "10019.71",
+      "dailyYield": "4.15",
+      "costs": "0.00"
+    },
+    {
+      "day": 9,
+      "date": "2024-07-09",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.71",
+      "portfolioValue": "10023.46",
+      "dailyYield": "3.75",
+      "costs": "0.00"
+    },
+    {
+      "day": 10,
+      "date": "2024-07-10",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.73",
+      "portfolioValue": "10027.22",
+      "dailyYield": "3.76",
+      "costs": "0.00"
+    },
+    {
+      "day": 11,
+      "date": "2024-07-11",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.87",
+      "portfolioValue": "10031.02",
+      "dailyYield": "3.80",
+      "costs": "0.00"
+    },
+    {
+      "day": 12,
+      "date": "2024-07-12",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.03",
+      "portfolioValue": "10035.13",
+      "dailyYield": "4.11",
+      "costs": "0.00"
+    },
+    {
+      "day": 13,
+      "date": "2024-07-13",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.56",
+      "portfolioValue": "10038.85",
+      "dailyYield": "3.71",
+      "costs": "0.00"
+    },
+    {
+      "day": 14,
+      "date": "2024-07-14",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.53",
+      "portfolioValue": "10043.10",
+      "dailyYield": "4.25",
+      "costs": "0.00"
+    },
+    {
+      "day": 15,
+      "date": "2024-07-15",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.65",
+      "portfolioValue": "10047.11",
+      "dailyYield": "4.01",
+      "costs": "0.00"
+    },
+    {
+      "day": 16,
+      "date": "2024-07-16",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.02",
+      "portfolioValue": "10051.22",
+      "dailyYield": "4.11",
+      "costs": "0.00"
+    },
+    {
+      "day": 17,
+      "date": "2024-07-17",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.34",
+      "portfolioValue": "10055.15",
+      "dailyYield": "3.93",
+      "costs": "0.00"
+    },
+    {
+      "day": 18,
+      "date": "2024-07-18",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.12",
+      "portfolioValue": "10059.29",
+      "dailyYield": "4.14",
+      "costs": "0.00"
+    },
+    {
+      "day": 19,
+      "date": "2024-07-19",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.53",
+      "portfolioValue": "10063.27",
+      "dailyYield": "3.98",
+      "costs": "0.00"
+    },
+    {
+      "day": 20,
+      "date": "2024-07-20",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.55",
+      "portfolioValue": "10066.98",
+      "dailyYield": "3.71",
+      "costs": "0.00"
+    },
+    {
+      "day": 21,
+      "date": "2024-07-21",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.40",
+      "portfolioValue": "10070.93",
+      "dailyYield": "3.94",
+      "costs": "0.00"
+    },
+    {
+      "day": 22,
+      "date": "2024-07-22",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.87",
+      "portfolioValue": "10074.72",
+      "dailyYield": "3.80",
+      "costs": "0.00"
+    },
+    {
+      "day": 23,
+      "date": "2024-07-23",
+      "protocol": "Uniswap V3",
+      "chain": "Arbitrum",
+      "apy": "15.15",
+      "portfolioValue": "10076.63",
+      "dailyYield": "4.15",
+      "costs": "2.24"
+    },
+    {
+      "day": 24,
+      "date": "2024-07-24",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "16.70",
+      "portfolioValue": "10079.80",
+      "dailyYield": "4.57",
+      "costs": "1.41"
+    },
+    {
+      "day": 25,
+      "date": "2024-07-25",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "16.51",
+      "portfolioValue": "10084.32",
+      "dailyYield": "4.52",
+      "costs": "0.00"
+    },
+    {
+      "day": 26,
+      "date": "2024-07-26",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.48",
+      "portfolioValue": "10088.56",
+      "dailyYield": "4.24",
+      "costs": "0.00"
+    },
+    {
+      "day": 27,
+      "date": "2024-07-27",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.85",
+      "portfolioValue": "10092.35",
+      "dailyYield": "3.79",
+      "costs": "0.00"
+    },
+    {
+      "day": 28,
+      "date": "2024-07-28",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "12.50",
+      "portfolioValue": "10095.77",
+      "dailyYield": "3.42",
+      "costs": "0.00"
+    },
+    {
+      "day": 29,
+      "date": "2024-07-29",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "12.24",
+      "portfolioValue": "10099.13",
+      "dailyYield": "3.35",
+      "costs": "0.00"
+    },
+    {
+      "day": 30,
+      "date": "2024-07-30",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.80",
+      "portfolioValue": "10103.18",
+      "dailyYield": "4.05",
+      "costs": "0.00"
+    },
+    {
+      "day": 31,
+      "date": "2024-07-31",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.22",
+      "portfolioValue": "10107.07",
+      "dailyYield": "3.89",
+      "costs": "0.00"
+    },
+    {
+      "day": 32,
+      "date": "2024-08-01",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.62",
+      "portfolioValue": "10109.95",
+      "dailyYield": "3.73",
+      "costs": "0.85"
+    },
+    {
+      "day": 33,
+      "date": "2024-08-02",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.92",
+      "portfolioValue": "10113.10",
+      "dailyYield": "4.09",
+      "costs": "0.94"
+    },
+    {
+      "day": 34,
+      "date": "2024-08-03",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "12.58",
+      "portfolioValue": "10116.54",
+      "dailyYield": "3.44",
+      "costs": "0.00"
+    },
+    {
+      "day": 35,
+      "date": "2024-08-04",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.07",
+      "portfolioValue": "10120.67",
+      "dailyYield": "4.13",
+      "costs": "0.00"
+    },
+    {
+      "day": 36,
+      "date": "2024-08-05",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.30",
+      "portfolioValue": "10124.59",
+      "dailyYield": "3.92",
+      "costs": "0.00"
+    },
+    {
+      "day": 37,
+      "date": "2024-08-06",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "16.23",
+      "portfolioValue": "10129.03",
+      "dailyYield": "4.44",
+      "costs": "0.00"
+    },
+    {
+      "day": 38,
+      "date": "2024-08-07",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.81",
+      "portfolioValue": "10132.82",
+      "dailyYield": "3.78",
+      "costs": "0.00"
+    },
+    {
+      "day": 39,
+      "date": "2024-08-08",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.24",
+      "portfolioValue": "10136.99",
+      "dailyYield": "4.17",
+      "costs": "0.00"
+    },
+    {
+      "day": 40,
+      "date": "2024-08-09",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.93",
+      "portfolioValue": "10140.81",
+      "dailyYield": "3.82",
+      "costs": "0.00"
+    },
+    {
+      "day": 41,
+      "date": "2024-08-10",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.79",
+      "portfolioValue": "10144.58",
+      "dailyYield": "3.78",
+      "costs": "0.00"
+    },
+    {
+      "day": 42,
+      "date": "2024-08-11",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.56",
+      "portfolioValue": "10147.66",
+      "dailyYield": "3.71",
+      "costs": "0.64"
+    },
+    {
+      "day": 43,
+      "date": "2024-08-12",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.74",
+      "portfolioValue": "10151.97",
+      "dailyYield": "4.31",
+      "costs": "0.00"
+    },
+    {
+      "day": 44,
+      "date": "2024-08-13",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.83",
+      "portfolioValue": "10155.75",
+      "dailyYield": "3.79",
+      "costs": "0.00"
+    },
+    {
+      "day": 45,
+      "date": "2024-08-14",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.41",
+      "portfolioValue": "10159.70",
+      "dailyYield": "3.95",
+      "costs": "0.00"
+    },
+    {
+      "day": 46,
+      "date": "2024-08-15",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.61",
+      "portfolioValue": "10163.70",
+      "dailyYield": "4.00",
+      "costs": "0.00"
+    },
+    {
+      "day": 47,
+      "date": "2024-08-16",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.97",
+      "portfolioValue": "10167.80",
+      "dailyYield": "4.10",
+      "costs": "0.00"
+    },
+    {
+      "day": 48,
+      "date": "2024-08-17",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "12.93",
+      "portfolioValue": "10171.35",
+      "dailyYield": "3.54",
+      "costs": "0.00"
+    },
+    {
+      "day": 49,
+      "date": "2024-08-18",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.00",
+      "portfolioValue": "10175.18",
+      "dailyYield": "3.83",
+      "costs": "0.00"
+    },
+    {
+      "day": 50,
+      "date": "2024-08-19",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.47",
+      "portfolioValue": "10178.87",
+      "dailyYield": "3.69",
+      "costs": "0.00"
+    },
+    {
+      "day": 51,
+      "date": "2024-08-20",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.17",
+      "portfolioValue": "10182.75",
+      "dailyYield": "3.88",
+      "costs": "0.00"
+    },
+    {
+      "day": 52,
+      "date": "2024-08-21",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.53",
+      "portfolioValue": "10186.73",
+      "dailyYield": "3.98",
+      "costs": "0.00"
+    },
+    {
+      "day": 53,
+      "date": "2024-08-22",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.53",
+      "portfolioValue": "10190.98",
+      "dailyYield": "4.25",
+      "costs": "0.00"
+    },
+    {
+      "day": 54,
+      "date": "2024-08-23",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "12.79",
+      "portfolioValue": "10194.48",
+      "dailyYield": "3.50",
+      "costs": "0.00"
+    },
+    {
+      "day": 55,
+      "date": "2024-08-24",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.15",
+      "portfolioValue": "10198.09",
+      "dailyYield": "4.15",
+      "costs": "0.54"
+    },
+    {
+      "day": 56,
+      "date": "2024-08-25",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.58",
+      "portfolioValue": "10202.08",
+      "dailyYield": "3.99",
+      "costs": "0.00"
+    },
+    {
+      "day": 57,
+      "date": "2024-08-26",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.42",
+      "portfolioValue": "10204.89",
+      "dailyYield": "3.95",
+      "costs": "1.14"
+    },
+    {
+      "day": 58,
+      "date": "2024-08-27",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.16",
+      "portfolioValue": "10208.50",
+      "dailyYield": "3.60",
+      "costs": "0.00"
+    },
+    {
+      "day": 59,
+      "date": "2024-08-28",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.45",
+      "portfolioValue": "10212.18",
+      "dailyYield": "3.68",
+      "costs": "0.00"
+    },
+    {
+      "day": 60,
+      "date": "2024-08-29",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.08",
+      "portfolioValue": "10216.04",
+      "dailyYield": "3.86",
+      "costs": "0.00"
+    },
+    {
+      "day": 61,
+      "date": "2024-08-30",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "12.88",
+      "portfolioValue": "10219.56",
+      "dailyYield": "3.53",
+      "costs": "0.00"
+    },
+    {
+      "day": 62,
+      "date": "2024-08-31",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.31",
+      "portfolioValue": "10223.21",
+      "dailyYield": "3.64",
+      "costs": "0.00"
+    },
+    {
+      "day": 63,
+      "date": "2024-09-01",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "10.76",
+      "portfolioValue": "10226.16",
+      "dailyYield": "2.95",
+      "costs": "0.00"
+    },
+    {
+      "day": 64,
+      "date": "2024-09-02",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.35",
+      "portfolioValue": "10229.81",
+      "dailyYield": "3.66",
+      "costs": "0.00"
+    },
+    {
+      "day": 65,
+      "date": "2024-09-03",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.05",
+      "portfolioValue": "10233.93",
+      "dailyYield": "4.12",
+      "costs": "0.00"
+    },
+    {
+      "day": 66,
+      "date": "2024-09-04",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.84",
+      "portfolioValue": "10237.73",
+      "dailyYield": "3.79",
+      "costs": "0.00"
+    },
+    {
+      "day": 67,
+      "date": "2024-09-05",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "12.63",
+      "portfolioValue": "10241.19",
+      "dailyYield": "3.46",
+      "costs": "0.00"
+    },
+    {
+      "day": 68,
+      "date": "2024-09-06",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.45",
+      "portfolioValue": "10244.87",
+      "dailyYield": "3.68",
+      "costs": "0.00"
+    },
+    {
+      "day": 69,
+      "date": "2024-09-07",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.98",
+      "portfolioValue": "10248.70",
+      "dailyYield": "3.83",
+      "costs": "0.00"
+    },
+    {
+      "day": 70,
+      "date": "2024-09-08",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.24",
+      "portfolioValue": "10251.70",
+      "dailyYield": "3.63",
+      "costs": "0.62"
+    },
+    {
+      "day": 71,
+      "date": "2024-09-09",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.89",
+      "portfolioValue": "10254.53",
+      "dailyYield": "3.81",
+      "costs": "0.98"
+    },
+    {
+      "day": 72,
+      "date": "2024-09-10",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.79",
+      "portfolioValue": "10258.85",
+      "dailyYield": "4.32",
+      "costs": "0.00"
+    },
+    {
+      "day": 73,
+      "date": "2024-09-11",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.85",
+      "portfolioValue": "10262.92",
+      "dailyYield": "4.07",
+      "costs": "0.00"
+    },
+    {
+      "day": 74,
+      "date": "2024-09-12",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.85",
+      "portfolioValue": "10266.71",
+      "dailyYield": "3.79",
+      "costs": "0.00"
+    },
+    {
+      "day": 75,
+      "date": "2024-09-13",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.32",
+      "portfolioValue": "10270.36",
+      "dailyYield": "3.65",
+      "costs": "0.00"
+    },
+    {
+      "day": 76,
+      "date": "2024-09-14",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.43",
+      "portfolioValue": "10274.31",
+      "dailyYield": "3.95",
+      "costs": "0.00"
+    },
+    {
+      "day": 77,
+      "date": "2024-09-15",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.61",
+      "portfolioValue": "10278.59",
+      "dailyYield": "4.27",
+      "costs": "0.00"
+    },
+    {
+      "day": 78,
+      "date": "2024-09-16",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.66",
+      "portfolioValue": "10282.60",
+      "dailyYield": "4.01",
+      "costs": "0.00"
+    },
+    {
+      "day": 79,
+      "date": "2024-09-17",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.73",
+      "portfolioValue": "10286.36",
+      "dailyYield": "3.76",
+      "costs": "0.00"
+    },
+    {
+      "day": 80,
+      "date": "2024-09-18",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.71",
+      "portfolioValue": "10290.66",
+      "dailyYield": "4.30",
+      "costs": "0.00"
+    },
+    {
+      "day": 81,
+      "date": "2024-09-19",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "16.65",
+      "portfolioValue": "10295.22",
+      "dailyYield": "4.56",
+      "costs": "0.00"
+    },
+    {
+      "day": 82,
+      "date": "2024-09-20",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "13.77",
+      "portfolioValue": "10298.99",
+      "dailyYield": "3.77",
+      "costs": "0.00"
+    },
+    {
+      "day": 83,
+      "date": "2024-09-21",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.75",
+      "portfolioValue": "10303.03",
+      "dailyYield": "4.04",
+      "costs": "0.00"
+    },
+    {
+      "day": 84,
+      "date": "2024-09-22",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.85",
+      "portfolioValue": "10307.10",
+      "dailyYield": "4.07",
+      "costs": "0.00"
+    },
+    {
+      "day": 85,
+      "date": "2024-09-23",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.03",
+      "portfolioValue": "10310.94",
+      "dailyYield": "3.84",
+      "costs": "0.00"
+    },
+    {
+      "day": 86,
+      "date": "2024-09-24",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.31",
+      "portfolioValue": "10315.13",
+      "dailyYield": "4.19",
+      "costs": "0.00"
+    },
+    {
+      "day": 87,
+      "date": "2024-09-25",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.49",
+      "portfolioValue": "10318.44",
+      "dailyYield": "4.24",
+      "costs": "0.94"
+    },
+    {
+      "day": 88,
+      "date": "2024-09-26",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "14.38",
+      "portfolioValue": "10321.56",
+      "dailyYield": "3.94",
+      "costs": "0.82"
+    },
+    {
+      "day": 89,
+      "date": "2024-09-27",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "17.27",
+      "portfolioValue": "10326.28",
+      "dailyYield": "4.73",
+      "costs": "0.00"
+    },
+    {
+      "day": 90,
+      "date": "2024-09-28",
+      "protocol": "Pendle",
+      "chain": "Arbitrum",
+      "apy": "15.41",
+      "portfolioValue": "10330.50",
+      "dailyYield": "4.22",
+      "costs": "0.00"
+    }
+  ],
+  "summary": {
+    "finalValue": 10330.50427510068,
+    "totalReturn": 330.5042751006804,
+    "totalReturnPercent": 3.3050427510068037,
+    "annualizedReturn": 13.403784490194258,
+    "totalGasCosts": 23.270000000000007,
+    "totalBridgeFees": 0,
+    "avgAPY": 14.352829972219194,
+    "protocolDistribution": {
+      "Pendle": 88,
+      "Balancer": 1,
+      "Uniswap V3": 1
+    },
+    "comparisons": {
+      "vsStatic": -14.110898851618913,
+      "vsManual": null,
+      "vsBank": 231.8741381143791,
+      "staticPool": "Pendle-Arbitrum"
+    }
+  }
+}

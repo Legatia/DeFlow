@@ -1,11 +1,24 @@
 // DeFlow Workflow Templates - User-friendly strategy creation
 // Pre-configured templates for common DeFi strategies
+// NOTE: This is the legacy template system. For modern workflow templates
+// with proper input/output/configuration segregation, see modern_workflow_templates.rs
 
 use super::automated_strategies::{StrategyConfig, StrategyType, YieldFarmingConfig, ArbitrageConfig, RebalancingConfig, LiquidityMiningConfig, DCAConfig, CompositeStrategyConfig};
 use super::yield_farming::{ChainId, DeFiProtocol, UniswapVersion};
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
 use std::collections::HashMap;
+
+// Re-export modern templates for compatibility
+pub use super::modern_workflow_templates::{
+    ModernWorkflowTemplate,
+    ModernWorkflowTemplateManager,
+    WorkflowNodeTemplate,
+    ParameterTemplate,
+    NodeConnectionTemplate,
+    WorkflowCategory as ModernWorkflowCategory,
+    DifficultyLevel as ModernDifficultyLevel,
+};
 
 /// Workflow template for easy strategy creation
 #[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
@@ -777,7 +790,7 @@ impl WorkflowTemplateManager {
                         "conservative_yield_farming".to_string(),
                         "cross_chain_arbitrage".to_string(),
                         "portfolio_rebalancing".to_string(),
-                    ]);
+                    ],
                     coordination_rules: vec![
                         "max_risk_allocation_50_percent".to_string(),
                         "yield_farming_priority_high".to_string(),
@@ -785,7 +798,7 @@ impl WorkflowTemplateManager {
                     ],
                     rebalancing_frequency: super::automated_strategies::RebalanceFrequency::Daily,
                 }),
-                default_chains: vec![ChainId::Ethereum, ChainId::Arbitrum, ChainId::Polygon]);
+                default_chains: vec![ChainId::Ethereum, ChainId::Arbitrum, ChainId::Polygon],
                 recommended_protocols: vec![
                     DeFiProtocol::Aave, 
                     DeFiProtocol::Uniswap(UniswapVersion::V3), 
@@ -881,3 +894,61 @@ impl Default for WorkflowTemplateManager {
         Self::new()
     }
 }
+
+// =============================================================================
+// MIGRATION HELPERS - Bridge to Modern Template System
+// =============================================================================
+
+impl WorkflowTemplateManager {
+    /// Get modern template manager instance
+    /// This bridges the legacy template system to the new segregated input/output/config system
+    pub fn get_modern_manager() -> ModernWorkflowTemplateManager {
+        ModernWorkflowTemplateManager::new()
+    }
+
+    /// Convert legacy template to modern format (partial implementation)
+    /// This is a helper for migration - full conversion requires manual mapping
+    pub fn convert_to_modern(&self, template_id: &str) -> Option<String> {
+        match template_id {
+            "conservative_yield_farming" => Some("conservative_yield_farming_v2".to_string()),
+            "cross_chain_arbitrage" => Some("cross_chain_arbitrage_v2".to_string()),
+            "portfolio_rebalancing" => Some("portfolio_management_v2".to_string()),
+            "dollar_cost_averaging" => Some("multi_chain_dca_v2".to_string()),
+            _ => None,
+        }
+    }
+
+    /// Check if modern equivalent exists
+    pub fn has_modern_equivalent(&self, template_id: &str) -> bool {
+        self.convert_to_modern(template_id).is_some()
+    }
+}
+
+// =============================================================================
+// DEPRECATION NOTICE
+// =============================================================================
+
+/*
+IMPORTANT: This legacy template system is deprecated.
+
+The functional blocks have been reorganized to properly segregate:
+1. input_schema - Parameters passed between nodes
+2. output_schema - Parameters output by nodes
+3. configuration_schema - Configuration parameters for the node itself
+
+New templates should use the ModernWorkflowTemplate system in modern_workflow_templates.rs
+which properly implements this segregation.
+
+Migration path:
+1. Use WorkflowTemplateManager::get_modern_manager() for new workflows
+2. Use WorkflowTemplateManager::convert_to_modern() to find modern equivalents
+3. Gradually migrate existing workflows to use the new template structure
+
+Benefits of modern templates:
+- Proper separation of concerns (inputs vs outputs vs configuration)
+- Better type safety and validation
+- Clearer data flow between nodes
+- Support for real-time social media integrations
+- Multi-chain optimization
+- Enhanced error handling and debugging
+*/

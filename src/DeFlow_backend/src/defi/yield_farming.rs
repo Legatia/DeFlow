@@ -6,6 +6,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt;
 use ic_cdk::api::time;
+use super::ethereum::{TradingStyle, TradingStyleParams, EvmChain};
 
 /// Core yield farming types and structures
 #[derive(Debug, Clone, CandidType, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -155,6 +156,8 @@ pub struct YieldStrategy {
     pub auto_compound: bool,
     pub verified: bool,
     pub last_updated: u64,
+    pub entry_apy: Option<f64>, // APY when position was entered
+    pub entry_timestamp: Option<u64>, // When position was entered
 }
 
 impl YieldStrategy {
@@ -183,6 +186,8 @@ impl YieldStrategy {
             auto_compound: false,
             verified: false,
             last_updated: 0, // Will be set when initialized properly
+            entry_apy: None,
+            entry_timestamp: None,
         }
     }
 
@@ -238,6 +243,22 @@ impl YieldStrategy {
         
         // Must be verified for production
         self.verified
+    }
+
+    /// Record entry into this position
+    pub fn enter_position(&mut self) {
+        self.entry_apy = Some(self.current_apy);
+        self.entry_timestamp = Some(time());
+    }
+
+    /// Check if APY has degraded significantly since entry
+    pub fn has_apy_degraded(&self, threshold_percent: f64) -> bool {
+        if let Some(entry_apy) = self.entry_apy {
+            let degradation_percent = ((entry_apy - self.current_apy) / entry_apy) * 100.0;
+            degradation_percent >= threshold_percent
+        } else {
+            false // No entry data, can't determine degradation
+        }
     }
 }
 
@@ -603,6 +624,173 @@ impl std::fmt::Display for YieldOptimizationError {
             YieldOptimizationError::ChainNotSupported(chain) => {
                 write!(f, "Chain not supported: {}", chain)
             }
+        }
+    }
+}
+
+/// Smart cost management system for trading decisions
+#[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
+pub struct SmartCostManager {
+    pub trading_style: TradingStyle,
+    pub current_positions: HashMap<String, PositionInfo>, // position_id -> info
+}
+
+#[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
+pub struct PositionInfo {
+    pub strategy_id: String,
+    pub amount_usd: f64,
+    pub entry_apy: f64,
+    pub entry_timestamp: u64,
+    pub chain: ChainId,
+}
+
+#[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
+pub struct MoveDecision {
+    pub should_move: bool,
+    pub reason: String,
+    pub cost_benefit_ratio: f64, // benefit / cost
+    pub estimated_gas_cost: f64,
+    pub apy_improvement: f64,
+}
+
+impl SmartCostManager {
+    pub fn new(trading_style: TradingStyle) -> Self {
+        Self {
+            trading_style,
+            current_positions: HashMap::new(),
+        }
+    }
+
+    /// Smart cost management: decide whether to move based on APY economics
+    pub fn should_move_position(
+        &self,
+        position_id: &str,
+        current_strategy: &YieldStrategy,
+        target_strategy: &YieldStrategy,
+        estimated_gas_cost: f64,
+        chain_penalty_multiplier: f64, // Extra penalty for expensive chains like ETH L1
+    ) -> MoveDecision {
+        let style_params = self.trading_style.get_params();
+
+        // Get current position info
+        let position_info = match self.current_positions.get(position_id) {
+            Some(info) => info,
+            None => {
+                return MoveDecision {
+                    should_move: false,
+                    reason: "No position information available".to_string(),
+                    cost_benefit_ratio: 0.0,
+                    estimated_gas_cost,
+                    apy_improvement: 0.0,
+                };
+            }
+        };
+
+        let apy_difference = target_strategy.current_apy - current_strategy.current_apy;
+
+        // Apply ETH L1 penalty if moving to expensive chain
+        let adjusted_gas_cost = if target_strategy.chain == ChainId::Ethereum {
+            estimated_gas_cost * style_params.eth_l1_penalty_multiplier
+        } else {
+            estimated_gas_cost * chain_penalty_multiplier
+        };
+
+        // Check absolute limits first
+        if adjusted_gas_cost > style_params.max_gas_cost_usd {
+            return MoveDecision {
+                should_move: false,
+                reason: format!("Gas cost ${:.2} exceeds style limit ${:.2}",
+                    adjusted_gas_cost, style_params.max_gas_cost_usd),
+                cost_benefit_ratio: 0.0,
+                estimated_gas_cost: adjusted_gas_cost,
+                apy_improvement: apy_difference,
+            };
+        }
+
+        // Check minimum APY improvement based on position stickiness
+        let required_apy_improvement = self.calculate_required_improvement(
+            current_strategy.current_apy,
+            &style_params
+        );
+
+        if apy_difference < required_apy_improvement {
+            return MoveDecision {
+                should_move: false,
+                reason: format!("APY improvement {:.2}% below required {:.2}%",
+                    apy_difference, required_apy_improvement),
+                cost_benefit_ratio: apy_difference / required_apy_improvement,
+                estimated_gas_cost: adjusted_gas_cost,
+                apy_improvement: apy_difference,
+            };
+        }
+
+        // Core economic calculation: payback period analysis
+        let daily_yield_improvement = (position_info.amount_usd * apy_difference / 100.0) / 365.0;
+        let payback_days = if daily_yield_improvement > 0.0 {
+            adjusted_gas_cost / daily_yield_improvement
+        } else {
+            f64::INFINITY
+        };
+
+        // Must pay back within style-specific period
+        if payback_days > style_params.payback_days as f64 {
+            return MoveDecision {
+                should_move: false,
+                reason: format!("Payback period {:.1} days exceeds limit {} days",
+                    payback_days, style_params.payback_days),
+                cost_benefit_ratio: (style_params.payback_days as f64) / payback_days,
+                estimated_gas_cost: adjusted_gas_cost,
+                apy_improvement: apy_difference,
+            };
+        }
+
+        // Check for APY degradation trigger
+        let apy_degraded = current_strategy.has_apy_degraded(style_params.apy_degradation_threshold);
+        let degradation_bonus = if apy_degraded {
+            format!(" + APY degraded >{}%", style_params.apy_degradation_threshold)
+        } else {
+            String::new()
+        };
+
+        // Decision: move if economics make sense
+        MoveDecision {
+            should_move: true,
+            reason: format!("Economic payback: {:.1} days{}", payback_days, degradation_bonus),
+            cost_benefit_ratio: daily_yield_improvement * style_params.payback_days as f64 / adjusted_gas_cost,
+            estimated_gas_cost: adjusted_gas_cost,
+            apy_improvement: apy_difference,
+        }
+    }
+
+    /// Calculate required APY improvement based on current position strength and trading style
+    fn calculate_required_improvement(&self, current_apy: f64, style_params: &TradingStyleParams) -> f64 {
+        let base_requirement = if current_apy >= 8.0 {
+            2.0 // High APY positions need big improvement
+        } else if current_apy >= 6.0 {
+            1.5 // Good APY positions need moderate improvement
+        } else if current_apy >= 4.0 {
+            1.0 // Medium APY positions need some improvement
+        } else {
+            0.5 // Low APY positions move easily
+        };
+
+        base_requirement * style_params.position_stickiness_multiplier
+    }
+
+    /// Add a new position to track
+    pub fn add_position(&mut self, position_id: String, info: PositionInfo) {
+        self.current_positions.insert(position_id, info);
+    }
+
+    /// Remove a position (when exited)
+    pub fn remove_position(&mut self, position_id: &str) -> Option<PositionInfo> {
+        self.current_positions.remove(position_id)
+    }
+
+    /// Update position amount
+    pub fn update_position_amount(&mut self, position_id: &str, new_amount: f64) {
+        if let Some(position) = self.current_positions.get_mut(position_id) {
+            position.amount_usd = new_amount;
         }
     }
 }

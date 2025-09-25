@@ -31,12 +31,17 @@ pub mod price_oracle;
 // Live DeFi protocol integrations for real yield/arbitrage data
 pub mod protocol_integrations;
 pub mod real_protocol_integrations;
+pub mod pendle_integration;
 // Price alert & social media integration system
 pub mod price_alert_service;
+// Deposit management system connecting user deposits to strategies
+pub mod deposit_manager;
 // DeFi integration engine for price alert triggers
 pub mod price_alert_defi_integration;
 // Enhanced social media text formatting with DeFi context
 pub mod social_media_formatter;
+// Real-time APY fetcher with HTTP outcalls
+pub mod realtime_apy_fetcher;
 
 use candid::{CandidType, Deserialize};
 use serde::Serialize;

@@ -196,7 +196,7 @@ const NodeConfigPanel = ({ node, onConfigChange, onDelete }: NodeConfigPanelProp
     <div className="p-4 space-y-6">
       {/* Node Info */}
       <div className="flex items-center space-x-3">
-        <div 
+        <div
           className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-xl"
           style={{ backgroundColor: nodeType.color }}
         >
@@ -211,7 +211,7 @@ const NodeConfigPanel = ({ node, onConfigChange, onDelete }: NodeConfigPanelProp
       {/* Configuration Form */}
       <div className="space-y-4">
         <h5 className="font-medium text-slate-100">Configuration</h5>
-        
+
         {nodeType.configSchema.length === 0 ? (
           <div className="text-sm text-slate-400 py-4 text-center">
             This node doesn't require any configuration.
@@ -220,20 +220,20 @@ const NodeConfigPanel = ({ node, onConfigChange, onDelete }: NodeConfigPanelProp
           <div className="space-y-4">
             {nodeType.configSchema.map((field) => (
               <div key={field.key} className="space-y-2">
-                <label 
+                <label
                   htmlFor={`${node.id}-${field.key}`}
                   className="block text-sm font-medium text-slate-200"
                 >
                   {field.name}
                   {field.required && <span className="text-red-400 ml-1">*</span>}
                 </label>
-                
+
                 {renderField(field)}
-                
+
                 {field.description && field.type !== 'boolean' && (
                   <p className="text-xs text-slate-400">{field.description}</p>
                 )}
-                
+
                 {errors[field.key] && (
                   <p className="text-xs text-red-400">{errors[field.key]}</p>
                 )}
@@ -242,6 +242,29 @@ const NodeConfigPanel = ({ node, onConfigChange, onDelete }: NodeConfigPanelProp
           </div>
         )}
       </div>
+
+      {/* Auto-Selection Info */}
+      {(config.protocol === 'AUTO_SELECT' || config.chain === 'AUTO_SELECT') && (
+        <div className="bg-slate-800/50 border border-slate-600/40 rounded-lg p-4">
+          <div className="flex items-center space-x-2 mb-2">
+            <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
+            <h5 className="text-sm font-medium text-cyan-400">🤖 Auto-Selection Enabled</h5>
+          </div>
+          <p className="text-xs text-slate-400">
+            {config.protocol === 'AUTO_SELECT' && config.chain === 'AUTO_SELECT'
+              ? 'Protocol and chain will be automatically selected during execution based on your trading style.'
+              : config.protocol === 'AUTO_SELECT'
+              ? 'Protocol will be automatically selected during execution.'
+              : 'Chain will be automatically selected during execution.'
+            }
+          </p>
+          {config.tradingStyle && (
+            <p className="text-xs text-slate-300 mt-1">
+              Trading Style: <span className="font-medium">{config.tradingStyle}</span>
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Node Details */}
       <div className="space-y-4 pt-4 border-t border-slate-600/50">

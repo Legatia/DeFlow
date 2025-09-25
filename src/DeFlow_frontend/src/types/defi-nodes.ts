@@ -75,18 +75,34 @@ export const DEFI_NODE_TYPES: NodeType[] = [
     ],
     configSchema: [
       {
+        key: 'tradingStyle',
+        name: 'Trading Style',
+        type: 'select',
+        required: true,
+        options: [
+          { label: '🌊 Balanced - Smart wave-riding', value: 'Balanced' },
+          { label: '🏄 Wave Rider - Patient, catches big waves', value: 'WaveRider' },
+          { label: '💰 Steady Earner - Conservative, stable', value: 'SteadyEarner' },
+          { label: '⚡ Gas Hunter - Ultra low-cost focused', value: 'GasHunter' },
+          { label: '🚀 Yield Chaser - Aggressive APY hunter', value: 'YieldChaser' }
+        ],
+        defaultValue: 'Balanced'
+      },
+      {
         key: 'protocol',
         name: 'DeFi Protocol',
         type: 'select',
         required: true,
         options: [
+          { label: '🤖 Auto-Select Best Protocol', value: 'AUTO_SELECT' },
           { label: 'Aave', value: 'Aave' },
           { label: 'Compound', value: 'Compound' },
           { label: 'Uniswap V3', value: 'UniswapV3' },
           { label: 'Curve', value: 'Curve' },
-          { label: 'Yearn Finance', value: 'Yearn' }
+          { label: 'Yearn Finance', value: 'Yearn' },
+          { label: 'Pendle', value: 'Pendle' }
         ],
-        defaultValue: 'Aave'
+        defaultValue: 'AUTO_SELECT'
       },
       {
         key: 'chain',
@@ -94,12 +110,14 @@ export const DEFI_NODE_TYPES: NodeType[] = [
         type: 'select',
         required: true,
         options: [
+          { label: '🤖 Auto-Select Best Chain', value: 'AUTO_SELECT' },
           { label: 'Ethereum', value: 'Ethereum' },
           { label: 'Arbitrum', value: 'Arbitrum' },
           { label: 'Optimism', value: 'Optimism' },
-          { label: 'Polygon', value: 'Polygon' }
+          { label: 'Polygon', value: 'Polygon' },
+          { label: 'Base', value: 'Base' }
         ],
-        defaultValue: 'Ethereum'
+        defaultValue: 'AUTO_SELECT'
       },
       {
         key: 'token',
@@ -161,9 +179,10 @@ export const DEFI_NODE_TYPES: NodeType[] = [
         defaultValue: 'medium'
       }
     ],
-    defaultConfig: { 
-      protocol: 'Aave', 
-      chain: 'Ethereum', 
+    defaultConfig: {
+      tradingStyle: 'Balanced',
+      protocol: 'AUTO_SELECT',
+      chain: 'AUTO_SELECT',
       token: 'USDC', 
       amount: 1000, 
       amount_type: 'fixed',

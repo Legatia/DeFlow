@@ -12,6 +12,7 @@ import ExecutionHistory from './pages/ExecutionHistory'
 import Settings from './pages/Settings'
 import DeFiDashboard from './pages/DeFiDashboard'
 import PaymentPage from './pages/PaymentPage'
+import YieldOptimizationDemo from './pages/YieldOptimizationDemo'
 import OAuthCallback from './components/OAuthCallback'
 import ConnectionTest from './components/ConnectionTest'
 
@@ -45,6 +46,7 @@ function App() {
             <Route path="/settings" element={<Settings />} />
             <Route path="/payment" element={<PaymentPage />} />
             <Route path="/premium" element={<PaymentPage />} />
+            <Route path="/demo/yield-optimization" element={<YieldOptimizationDemo />} />
             <Route path="/connection-test" element={<ConnectionTest />} />
             <Route path="/oauth/callback/:provider" element={<OAuthCallback />} />
           </Routes>

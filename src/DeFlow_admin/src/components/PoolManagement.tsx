@@ -235,52 +235,21 @@ const PoolManagement: React.FC = () => {
               {/* Recent Activity */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Pool Activity</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3">
-                    <div className="flex items-center">
-                      <div className="bg-green-100 rounded-full p-2 mr-3">
-                        <svg className="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">Liquidity Added</p>
-                        <p className="text-sm text-gray-500">Ethereum Uniswap V3 • 2 hours ago</p>
-                      </div>
+                {isConnected ? (
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 text-center">
+                    <div className="text-gray-500 mb-2">
+                      <svg className="h-8 w-8 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
                     </div>
-                    <span className="text-green-600 font-medium">+$25,400</span>
+                    <p className="text-gray-600">Pool activity data will appear here once pool operations begin</p>
+                    <p className="text-sm text-gray-500 mt-1">Activities include liquidity additions, arbitrage executions, and fee collections</p>
                   </div>
-                  
-                  <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3">
-                    <div className="flex items-center">
-                      <div className="bg-blue-100 rounded-full p-2 mr-3">
-                        <svg className="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">Arbitrage Executed</p>
-                        <p className="text-sm text-gray-500">BTC/ETH Arbitrum → Ethereum • 4 hours ago</p>
-                      </div>
-                    </div>
-                    <span className="text-blue-600 font-medium">+$8,750</span>
+                ) : (
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 text-center">
+                    <p className="text-red-600">{error || 'Unable to connect to pool services'}</p>
                   </div>
-                  
-                  <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3">
-                    <div className="flex items-center">
-                      <div className="bg-purple-100 rounded-full p-2 mr-3">
-                        <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">Fees Collected</p>
-                        <p className="text-sm text-gray-500">Daily fee collection • 8 hours ago</p>
-                      </div>
-                    </div>
-                    <span className="text-purple-600 font-medium">+$3,240</span>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           )}

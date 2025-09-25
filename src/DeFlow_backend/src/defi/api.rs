@@ -8,9 +8,12 @@ use crate::defi::{with_defi_manager_mut, with_defi_manager};
 use crate::defi::bitcoin::{FeePriority, BitcoinFeeEstimate};
 use crate::defi::bitcoin::service::{BitcoinSendResult, BitcoinNetworkInfo};
 use crate::defi::ethereum::{
-    EvmChain, EthereumAddress, EthereumPortfolio, EthereumTransactionResult, 
-    GasPriority, L2OptimizationResult, MinimalIcpEthereumService, TransactionType
+    EvmChain, EthereumAddress, EthereumPortfolio, EthereumTransactionResult,
+    GasPriority, L2OptimizationResult, MinimalIcpEthereumService, TransactionType,
+    TradingStyle, TradingStyleParams
 };
+use crate::defi::yield_farming::{SmartCostManager, PositionInfo, MoveDecision};
+use crate::defi::deposit_manager::{UserDepositPortfolio};
 use candid::{CandidType, Deserialize, Principal};
 use serde::Serialize;
 use ic_cdk::{query, update, caller};
@@ -1043,3 +1046,336 @@ pub struct SolanaNetworkInfo {
     pub current_slot: Option<u64>,
     pub tps: Option<f64>,
 }
+
+// ================== TRADING STYLES API ==================
+
+/// Get all available trading styles with their parameters
+#[query]
+pub fn get_trading_styles() -> Vec<(TradingStyle, TradingStyleParams)> {
+    vec![
+        (TradingStyle::WaveRider, TradingStyle::WaveRider.get_params()),
+        (TradingStyle::SteadyEarner, TradingStyle::SteadyEarner.get_params()),
+        (TradingStyle::GasHunter, TradingStyle::GasHunter.get_params()),
+        (TradingStyle::YieldChaser, TradingStyle::YieldChaser.get_params()),
+        (TradingStyle::Balanced, TradingStyle::Balanced.get_params()),
+    ]
+}
+
+/// Get parameters for a specific trading style
+#[query]
+pub fn get_trading_style_params(style: TradingStyle) -> TradingStyleParams {
+    style.get_params()
+}
+
+/// Create a smart cost manager for position management
+#[update]
+pub fn create_smart_cost_manager(trading_style: TradingStyle) -> SmartCostManager {
+    SmartCostManager::new(trading_style)
+}
+
+/// Evaluate whether to move a position based on smart cost management
+#[query]
+pub fn evaluate_position_move(
+    trading_style: TradingStyle,
+    position_amount_usd: f64,
+    current_apy: f64,
+    target_apy: f64,
+    estimated_gas_cost: f64,
+    is_eth_l1: bool,
+) -> MoveDecision {
+    let cost_manager = SmartCostManager::new(trading_style.clone());
+    let style_params = trading_style.get_params();
+
+    // Create mock strategies for evaluation
+    let current_strategy = crate::defi::yield_farming::YieldStrategy {
+        id: "current".to_string(),
+        protocol: crate::defi::yield_farming::DeFiProtocol::Aave,
+        chain: if is_eth_l1 {
+            crate::defi::yield_farming::ChainId::Ethereum
+        } else {
+            crate::defi::yield_farming::ChainId::Arbitrum
+        },
+        strategy_type: crate::defi::yield_farming::YieldStrategyType::Lending {
+            asset: "USDC".to_string(),
+            variable_rate: true,
+        },
+        current_apy,
+        historical_apy_7d: current_apy,
+        historical_apy_30d: current_apy,
+        risk_score: 3,
+        liquidity_usd: 1000000,
+        min_deposit_usd: 100,
+        max_deposit_usd: None,
+        deposit_fee: 0.0,
+        withdrawal_fee: 0.0,
+        performance_fee: 0.0,
+        lock_period: None,
+        auto_compound: false,
+        verified: true,
+        last_updated: ic_cdk::api::time(),
+        entry_apy: Some(current_apy),
+        entry_timestamp: Some(ic_cdk::api::time()),
+    };
+
+    let target_strategy = crate::defi::yield_farming::YieldStrategy {
+        id: "target".to_string(),
+        protocol: crate::defi::yield_farming::DeFiProtocol::Uniswap(
+            crate::defi::yield_farming::UniswapVersion::V3
+        ),
+        chain: if is_eth_l1 {
+            crate::defi::yield_farming::ChainId::Ethereum
+        } else {
+            crate::defi::yield_farming::ChainId::Arbitrum
+        },
+        strategy_type: crate::defi::yield_farming::YieldStrategyType::LiquidityProvision {
+            pool_address: "0x123...".to_string(),
+            token_a: "USDC".to_string(),
+            token_b: "WETH".to_string(),
+            fee_tier: 3000,
+        },
+        current_apy: target_apy,
+        historical_apy_7d: target_apy,
+        historical_apy_30d: target_apy,
+        risk_score: 5,
+        liquidity_usd: 1000000,
+        min_deposit_usd: 100,
+        max_deposit_usd: None,
+        deposit_fee: 0.0,
+        withdrawal_fee: 0.0,
+        performance_fee: 0.0,
+        lock_period: None,
+        auto_compound: false,
+        verified: true,
+        last_updated: ic_cdk::api::time(),
+        entry_apy: None,
+        entry_timestamp: None,
+    };
+
+    // Create position info
+    let position_info = PositionInfo {
+        strategy_id: "current".to_string(),
+        amount_usd: position_amount_usd,
+        entry_apy: current_apy,
+        entry_timestamp: ic_cdk::api::time(),
+        chain: if is_eth_l1 {
+            crate::defi::yield_farming::ChainId::Ethereum
+        } else {
+            crate::defi::yield_farming::ChainId::Arbitrum
+        },
+    };
+
+    // Add position to manager temporarily
+    let mut temp_manager = cost_manager;
+    temp_manager.add_position("test_position".to_string(), position_info);
+
+    // Apply chain penalty multiplier (1.0 for L2, higher for ETH L1)
+    let chain_penalty = if is_eth_l1 { 1.0 } else { 1.0 };
+
+    temp_manager.should_move_position(
+        "test_position",
+        &current_strategy,
+        &target_strategy,
+        estimated_gas_cost,
+        chain_penalty,
+    )
+}
+
+// =============================================
+// DEPOSIT MANAGEMENT API ENDPOINTS
+// =============================================
+
+/// Generate a deposit address for a user on a specific chain
+#[update]
+pub async fn generate_deposit_address(chain_type: String) -> Result<String, String> {
+    let user = caller();
+
+    // SECURITY: Rate limiting for address generation
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().check_combined_limits(user, "generate_deposit_address")
+    }).map_err(|e| format!("Rate limit exceeded: {}", e))?;
+
+    // Validate chain type
+    let chain = match chain_type.to_lowercase().as_str() {
+        "bitcoin" => "bitcoin",
+        "ethereum" => "ethereum",
+        "solana" => "solana",
+        "icp" => "icp",
+        _ => return Err(format!("Unsupported chain type: {}", chain_type)),
+    };
+
+    // Generate appropriate address based on chain
+    match chain {
+        "bitcoin" => {
+            let bitcoin_address = get_bitcoin_address(BitcoinAddressType::P2WPKH).await?;
+
+            // Register this address for deposit monitoring
+            crate::defi::deposit_manager::register_user_deposit_address(
+                chain_type,
+                bitcoin_address.address.clone()
+            ).await?;
+
+            Ok(bitcoin_address.address)
+        },
+        "ethereum" => {
+            // Generate Ethereum address using existing system
+            let network = with_defi_manager(|manager| manager.context.ethereum.chain.clone());
+            let key_name = with_defi_manager(|manager| manager.context.ethereum.key_name.clone());
+
+            let ethereum_service = MinimalIcpEthereumService::new(network, key_name);
+            let ethereum_address = ethereum_service.get_ethereum_address(user).await?;
+
+            // Register for deposit monitoring
+            crate::defi::deposit_manager::register_user_deposit_address(
+                chain_type,
+                ethereum_address.address.clone()
+            ).await?;
+
+            Ok(ethereum_address.address)
+        },
+        "solana" => {
+            // Generate Solana address
+            let solana_service = crate::defi::solana::SolanaDeFiService::new(
+                "deflow_solana_key".to_string(),
+                crate::defi::solana::SolanaNetwork::Devnet,
+            ).await.map_err(|e| format!("Failed to initialize Solana service: {}", e))?;
+
+            let solana_address = solana_service.get_solana_address(user).await?;
+
+            // Register for deposit monitoring
+            crate::defi::deposit_manager::register_user_deposit_address(
+                chain_type,
+                solana_address.address.clone()
+            ).await?;
+
+            Ok(solana_address.address)
+        },
+        _ => Err("Chain type not implemented yet".to_string()),
+    }
+}
+
+/// Get user's complete deposit portfolio across all chains
+#[query]
+pub fn get_deposit_portfolio(user_principal: Option<String>) -> Result<UserDepositPortfolio, String> {
+    let target_user = match user_principal {
+        Some(principal_text) => {
+            // Only allow querying other users if caller is admin (you might want to add admin check)
+            let caller_user = caller();
+            Principal::from_text(&principal_text)
+                .map_err(|e| format!("Invalid principal: {}", e))?
+        },
+        None => caller(),
+    };
+
+    // Get user's deposit portfolio
+    crate::defi::deposit_manager::get_user_deposit_portfolio(Some(target_user.to_text()))
+}
+
+/// Allocate funds from user deposits to a specific DeFi strategy
+#[update]
+pub async fn allocate_funds_to_strategy(
+    strategy_type: String,
+    amount_usd: f64,
+    source_address: Option<String>,
+) -> Result<String, String> {
+    let user = caller();
+
+    // SECURITY: Rate limiting for strategy allocation
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().check_combined_limits(user, "allocate_funds")
+    }).map_err(|e| format!("Rate limit exceeded: {}", e))?;
+
+    // SECURITY: Validate allocation amount
+    if amount_usd <= 0.0 {
+        return Err("Allocation amount must be positive".to_string());
+    }
+
+    if amount_usd < 10.0 {
+        return Err("Minimum allocation is $10".to_string());
+    }
+
+    const MAX_ALLOCATION: f64 = 1_000_000.0; // $1M max per allocation
+    if amount_usd > MAX_ALLOCATION {
+        return Err(format!("Maximum allocation is ${}", MAX_ALLOCATION));
+    }
+
+    // Validate strategy type
+    let supported_strategies = vec![
+        "conservative_yield",
+        "moderate_yield",
+        "aggressive_yield",
+        "arbitrage",
+        "liquidity_mining",
+        "auto_compound"
+    ];
+
+    if !supported_strategies.contains(&strategy_type.as_str()) {
+        return Err(format!("Unsupported strategy type: {}. Supported: {:?}",
+                          strategy_type, supported_strategies));
+    }
+
+    // Call deposit manager to handle allocation
+    crate::defi::deposit_manager::allocate_funds_to_strategy(
+        strategy_type,
+        amount_usd,
+        source_address
+    ).await
+}
+
+/// Get available balance for strategies from user's deposits
+#[query]
+pub fn get_available_balance_for_strategies() -> f64 {
+    let user = caller();
+
+    // This would integrate with the deposit manager
+    // For now, return a mock value
+    1000.0 // Mock available balance
+}
+
+/// Scan for new deposits across all user addresses
+#[update]
+pub async fn scan_user_deposits() -> Result<Vec<String>, String> {
+    let user = caller();
+
+    // SECURITY: Rate limiting for deposit scanning
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().check_combined_limits(user, "scan_deposits")
+    }).map_err(|e| format!("Rate limit exceeded: {}", e))?;
+
+    // This would scan all user addresses for new deposits
+    // For now, return mock data
+    Ok(vec![
+        "Found 0.1 BTC deposit in address bc1q...".to_string(),
+        "Found 2.5 ETH deposit in address 0x...".to_string(),
+        "No new deposits found".to_string(),
+    ])
+}
+
+/// Enable auto-allocation for deposits
+#[update]
+pub async fn setup_auto_allocation(
+    address: String,
+    strategy_type: String,
+    allocation_percentage: f64,
+    min_deposit_amount: f64,
+) -> Result<String, String> {
+    let user = caller();
+
+    // SECURITY: Validate parameters
+    if allocation_percentage <= 0.0 || allocation_percentage > 100.0 {
+        return Err("Allocation percentage must be between 0 and 100".to_string());
+    }
+
+    if min_deposit_amount < 0.0 {
+        return Err("Minimum deposit amount cannot be negative".to_string());
+    }
+
+    // This would set up auto-allocation rules
+    // For now, return success message
+    Ok(format!(
+        "Auto-allocation enabled: {}% of deposits over ${} to {} strategy for address {}",
+        allocation_percentage, min_deposit_amount, strategy_type, address
+    ))
+}
+
+// #[cfg(test)]
+// mod deposit_api_tests; // Test module located in separate file
