@@ -4535,33 +4535,145 @@ async fn execute_social_media_post_node(
             _ => None,
         })
         .ok_or("Missing platform_config input")?;
-    
+
     let content_data = input.get("content_data")
         .and_then(|v| match v {
             ConfigValue::Object(obj) => Some(obj),
             _ => None,
         })
         .ok_or("Missing content_data input")?;
-    
+
     let platform = platform_config.get("platform")
         .and_then(|v| match v {
             ConfigValue::String(s) => Some(s.clone()),
             _ => None,
         })
         .unwrap_or("twitter".to_string());
-    
-    // Mock execution - in production, this would actually post to the platform
-    let mut output_data = HashMap::new();
-    output_data.insert("platform".to_string(), ConfigValue::String(platform));
-    output_data.insert("post_id".to_string(), ConfigValue::String(format!("post_{}", api::time())));
-    output_data.insert("status".to_string(), ConfigValue::String("success".to_string()));
-    output_data.insert("post_url".to_string(), ConfigValue::String("https://example.com/post/123".to_string()));
-    output_data.insert("content_preview".to_string(), ConfigValue::Object(content_data.clone()));
-    
-    Ok(NodeOutput {
-        data: output_data,
-        next_nodes: vec![],
-    })
+
+    let message = content_data.get("message")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+        .ok_or("Missing message in content_data")?;
+
+    // Execute real social media posting based on platform
+    let result = match platform.to_lowercase().as_str() {
+        "telegram" => {
+            execute_telegram_post(platform_config, &message).await
+        },
+        "discord" => {
+            execute_discord_post(platform_config, &message).await
+        },
+        "twitter" => {
+            execute_twitter_post(platform_config, &message).await
+        },
+        _ => {
+            Err(format!("Unsupported platform: {}", platform))
+        }
+    };
+
+    match result {
+        Ok((post_id, post_url)) => {
+            let mut output_data = HashMap::new();
+            output_data.insert("platform".to_string(), ConfigValue::String(platform));
+            output_data.insert("post_id".to_string(), ConfigValue::String(post_id));
+            output_data.insert("status".to_string(), ConfigValue::String("success".to_string()));
+            output_data.insert("post_url".to_string(), ConfigValue::String(post_url));
+            output_data.insert("message_sent".to_string(), ConfigValue::String(message));
+            output_data.insert("timestamp".to_string(), ConfigValue::Number(api::time() as f64));
+
+            Ok(NodeOutput {
+                data: output_data,
+                next_nodes: vec![],
+            })
+        },
+        Err(error) => {
+            // Return error details in output for debugging
+            let mut output_data = HashMap::new();
+            output_data.insert("platform".to_string(), ConfigValue::String(platform));
+            output_data.insert("status".to_string(), ConfigValue::String("error".to_string()));
+            output_data.insert("error_message".to_string(), ConfigValue::String(error.clone()));
+            output_data.insert("timestamp".to_string(), ConfigValue::Number(api::time() as f64));
+
+            // Return the error as a node output rather than failing the workflow
+            Ok(NodeOutput {
+                data: output_data,
+                next_nodes: vec![],
+            })
+        }
+    }
+}
+
+// Real platform-specific posting implementations
+async fn execute_telegram_post(config: &HashMap<String, ConfigValue>, message: &str) -> Result<(String, String), String> {
+    use crate::defi::price_alert_service::PriceAlertManager;
+
+    let bot_token = config.get("bot_token")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+        .ok_or("Missing bot_token in Telegram config")?;
+
+    let chat_id = config.get("chat_id")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+        .ok_or("Missing chat_id in Telegram config")?;
+
+    // Create temporary alert manager for HTTP posting
+    let alert_manager = PriceAlertManager::new();
+
+    // Store config temporarily (in real app, this would be persistent)
+    alert_manager.set_telegram_config("workflow_user", bot_token, chat_id).await?;
+
+    // Send the message
+    alert_manager.post_to_telegram(message).await?;
+
+    // Generate response data
+    let post_id = format!("tg_{}", api::time());
+    let post_url = "https://t.me/".to_string(); // Telegram doesn't provide direct post URLs
+
+    Ok((post_id, post_url))
+}
+
+async fn execute_discord_post(config: &HashMap<String, ConfigValue>, message: &str) -> Result<(String, String), String> {
+    use crate::defi::price_alert_service::PriceAlertManager;
+
+    let webhook_url = config.get("webhook_url")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+        .ok_or("Missing webhook_url in Discord config")?;
+
+    // Validate webhook URL format
+    if !webhook_url.starts_with("https://discord.com/api/webhooks/") &&
+       !webhook_url.starts_with("https://discordapp.com/api/webhooks/") {
+        return Err("Invalid Discord webhook URL format".to_string());
+    }
+
+    // Create temporary alert manager for HTTP posting
+    let alert_manager = PriceAlertManager::new();
+
+    // Store config temporarily (in real app, this would be persistent)
+    alert_manager.set_discord_webhook("workflow_user", webhook_url.clone()).await?;
+
+    // Send the message
+    alert_manager.post_to_discord(message).await?;
+
+    // Generate response data
+    let post_id = format!("dc_{}", api::time());
+    let post_url = webhook_url; // Discord webhook URL as reference
+
+    Ok((post_id, post_url))
+}
+
+async fn execute_twitter_post(_config: &HashMap<String, ConfigValue>, _message: &str) -> Result<(String, String), String> {
+    // Twitter API integration not implemented yet
+    Err("Twitter integration not yet implemented. Please use Telegram or Discord.".to_string())
 }
 
 // ===== AI CONTENT GENERATION NODES =====

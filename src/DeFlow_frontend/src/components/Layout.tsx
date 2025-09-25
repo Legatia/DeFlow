@@ -3,7 +3,7 @@ import '../utils/bigint-polyfill'
 
 import { ReactNode, useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import WalletConfiguration from './WalletConfiguration'
+import DepositAddressManager from './DepositAddressManager'
 import { useEnhancedAuth } from '../contexts/EnhancedAuthContext'
 import { AuthDropdown } from './AuthDropdown'
 import { NotificationDropdown } from './NotificationDropdown'
@@ -37,7 +37,7 @@ const Layout = ({ children }: LayoutProps) => {
   useEffect(() => {
     const loadWalletCount = () => {
       try {
-        const savedWallets = localStorage.getItem('deflow_wallets')
+        const savedWallets = localStorage.getItem('deflow_deposit_addresses')
         if (savedWallets) {
           const wallets = JSON.parse(savedWallets)
           setWalletCount(wallets.length || 0)
@@ -352,7 +352,7 @@ const Layout = ({ children }: LayoutProps) => {
                 onClick={() => {
                   setIsWalletModalOpen(false)
                   // Reload wallet count when modal closes
-                  const savedWallets = localStorage.getItem('deflow_wallets')
+                  const savedWallets = localStorage.getItem('deflow_deposit_addresses')
                   if (savedWallets) {
                     const wallets = JSON.parse(savedWallets)
                     setWalletCount(wallets.length || 0)
@@ -366,7 +366,7 @@ const Layout = ({ children }: LayoutProps) => {
 
             {/* Content */}
             <div className="p-6 overflow-y-auto max-h-[75vh]">
-              <WalletConfiguration />
+              <DepositAddressManager />
             </div>
           </div>
         </div>

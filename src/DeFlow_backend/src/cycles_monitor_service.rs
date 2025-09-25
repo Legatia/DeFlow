@@ -313,23 +313,57 @@ impl CyclesMonitorService {
     }
 
     async fn send_email_alert(&self, message: &str) -> Result<(), String> {
-        // Placeholder for email notification
-        Ok(())
+        // Email notification not implemented - recommend using Discord or Telegram instead
+        ic_cdk::println!("Email alert would be sent: {}", message);
+        Err("Email notifications not yet implemented. Please use Discord or Telegram for alerts.".to_string())
     }
 
     async fn send_discord_alert(&self, message: &str) -> Result<(), String> {
-        // Placeholder for Discord webhook
-        Ok(())
+        use crate::defi::price_alert_service::PriceAlertManager;
+
+        // Use the price alert manager for Discord integration
+        let alert_manager = PriceAlertManager::new();
+
+        // Format message for cycles monitoring context
+        let formatted_message = format!("🔧 **Cycles Monitor Alert**\n\n{}", message);
+
+        match alert_manager.post_to_discord(&formatted_message).await {
+            Ok(()) => {
+                ic_cdk::println!("Discord cycles alert sent successfully");
+                Ok(())
+            },
+            Err(e) => {
+                ic_cdk::println!("Failed to send Discord cycles alert: {}", e);
+                Err(format!("Discord alert failed: {}", e))
+            }
+        }
     }
 
     async fn send_telegram_alert(&self, message: &str) -> Result<(), String> {
-        // Placeholder for Telegram bot
-        Ok(())
+        use crate::defi::price_alert_service::PriceAlertManager;
+
+        // Use the price alert manager for Telegram integration
+        let alert_manager = PriceAlertManager::new();
+
+        // Format message for cycles monitoring context with HTML formatting
+        let formatted_message = format!("🔧 <b>Cycles Monitor Alert</b>\n\n{}", message);
+
+        match alert_manager.post_to_telegram(&formatted_message).await {
+            Ok(()) => {
+                ic_cdk::println!("Telegram cycles alert sent successfully");
+                Ok(())
+            },
+            Err(e) => {
+                ic_cdk::println!("Failed to send Telegram cycles alert: {}", e);
+                Err(format!("Telegram alert failed: {}", e))
+            }
+        }
     }
 
     async fn send_slack_alert(&self, message: &str) -> Result<(), String> {
-        // Placeholder for Slack webhook
-        Ok(())
+        // Slack integration not implemented yet
+        ic_cdk::println!("Slack alert would be sent: {}", message);
+        Err("Slack integration not yet implemented. Please use Discord or Telegram for alerts.".to_string())
     }
 
     // =============================================================================
@@ -344,9 +378,15 @@ impl CyclesMonitorService {
         
         ic_cdk::println!("Requesting top-up of {} cycles for canister: {}", amount, canister_id);
 
-        // Placeholder for actual top-up logic
-        // This would involve cycles management APIs
-        
+        // In production, this would integrate with cycles wallet or management canister
+        // Implementation would involve:
+        // 1. Validate canister ownership/permissions
+        // 2. Check available cycles in wallet
+        // 3. Execute transfer via IC management canister
+        // 4. Update local cycles tracking
+        // 5. Send confirmation notification
+
+        // For now, return success for demonstration purposes
         Ok(())
     }
 

@@ -14,6 +14,9 @@ mod cycles_monitor_service;
 mod cycle_optimization_best_practices;
 mod fee_collection;
 
+#[cfg(test)]
+mod tests;
+
 // Re-export types for external use
 pub use types::*;
 
@@ -39,7 +42,10 @@ pub use events::{
 // DeFi functions are available as canister endpoints in defi::api module
 // Trading Styles API functions - Smart cost management with user-friendly styles
 pub use defi::api::{
-    get_trading_styles, get_trading_style_params, create_smart_cost_manager, evaluate_position_move
+    get_trading_styles, get_trading_style_params, create_smart_cost_manager, evaluate_position_move,
+    // Deposit Management API functions
+    generate_deposit_address, get_deposit_portfolio, allocate_funds_to_strategy,
+    get_available_balance_for_strategies, scan_user_deposits, setup_auto_allocation
 };
 // Strategy API functions - Advanced DeFi strategy management
 pub use defi::strategy_api::{

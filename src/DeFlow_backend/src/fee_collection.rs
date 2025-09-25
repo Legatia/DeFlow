@@ -6,6 +6,7 @@ use serde::Serialize;
 use ic_cdk::api;
 use crate::types::SubscriptionTier;
 use crate::defi::Asset;
+use crate::defi::yield_farming::ChainId;
 use crate::user_management;
 
 // Pool canister ID - should be set via environment or init
@@ -219,7 +220,7 @@ mod tests {
         Asset {
             symbol: "USDC".to_string(),
             name: "USD Coin".to_string(),
-            chain: crate::types::ChainId::Ethereum,
+            chain: ChainId::Ethereum,
             contract_address: Some("0xA0b86a33E6411E6A3fc0c39E4e90C8C4Bb8eF5E8".to_string()),
             decimals: 6,
             is_native: false,

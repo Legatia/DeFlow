@@ -34,6 +34,8 @@ pub mod real_protocol_integrations;
 pub mod pendle_integration;
 // Price alert & social media integration system
 pub mod price_alert_service;
+// Deposit management system connecting user deposits to strategies
+pub mod deposit_manager;
 // DeFi integration engine for price alert triggers
 pub mod price_alert_defi_integration;
 // Enhanced social media text formatting with DeFi context
