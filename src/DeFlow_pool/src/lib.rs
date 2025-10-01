@@ -11,6 +11,8 @@ mod business_model;
 mod cross_chain;
 mod analytics;
 mod chain_fusion;
+mod security;
+mod config;
 
 use types::*;
 use pool_manager::PoolManager;
@@ -18,6 +20,8 @@ use business_model::DevTeamBusinessManager;
 use cross_chain::CrossChainManager;
 use analytics::PoolAnalytics;
 use chain_fusion::ChainFusionManager;
+use security::{AccessControlManager, SecurityStatus};
+use config::{ConfigManager, InitConfig};
 // SECURITY: Import checked arithmetic for overflow protection
 // SECURITY: Import checked arithmetic for overflow protection (currently using built-in overflow checks)
 
@@ -44,42 +48,78 @@ thread_local! {
 }
 
 #[init]
-fn init(owner: Option<Principal>) {
-    POOL_STATE.with(|state| {
-        let mut pool_state = state.borrow_mut();
-        
-        // SECURITY: Enhanced owner validation with multiple checks
-        let caller = ic_cdk::caller();
-        let owner_principal = owner.unwrap_or(caller);
-        
-        // SECURITY: Comprehensive owner validation
-        if owner_principal == Principal::anonymous() {
-            ic_cdk::trap("SECURITY: Cannot initialize with anonymous principal as owner");
-        }
-        
-        // SECURITY: Prevent management canister as owner
-        if owner_principal.to_text() == "aaaaa-aa" {
-            ic_cdk::trap("SECURITY: Cannot use management canister as owner");
-        }
-        
-        // SECURITY: Validate owner principal format
-        let owner_text = owner_principal.to_text();
-        if owner_text.len() < 27 || owner_text.len() > 63 {
-            ic_cdk::trap("SECURITY: Invalid owner principal format");
-        }
-        
-        // SECURITY: Log initialization for audit
-        ic_cdk::println!("AUDIT: Canister initialized - Owner: {}, Caller: {}", 
-                         owner_principal.to_text(), caller.to_text());
-        
-        pool_state.dev_team_business.team_hierarchy.owner_principal = owner_principal;
-        
-        // Business configuration
-        pool_state.dev_team_business.minimum_distribution_threshold = 5000.0; // $5K minimum
-        pool_state.dev_team_business.distribution_frequency = 2_629_800; // 30 days in seconds
-        
-        // Grant owner premium access automatically
-        pool_state.dev_team_business.team_member_earnings.insert(owner_principal, types::MemberEarnings::default());
+fn init(init_config: Option<InitConfig>) {
+    ic_cdk_timers::set_timer(std::time::Duration::from_secs(0), || {
+        ic_cdk::spawn(async {
+            // Load configuration from environment/deployment
+            let config = ConfigManager::load_config().await;
+
+            POOL_STATE.with(|state| {
+                let mut pool_state = state.borrow_mut();
+
+                // SECURITY: Enhanced owner validation with multiple checks
+                let caller = ic_cdk::caller();
+
+                // Determine owner from config or init args
+                let owner_principal = if let Some(init_cfg) = init_config {
+                    // Apply init config if provided
+                    match init_cfg.to_pool_config() {
+                        Ok(pool_config) => {
+                            if let Err(e) = ConfigManager::apply_config_to_pool_state(&mut pool_state, &pool_config) {
+                                ic_cdk::trap(&format!("CONFIG ERROR: {}", e));
+                            }
+                            pool_config.owner_principal.unwrap_or(caller)
+                        }
+                        Err(e) => {
+                            ic_cdk::trap(&format!("INVALID INIT CONFIG: {}", e));
+                        }
+                    }
+                } else {
+                    // Apply loaded config
+                    if let Err(e) = ConfigManager::apply_config_to_pool_state(&mut pool_state, &config) {
+                        ic_cdk::trap(&format!("CONFIG ERROR: {}", e));
+                    }
+                    config.owner_principal.unwrap_or(caller)
+                };
+
+                // SECURITY: Comprehensive owner validation
+                if owner_principal == Principal::anonymous() {
+                    ic_cdk::trap("SECURITY: Cannot initialize with anonymous principal as owner");
+                }
+
+                // SECURITY: Prevent management canister as owner
+                if owner_principal.to_text() == "aaaaa-aa" {
+                    ic_cdk::trap("SECURITY: Cannot use management canister as owner");
+                }
+
+                // SECURITY: Validate owner principal format
+                let owner_text = owner_principal.to_text();
+                if owner_text.len() < 27 || owner_text.len() > 63 {
+                    ic_cdk::trap("SECURITY: Invalid owner principal format");
+                }
+
+                // SECURITY: Log initialization for audit
+                ic_cdk::println!("AUDIT: Canister initialized - Owner: {}, Caller: {}",
+                                 owner_principal.to_text(), caller.to_text());
+
+                pool_state.dev_team_business.team_hierarchy.owner_principal = owner_principal;
+
+                // Business configuration
+                pool_state.dev_team_business.minimum_distribution_threshold = 5000.0; // $5K minimum
+                pool_state.dev_team_business.distribution_frequency = 2_629_800; // 30 days in seconds
+
+                // Grant owner premium access automatically
+                pool_state.dev_team_business.team_member_earnings.insert(owner_principal, types::MemberEarnings::default());
+
+                // Log configuration summary
+                ic_cdk::println!(
+                    "CONFIG: Pool initialized with Backend: {:?}, Admin: {:?}, Emergency principals: {}",
+                    config.backend_canister_principal.map(|p| p.to_text()),
+                    config.admin_canister_principal.map(|p| p.to_text()),
+                    config.emergency_principals.len()
+                );
+            });
+        });
     });
 
     ic_cdk::println!("AUDIT: Basic canister initialization completed - Chain Fusion addresses can be initialized separately");
@@ -838,11 +878,16 @@ fn deposit_fee(asset: Asset, amount: u64, tx_id: String, user: Principal) -> Res
         )
     })?;
     
-    // SECURITY: Only authorized services can deposit fees
-    if !is_authorized_fee_depositor(caller) {
-        ic_cdk::println!("SECURITY: Unauthorized fee deposit attempt by {}", caller.to_text());
-        return Err("SECURITY: Only authorized services can deposit fees".to_string());
-    }
+    // SECURITY: Check access control - only backend canister can deposit fees
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        AccessControlManager::check_access(
+            &mut pool_state,
+            caller,
+            SecurityAction::DepositFee,
+            "deposit_fee",
+        )
+    })?;
     
     // SECURITY: Audit logging
     ic_cdk::println!("AUDIT: Fee deposit - Asset: {:?}, Amount: {}, TxID: {}, User: {}, Caller: {}", 
@@ -964,11 +1009,16 @@ fn process_subscription_payment(user: Principal, amount: f64) -> Result<String, 
         )
     })?;
     
-    // SECURITY: Only authorized payment processors can process subscriptions
-    if !is_authorized_payment_processor(caller) {
-        ic_cdk::println!("SECURITY: Unauthorized payment processing attempt by {}", caller.to_text());
-        return Err("SECURITY: Only authorized payment processors allowed".to_string());
-    }
+    // SECURITY: Check access control - only admin canister can process subscription payments
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        AccessControlManager::check_access(
+            &mut pool_state,
+            caller,
+            SecurityAction::AdminOperation,
+            "process_subscription_payment",
+        )
+    })?;
     
     // SECURITY: Audit logging
     ic_cdk::println!("AUDIT: Subscription payment - User: {}, Amount: ${}, Caller: {}", 
@@ -4340,6 +4390,76 @@ pub struct CycleOptimizationStatus {
     pub memory_optimization_active: bool,
 }
 
+// =============================================================================
+// SECURITY MANAGEMENT FUNCTIONS (Owner Only)
+// =============================================================================
+
+/// Set backend canister principal (Owner only)
+#[update]
+fn set_backend_canister(backend_principal: Principal) -> Result<(), String> {
+    let caller = ic_cdk::caller();
+
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        AccessControlManager::set_backend_canister(&mut pool_state, caller, backend_principal)
+    })
+}
+
+/// Set admin canister principal (Owner only)
+#[update]
+fn set_admin_canister(admin_principal: Principal) -> Result<(), String> {
+    let caller = ic_cdk::caller();
+
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        AccessControlManager::set_admin_canister(&mut pool_state, caller, admin_principal)
+    })
+}
+
+/// Add emergency stop principal (Owner only)
+#[update]
+fn add_emergency_stop_principal(emergency_principal: Principal) -> Result<(), String> {
+    let caller = ic_cdk::caller();
+
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+        AccessControlManager::add_emergency_stop_principal(&mut pool_state, caller, emergency_principal)
+    })
+}
+
+/// Get security status (Public query for transparency)
+#[query]
+fn get_security_status() -> SecurityStatus {
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+        AccessControlManager::get_security_status(&pool_state)
+    })
+}
+
+/// Get recent security audit log entries (Owner only)
+#[query]
+fn get_security_audit_log(limit: Option<u32>) -> Result<Vec<SecurityAuditLog>, String> {
+    let caller = ic_cdk::caller();
+
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+
+        // Check if caller is owner
+        if caller != pool_state.dev_team_business.team_hierarchy.owner_principal {
+            return Err("Only owner can access security audit log".to_string());
+        }
+
+        let limit = limit.unwrap_or(100).min(1000) as usize; // Max 1000 entries
+        let log_len = pool_state.security_audit_log.len();
+
+        if log_len <= limit {
+            Ok(pool_state.security_audit_log.clone())
+        } else {
+            Ok(pool_state.security_audit_log[log_len - limit..].to_vec())
+        }
+    })
+}
+
 /// Batch multiple fee deposits to optimize cycles
 #[update]
 fn batch_deposit_fees(deposits: Vec<BatchFeeDeposit>) -> Result<String, String> {
@@ -4376,6 +4496,119 @@ pub struct BatchFeeDeposit {
     pub amount: u64,
     pub transaction_hash: String,
     pub user: Principal,
+}
+
+// =============================================================================
+// CONFIGURATION MANAGEMENT FUNCTIONS
+// =============================================================================
+
+/// Apply configuration from init args or environment
+#[update]
+fn apply_configuration(config: InitConfig) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+
+        // Check owner access
+        if caller != pool_state.dev_team_business.team_hierarchy.owner_principal {
+            return Err(format!(
+                "Only owner {} can apply configuration. Caller: {}",
+                pool_state.dev_team_business.team_hierarchy.owner_principal.to_text(),
+                caller.to_text()
+            ));
+        }
+
+        // Convert and validate config
+        let pool_config = config.to_pool_config()?;
+
+        // Apply configuration
+        ConfigManager::apply_config_to_pool_state(&mut pool_state, &pool_config)?;
+
+        Ok(format!(
+            "Configuration applied successfully. Backend: {:?}, Admin: {:?}, Emergency principals: {}",
+            pool_config.backend_canister_principal.map(|p| p.to_text()),
+            pool_config.admin_canister_principal.map(|p| p.to_text()),
+            pool_config.emergency_principals.len()
+        ))
+    })
+}
+
+/// Get current configuration (Owner only)
+#[query]
+fn get_current_configuration() -> Result<String, String> {
+    let caller = ic_cdk::caller();
+
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+
+        // Check owner access
+        if caller != pool_state.dev_team_business.team_hierarchy.owner_principal {
+            return Err("Only owner can view configuration".to_string());
+        }
+
+        let access_control = &pool_state.access_control;
+
+        Ok(format!(
+            "Current Configuration:\n\
+             - Owner: {}\n\
+             - Backend Canister: {:?}\n\
+             - Admin Canister: {:?}\n\
+             - Emergency Principals: {:?}\n\
+             - Authorized Fee Collectors: {:?}\n\
+             - Readonly Access: {:?}\n\
+             - Rate Limits Active: {}\n\
+             - Audit Log Entries: {}\n\
+             - State Version: {}",
+            pool_state.dev_team_business.team_hierarchy.owner_principal.to_text(),
+            access_control.backend_canister.map(|p| p.to_text()),
+            access_control.admin_canister.map(|p| p.to_text()),
+            access_control.emergency_stop_principals.iter().map(|p| p.to_text()).collect::<Vec<_>>(),
+            access_control.authorized_fee_collectors.iter().map(|p| p.to_text()).collect::<Vec<_>>(),
+            access_control.readonly_access.iter().map(|p| p.to_text()).collect::<Vec<_>>(),
+            access_control.rate_limits.len(),
+            pool_state.security_audit_log.len(),
+            pool_state.state_version
+        ))
+    })
+}
+
+/// Auto-configure from deployed canisters (Owner only)
+#[update]
+async fn auto_configure_from_deployment() -> Result<String, String> {
+    let caller = ic_cdk::caller();
+
+    POOL_STATE.with(|state| {
+        let pool_state = state.borrow();
+
+        // Check owner access
+        if caller != pool_state.dev_team_business.team_hierarchy.owner_principal {
+            return Err("Only owner can trigger auto-configuration".to_string());
+        }
+
+        Ok(())
+    })?;
+
+    // Load configuration with auto-discovery
+    let config = ConfigManager::load_config().await;
+
+    POOL_STATE.with(|state| {
+        let mut pool_state = state.borrow_mut();
+
+        // Apply the auto-discovered configuration
+        ConfigManager::apply_config_to_pool_state(&mut pool_state, &config)?;
+
+        Ok(format!(
+            "Auto-configuration completed. Discovered and applied:\n\
+             - Backend Canister: {:?}\n\
+             - Admin Canister: {:?}\n\
+             - Emergency Principals: {}\n\
+             - Configuration loaded from deployment environment",
+            config.backend_canister_principal.map(|p| p.to_text()),
+            config.admin_canister_principal.map(|p| p.to_text()),
+            config.emergency_principals.len()
+        ))
+    })
 }
 
 // Export Candid interface

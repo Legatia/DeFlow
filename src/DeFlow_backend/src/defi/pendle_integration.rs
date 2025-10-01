@@ -468,7 +468,7 @@ impl From<PendleError> for super::protocol_integrations::IntegrationError {
             PendleError::NetworkError(msg) => super::protocol_integrations::IntegrationError::NetworkError(msg),
             PendleError::ApiError(msg) => super::protocol_integrations::IntegrationError::ApiError(msg),
             PendleError::ParseError(msg) => super::protocol_integrations::IntegrationError::ParseError(msg),
-            PendleError::RateLimited(msg) => super::protocol_integrations::IntegrationError::RateLimited,
+            PendleError::RateLimited(_msg) => super::protocol_integrations::IntegrationError::RateLimited,
             PendleError::InvalidMarket(_) => super::protocol_integrations::IntegrationError::ApiError("Invalid market".to_string()),
             PendleError::InsufficientLiquidity(_) => super::protocol_integrations::IntegrationError::InsufficientLiquidity,
         }

@@ -5,6 +5,10 @@
 pub mod bitcoin;
 pub mod ethereum;
 pub mod solana;
+pub mod stacks;
+pub mod stacks_yield_strategies;
+pub mod btc_staking;
+pub mod bridges;
 pub mod types;
 pub mod api;
 // Day 11: Advanced DeFi Workflows - Cross-chain yield farming and arbitrage

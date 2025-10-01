@@ -62,6 +62,9 @@ thread_local! {
     static GAS_FEE_CACHE: RefCell<HashMap<String, GasFeeData>> = RefCell::new(HashMap::new());
     static GAS_MONITORING_QUEUE: RefCell<Vec<GasMonitoringOpportunity>> = RefCell::new(Vec::new());
     static GAS_MONITOR_TIMER: RefCell<Option<TimerId>> = RefCell::new(None);
+    // Error tracking for adaptive fetch frequency
+    static FETCH_ERROR_COUNT: RefCell<u32> = RefCell::new(0);
+    static LAST_SUCCESSFUL_FETCH: RefCell<u64> = RefCell::new(0);
 }
 
 pub struct RealtimeAPYFetcher {
@@ -104,30 +107,87 @@ impl RealtimeAPYFetcher {
         ic_cdk::println!("Started APY fetcher with {}s intervals", self.fetch_interval_seconds);
     }
 
-    // Fetch APY data from multiple sources
+    // Fetch APY data from multiple sources with error recovery
     async fn fetch_all_apy_data() -> Result<(), String> {
+        let mut errors = Vec::new();
+
         // Fetch from DeFiLlama
-        Self::fetch_defillama_yields().await?;
+        match Self::fetch_defillama_yields().await {
+            Ok(_) => {
+                FETCH_ERROR_COUNT.with(|count| *count.borrow_mut() = 0);
+                LAST_SUCCESSFUL_FETCH.with(|time| *time.borrow_mut() = ic_cdk::api::time());
+            }
+            Err(e) => {
+                FETCH_ERROR_COUNT.with(|count| *count.borrow_mut() += 1);
+                errors.push(format!("DeFiLlama: {}", e));
+            }
+        }
 
         // Fetch from Aave API
-        Self::fetch_aave_rates().await?;
+        match Self::fetch_aave_rates().await {
+            Ok(_) => {}
+            Err(e) => errors.push(format!("Aave: {}", e))
+        }
 
         // Fetch from Compound API
-        Self::fetch_compound_rates().await?;
+        match Self::fetch_compound_rates().await {
+            Ok(_) => {}
+            Err(e) => errors.push(format!("Compound: {}", e))
+        }
 
-        ic_cdk::println!("Successfully updated APY data from all sources");
+        if errors.len() == 3 {
+            return Err(format!("All sources failed: {}", errors.join("; ")));
+        }
+
+        if !errors.is_empty() {
+            ic_cdk::println!("Partial success - some sources failed: {}", errors.join("; "));
+        } else {
+            ic_cdk::println!("Successfully updated APY data from all sources");
+        }
+
         Ok(())
     }
 
-    // Fetch yield data from DeFiLlama API
+    // Fetch yield data from DeFiLlama API with size optimization
     async fn fetch_defillama_yields() -> Result<(), String> {
-        let url = "https://yields.llama.fi/pools";
+        // Instead of fetching all pools, fetch top pools by TVL for specific protocols
+        // This significantly reduces response size
+        let major_protocols = [
+            "aave-v3", "compound-v3", "uniswap-v3", "curve",
+            "lido", "convex-finance", "yearn-finance"
+        ];
+
+        let mut success_count = 0;
+        for protocol in major_protocols.iter() {
+            match Self::fetch_defillama_protocol_yields(protocol).await {
+                Ok(_) => success_count += 1,
+                Err(e) => {
+                    ic_cdk::println!("Failed to fetch yields for {}: {}", protocol, e);
+                    // Continue with other protocols instead of failing completely
+                }
+            }
+        }
+
+        if success_count == 0 {
+            // If all protocol-specific requests fail, try fallback to top pools
+            ic_cdk::println!("All protocol requests failed, trying fallback approach");
+            return Self::fetch_defillama_top_pools_fallback().await;
+        }
+
+        ic_cdk::println!("Successfully fetched yields from {}/{} protocols", success_count, major_protocols.len());
+        Ok(())
+    }
+
+    // Fetch yields for specific protocol to reduce response size
+    async fn fetch_defillama_protocol_yields(protocol: &str) -> Result<(), String> {
+        // Use protocol-specific endpoint with smaller response
+        let url = format!("https://yields.llama.fi/poolsByProtocol?project={}", protocol);
 
         let request = CanisterHttpRequestArgument {
-            url: url.to_string(),
+            url,
             method: HttpMethod::GET,
             body: None,
-            max_response_bytes: Some(2_000_000), // 2MB max
+            max_response_bytes: Some(1_500_000), // 1.5MB limit per protocol
             transform: Some(TransformContext::from_name("transform_defillama_response".to_string(), vec![])),
             headers: vec![
                 HttpHeader {
@@ -141,18 +201,112 @@ impl RealtimeAPYFetcher {
             ],
         };
 
-        match http_request(request, 25_000_000_000).await {
+        match http_request(request, 15_000_000_000).await { // Reduced cycles for smaller requests
             Ok((response,)) => {
-                Self::parse_defillama_response(response.body)?;
+                if response.body.len() > 1_800_000 { // Check if still too large
+                    return Err(format!("Response too large for protocol {}: {} bytes", protocol, response.body.len()));
+                }
+                Self::parse_defillama_protocol_response(response.body, protocol)?;
                 Ok(())
             }
             Err((r, m)) => {
-                Err(format!("HTTP request failed: {:?} - {}", r, m))
+                Err(format!("HTTP request failed for {}: {:?} - {}", protocol, r, m))
             }
         }
     }
 
-    // Parse DeFiLlama response and cache APY data
+    // Fallback method to fetch top pools with minimal data
+    async fn fetch_defillama_top_pools_fallback() -> Result<(), String> {
+        // Use a more specific endpoint that returns smaller responses
+        let url = "https://yields.llama.fi/topPools";
+
+        let request = CanisterHttpRequestArgument {
+            url: url.to_string(),
+            method: HttpMethod::GET,
+            body: None,
+            max_response_bytes: Some(1_000_000), // 1MB limit for fallback
+            transform: Some(TransformContext::from_name("transform_defillama_response".to_string(), vec![])),
+            headers: vec![
+                HttpHeader {
+                    name: "User-Agent".to_string(),
+                    value: "DeFlow-ICP-Canister/1.0".to_string(),
+                },
+                HttpHeader {
+                    name: "Accept".to_string(),
+                    value: "application/json".to_string(),
+                },
+            ],
+        };
+
+        match http_request(request, 10_000_000_000).await {
+            Ok((response,)) => {
+                if response.body.len() > 900_000 {
+                    return Err(format!("Fallback response still too large: {} bytes", response.body.len()));
+                }
+                Self::parse_defillama_response(response.body)?;
+                ic_cdk::println!("Successfully fetched APY data using fallback method");
+                Ok(())
+            }
+            Err((r, m)) => {
+                Err(format!("Fallback HTTP request failed: {:?} - {}", r, m))
+            }
+        }
+    }
+
+    // Parse DeFiLlama protocol-specific response and cache APY data
+    fn parse_defillama_protocol_response(body: Vec<u8>, protocol: &str) -> Result<(), String> {
+        let response_str = String::from_utf8(body)
+            .map_err(|e| format!("Failed to parse response as UTF-8: {}", e))?;
+
+        let json_data: serde_json::Value = serde_json::from_str(&response_str)
+            .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+
+        let current_time = ic_cdk::api::time();
+        let mut cached_count = 0;
+
+        // Handle different response structures
+        let pools = if let Some(data) = json_data["data"].as_array() {
+            data
+        } else if let Some(pools) = json_data.as_array() {
+            pools
+        } else {
+            return Err("Invalid response structure".to_string());
+        };
+
+        for pool in pools.iter().take(50) { // Limit to top 50 pools per protocol
+            if let (Some(chain), Some(symbol), Some(apy), Some(tvl)) = (
+                pool["chain"].as_str(),
+                pool["symbol"].as_str(),
+                pool["apy"].as_f64(),
+                pool["tvlUsd"].as_f64(),
+            ) {
+                // Filter for supported chains only
+                if Self::is_supported_chain(chain) && apy > 0.01 && tvl > 10000.0 {
+                    let cache_key = format!("{}:{}:{}", protocol, chain, symbol);
+                    let apy_data = RealtimeAPYData {
+                        protocol: protocol.to_string(),
+                        chain: chain.to_string(),
+                        token: symbol.to_string(),
+                        apy,
+                        tvl_usd: tvl as u64,
+                        risk_score: Self::calculate_risk_score(protocol, tvl),
+                        last_updated: current_time,
+                        source: "DeFiLlama".to_string(),
+                    };
+
+                    APY_CACHE.with(|cache| {
+                        cache.borrow_mut().insert(cache_key, apy_data);
+                    });
+                    cached_count += 1;
+                }
+            }
+        }
+
+        ic_cdk::println!("Cached {} APY entries for protocol {}", cached_count, protocol);
+        Ok(())
+    }
+
+    // Parse DeFiLlama response and cache APY data (legacy function)
     fn parse_defillama_response(body: Vec<u8>) -> Result<(), String> {
         let response_str = String::from_utf8(body)
             .map_err(|e| format!("Failed to parse response as UTF-8: {}", e))?;
@@ -899,10 +1053,49 @@ impl RealtimeAPYFetcher {
 // Transform functions for HTTP responses (required by IC)
 #[ic_cdk::query]
 fn transform_defillama_response(args: TransformArgs) -> HttpResponse {
+    let body_size = args.response.body.len();
+
+    // Log response size for monitoring
+    ic_cdk::println!("DeFiLlama response size: {} bytes", body_size);
+
+    // If response is too large, truncate or filter it
+    let processed_body = if body_size > 1_800_000 {
+        ic_cdk::println!("WARNING: Response size {} exceeds safe limit, applying truncation", body_size);
+
+        // Try to parse and filter the response to reduce size
+        if let Ok(response_str) = String::from_utf8(args.response.body.clone()) {
+            if let Ok(mut json_data) = serde_json::from_str::<serde_json::Value>(&response_str) {
+                // Filter to only top 100 pools if it's a pools array
+                if let Some(pools) = json_data["data"].as_array_mut() {
+                    pools.truncate(100);
+                } else if let Some(pools) = json_data.as_array_mut() {
+                    pools.truncate(100);
+                }
+
+                // Convert back to bytes
+                if let Ok(filtered_json) = serde_json::to_string(&json_data) {
+                    ic_cdk::println!("Filtered response size: {} bytes", filtered_json.len());
+                    filtered_json.into_bytes()
+                } else {
+                    // Fallback: just truncate raw bytes (not ideal but prevents errors)
+                    args.response.body[..1_800_000].to_vec()
+                }
+            } else {
+                // Fallback: just truncate raw bytes
+                args.response.body[..1_800_000].to_vec()
+            }
+        } else {
+            // Fallback: just truncate raw bytes
+            args.response.body[..1_800_000].to_vec()
+        }
+    } else {
+        args.response.body.clone()
+    };
+
     HttpResponse {
         status: args.response.status.clone(),
         headers: Vec::new(), // Remove sensitive headers
-        body: args.response.body.clone(),
+        body: processed_body,
     }
 }
 
@@ -950,6 +1143,35 @@ pub fn init_apy_fetcher_timer() {
     let fetcher = RealtimeAPYFetcher::new();
     fetcher.start_periodic_fetch();
     ic_cdk::println!("APY fetcher timer initialized");
+}
+
+/// Get APY fetching status and error statistics
+#[ic_cdk::query]
+pub fn get_apy_fetch_status() -> APYFetchStatus {
+    let error_count = FETCH_ERROR_COUNT.with(|count| *count.borrow());
+    let last_success = LAST_SUCCESSFUL_FETCH.with(|time| *time.borrow());
+    let current_time = ic_cdk::api::time();
+
+    APYFetchStatus {
+        consecutive_error_count: error_count,
+        last_successful_fetch: last_success,
+        time_since_last_success_hours: if last_success > 0 {
+            (current_time - last_success) / (60 * 60 * 1_000_000_000) // Convert to hours
+        } else {
+            0
+        },
+        total_cached_protocols: APY_CACHE.with(|cache| cache.borrow().len() as u32),
+        is_healthy: error_count < 5 && (current_time - last_success) < (6 * 60 * 60 * 1_000_000_000), // Less than 6 hours
+    }
+}
+
+#[derive(candid::CandidType, serde::Deserialize, Clone, Debug)]
+pub struct APYFetchStatus {
+    pub consecutive_error_count: u32,
+    pub last_successful_fetch: u64,
+    pub time_since_last_success_hours: u64,
+    pub total_cached_protocols: u32,
+    pub is_healthy: bool,
 }
 
 #[ic_cdk::query]

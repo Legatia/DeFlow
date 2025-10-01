@@ -19,6 +19,7 @@ pub enum ChainId {
     Base,
     Avalanche,
     Solana,
+    Stacks,  // Bitcoin L2 for sBTC
 }
 
 impl ChainId {
@@ -32,6 +33,7 @@ impl ChainId {
             ChainId::Base => "Base",
             ChainId::Avalanche => "Avalanche",
             ChainId::Solana => "Solana",
+            ChainId::Stacks => "Stacks",
         }
     }
 

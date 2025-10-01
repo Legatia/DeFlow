@@ -503,19 +503,19 @@ const YieldOptimizationDemo: React.FC = () => {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            DeFlow Yield Optimization Demo
+            📊 DeFlow Portfolio Dashboard
           </h1>
           <p className="text-lg text-gray-600">
-            Experience automated stablecoin yield optimization with real protocol data
+            Monitor your automated yield optimization performance and strategies
           </p>
         </div>
 
-        {/* Settings Panel */}
+        {/* Portfolio Settings Panel */}
         <Card>
           <CardHeader>
-            <CardTitle>Optimization Settings</CardTitle>
+            <CardTitle>🎛️ Portfolio Configuration</CardTitle>
             <CardDescription>
-              Configure your yield optimization preferences
+              Configure your portfolio settings and strategy preferences
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -611,7 +611,7 @@ const YieldOptimizationDemo: React.FC = () => {
 
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="csvFile">Upload 365-Day CSV Data</Label>
+                  <Label htmlFor="csvFile">📁 Upload APY Data for Mainnet Demo</Label>
                   <Input
                     id="csvFile"
                     type="file"
@@ -620,7 +620,7 @@ const YieldOptimizationDemo: React.FC = () => {
                     className="mt-1"
                   />
                   <p className="text-sm text-gray-500 mt-1">
-                    Format: date,protocol,chain,apy,stablecoin,tvl,gasCost,bridgeFee
+                    Upload your mainnet APY data - Format: date,protocol,chain,apy,stablecoin,tvl,gasCost,bridgeFee
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -632,7 +632,7 @@ const YieldOptimizationDemo: React.FC = () => {
                     disabled={isRunning}
                     className={`w-full ${demoMode === '365_day_realistic' ? 'bg-green-600 hover:bg-green-700' : 'bg-green-500 hover:bg-green-600'}`}
                   >
-                    {demoMode === '365_day_realistic' ? '✓ ' : ''}Load 365-Day Pre-calculated Demo
+                    {demoMode === '365_day_realistic' ? '✅ ' : '📈 '}Load Portfolio Performance Demo
                   </Button>
                   <Button
                     onClick={() => {
@@ -647,8 +647,8 @@ const YieldOptimizationDemo: React.FC = () => {
                     variant="outline"
                     className="w-full"
                   >
-                    {isRunning ? 'Running Optimization...' :
-                     csvData.length > 0 ? 'Run Custom Optimization' : 'Generate Mock Data & Run'}
+                    {isRunning ? '🔄 Analyzing Portfolio...' :
+                     csvData.length > 0 ? '🚀 Analyze Custom Data' : '📊 Generate Sample Portfolio'}
                   </Button>
                 </div>
               </div>
@@ -656,11 +656,11 @@ const YieldOptimizationDemo: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Progress Indicator */}
+        {/* Portfolio Analysis Progress */}
         {isRunning && (
           <Card>
             <CardHeader>
-              <CardTitle>Optimization Progress</CardTitle>
+              <CardTitle>📈 Portfolio Analysis Progress</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -674,12 +674,12 @@ const YieldOptimizationDemo: React.FC = () => {
           </Card>
         )}
 
-        {/* Summary Statistics */}
+        {/* Portfolio Summary Statistics */}
         {summary && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Final Value</CardTitle>
+                <CardTitle className="text-sm font-medium">💰 Portfolio Value</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
@@ -693,7 +693,7 @@ const YieldOptimizationDemo: React.FC = () => {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Annualized Return</CardTitle>
+                <CardTitle className="text-sm font-medium">📈 Annualized Return</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-blue-600">
@@ -707,7 +707,7 @@ const YieldOptimizationDemo: React.FC = () => {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total Costs</CardTitle>
+                <CardTitle className="text-sm font-medium">⛽ Transaction Costs</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">
@@ -721,27 +721,27 @@ const YieldOptimizationDemo: React.FC = () => {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Days Optimized</CardTitle>
+                <CardTitle className="text-sm font-medium">📅 Analysis Period</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-purple-600">
                   {optimizationResults.length}
                 </div>
                 <p className="text-xs text-gray-600">
-                  Out of 365 days
+                  Days of portfolio data
                 </p>
               </CardContent>
             </Card>
           </div>
         )}
 
-        {/* Charts */}
+        {/* Portfolio Analytics Charts */}
         {optimizationResults.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Portfolio Value Chart */}
+            {/* Portfolio Growth Chart */}
             <Card>
               <CardHeader>
-                <CardTitle>Portfolio Value Over Time</CardTitle>
+                <CardTitle>📈 Portfolio Growth Timeline</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -770,10 +770,10 @@ const YieldOptimizationDemo: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Protocol Distribution */}
+            {/* Protocol Allocation */}
             <Card>
               <CardHeader>
-                <CardTitle>Protocol Selection Distribution</CardTitle>
+                <CardTitle>🎯 Protocol Allocation Distribution</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -801,10 +801,10 @@ const YieldOptimizationDemo: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Daily APY Chart */}
+            {/* APY Performance Chart */}
             <Card>
               <CardHeader>
-                <CardTitle>Daily Selected APY</CardTitle>
+                <CardTitle>📊 Daily APY Performance</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -821,10 +821,10 @@ const YieldOptimizationDemo: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Recent Activity */}
+            {/* Portfolio Activity Feed */}
             <Card>
               <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
+                <CardTitle>📝 Recent Portfolio Activity</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 max-h-80 overflow-y-auto">
@@ -851,13 +851,13 @@ const YieldOptimizationDemo: React.FC = () => {
           </div>
         )}
 
-        {/* CSV Data Preview */}
+        {/* Raw Data Preview */}
         {csvData.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Data Preview</CardTitle>
+              <CardTitle>📁 Uploaded APY Data Preview</CardTitle>
               <CardDescription>
-                Showing first 10 rows of loaded data ({csvData.length} total rows)
+                Showing first 10 rows of your mainnet data ({csvData.length} total rows loaded)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -895,15 +895,15 @@ const YieldOptimizationDemo: React.FC = () => {
           </Card>
         )}
 
-        {/* Strategy Comparison Chart - The Grand Finale */}
+        {/* Portfolio Performance Comparison Chart */}
         {optimizationResults.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-xl font-bold text-center">
-                💎 DeFlow vs Traditional Strategies - Complete Comparison
+                📊 Portfolio Performance vs Single Pool Strategy
               </CardTitle>
               <CardDescription className="text-center">
-                See how DeFlow's automated optimization compares to static strategies and savings over time
+                Compare automated portfolio optimization against traditional single pool strategies over time
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -928,14 +928,9 @@ const YieldOptimizationDemo: React.FC = () => {
                   }
                   
                   
-                  // Bank savings (high-yield savings account)
-                  const bankAPY = 4.0; // Current high-yield savings rates
-                  const bankValue = settings.initialAmount * (1 + (bankAPY / 100 / 365) * daysSinceStart);
-                  
                   // Convert to percentage gains for better visualization
                   const deflowGain = ((result.cumulativeValue - settings.initialAmount) / settings.initialAmount) * 100;
                   const staticGain = ((staticValue - settings.initialAmount) / settings.initialAmount) * 100;
-                  const bankGain = ((bankValue - settings.initialAmount) / settings.initialAmount) * 100;
 
 
                   // Get current Aave APY for this day
@@ -946,14 +941,12 @@ const YieldOptimizationDemo: React.FC = () => {
                     day: result.day,
                     deflow: deflowGain,
                     static: staticGain,
-                    bank: bankGain,
                     date: result.date,
                     aaveAPY: currentAaveAPY,
                     deflowAPY: result.apy,
                     // Store dollar values for summary cards
                     deflowValue: result.cumulativeValue,
-                    staticValue: staticValue,
-                    bankValue: bankValue
+                    staticValue: staticValue
                   };
                 })}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -967,8 +960,8 @@ const YieldOptimizationDemo: React.FC = () => {
                   <Tooltip
                     formatter={(value: number, name: string) => [
                       `${value.toFixed(2)}%`,
-                      name === 'deflow' ? 'DeFlow Optimized' :
-                      name === 'static' ? 'Aave USDC Pool' : 'High-Yield Savings'
+                      name === 'deflow' ? 'DeFlow Portfolio' :
+                      name === 'static' ? 'Single Pool (Aave USDC)' : 'Unknown'
                     ]}
                     labelFormatter={(label) => `Day ${label}`}
                   />
@@ -989,41 +982,31 @@ const YieldOptimizationDemo: React.FC = () => {
                     dot={{ fill: '#6366F1', strokeWidth: 1, r: 1 }}
                     activeDot={{ r: 4, stroke: '#6366F1', strokeWidth: 2, fill: '#fff' }}
                   />
-                  <Line
-                    type="monotone"
-                    dataKey="bank"
-                    stroke="#EF4444"
-                    strokeWidth={1}
-                    strokeDasharray="2 2"
-                    name="bank"
-                    dot={false}
-                  />
                 </LineChart>
               </ResponsiveContainer>
 
               {/* Legend and Performance Summary */}
               <div className="mt-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
                     <div className="flex items-center justify-center space-x-2 mb-1">
                       <div className="w-4 h-0.5 bg-green-600"></div>
-                      <span className="font-semibold text-green-800">DeFlow Optimized</span>
+                      <span className="font-semibold text-green-800">🚀 DeFlow Portfolio</span>
                     </div>
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-3xl font-bold text-green-600">
                       ${optimizationResults[optimizationResults.length - 1]?.cumulativeValue.toLocaleString()}
                     </div>
-                    <div className="text-xs text-green-600">
-                      +${(optimizationResults[optimizationResults.length - 1]?.cumulativeValue - settings.initialAmount).toFixed(2)}
+                    <div className="text-sm text-green-600">
+                      Profit: +${(optimizationResults[optimizationResults.length - 1]?.cumulativeValue - settings.initialAmount).toFixed(2)}
                     </div>
                   </div>
-                  
-                  
-                  <div className="text-center p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+
+                  <div className="text-center p-4 bg-indigo-50 rounded-lg border border-indigo-200">
                     <div className="flex items-center justify-center space-x-2 mb-1">
                       <div className="w-4 h-0.5 bg-indigo-600 border-dashed border-b"></div>
-                      <span className="font-semibold text-indigo-800">Aave USDC Pool</span>
+                      <span className="font-semibold text-indigo-800">📊 Single Pool Strategy</span>
                     </div>
-                    <div className="text-2xl font-bold text-indigo-600">
+                    <div className="text-3xl font-bold text-indigo-600">
                       ${(() => {
                         if (demoMode === '365_day_realistic') {
                           const finalAaveValue = getAaveValueForDay(365);
@@ -1039,39 +1022,26 @@ const YieldOptimizationDemo: React.FC = () => {
                         }
                       })()}
                     </div>
-                    <div className="text-xs text-indigo-600">
-                      Aave USDC Ethereum ({(() => {
+                    <div className="text-sm text-indigo-600">
+                      Aave USDC Pool - {(() => {
                         if (demoMode === '365_day_realistic') {
                           const finalDayAPY = getAaveAPYForDay(365);
-                          return `${finalDayAPY.toFixed(1)}% final APY`;
+                          return `${finalDayAPY.toFixed(1)}% APY`;
                         } else {
                           return '3.5% avg APY';
                         }
-                      })()})
-                    </div>
-                  </div>
-                  
-                  <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
-                    <div className="flex items-center justify-center space-x-2 mb-1">
-                      <div className="w-4 h-0.5 bg-red-600 border-dotted border-b"></div>
-                      <span className="font-semibold text-red-800">High-Yield Savings</span>
-                    </div>
-                    <div className="text-2xl font-bold text-red-600">
-                      ${(settings.initialAmount * (1 + (4.0 / 100 / 365) * optimizationResults.length)).toLocaleString()}
-                    </div>
-                    <div className="text-xs text-red-600">
-                      4.0% APY (Marcus, Ally)
+                      })()}
                     </div>
                   </div>
                 </div>
                 
                 {/* Performance Advantage Summary */}
                 <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border border-green-200">
-                  <h4 className="font-bold text-lg text-gray-900 mb-2">🎯 DeFlow Advantage Summary</h4>
+                  <h4 className="font-bold text-lg text-gray-900 mb-2">📈 Portfolio Performance Summary</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="font-semibold text-blue-700">vs Aave USDC Pool:</span>
-                      <div className="text-blue-600">
+                      <span className="font-semibold text-blue-700">📊 vs Single Pool Strategy:</span>
+                      <div className="text-blue-600 text-lg">
                         +${(() => {
                           const deflowValue = optimizationResults[optimizationResults.length - 1]?.cumulativeValue || settings.initialAmount;
                           if (demoMode === '365_day_realistic') {
@@ -1084,27 +1054,33 @@ const YieldOptimizationDemo: React.FC = () => {
                             const aaveValue = (settings.initialAmount - setupCost) * (1 + (aaveAPY / 100 / 365) * optimizationResults.length);
                             return (deflowValue - aaveValue).toFixed(2);
                           }
-                        })()} better
+                        })()} additional profit
                       </div>
                     </div>
                     <div>
-                      <span className="font-semibold text-purple-700">vs High-Yield Savings:</span>
-                      <div className="text-purple-600">
-                        +${(() => {
-                          const bankValue = settings.initialAmount * (1 + (4.0 / 100 / 365) * optimizationResults.length);
+                      <span className="font-semibold text-green-700">⚡ Performance Multiplier:</span>
+                      <div className="text-green-600 text-lg">
+                        {(() => {
                           const deflowValue = optimizationResults[optimizationResults.length - 1]?.cumulativeValue || settings.initialAmount;
-                          return (deflowValue - bankValue).toFixed(2);
-                        })()} better
+                          const aaveValue = demoMode === '365_day_realistic' ?
+                            getAaveValueForDay(365) * (settings.initialAmount / 10000) :
+                            (settings.initialAmount * (1 + (3.5 / 100 / 365) * optimizationResults.length));
+
+                          const deflowReturn = (deflowValue - settings.initialAmount) / settings.initialAmount;
+                          const aaveReturn = (aaveValue - settings.initialAmount) / settings.initialAmount;
+
+                          return aaveReturn > 0 ? (deflowReturn / aaveReturn).toFixed(1) + 'x' : '3.6x';
+                        })()} better returns
                       </div>
                     </div>
                   </div>
                   
                   <div className="mt-3 p-3 bg-white rounded border-l-4 border-green-500">
                     <div className="flex items-center space-x-2">
-                      <span className="text-2xl">⚡</span>
+                      <span className="text-2xl">🚀</span>
                       <div>
                         <div className="font-bold text-gray-900">
-                          DeFlow delivers {(() => {
+                          Automated portfolio optimization delivers {(() => {
                             const deflowValue = optimizationResults[optimizationResults.length - 1]?.cumulativeValue || settings.initialAmount;
                             const aaveValue = demoMode === '365_day_realistic' ?
                               getAaveValueForDay(365) * (settings.initialAmount / 10000) :
@@ -1114,10 +1090,10 @@ const YieldOptimizationDemo: React.FC = () => {
                             const aaveReturn = (aaveValue - settings.initialAmount) / settings.initialAmount;
 
                             return aaveReturn > 0 ? (deflowReturn / aaveReturn).toFixed(1) + 'x' : '3.6x';
-                          })()} the returns of traditional single-pool strategies
+                          })()} superior returns
                         </div>
                         <div className="text-sm text-gray-600">
-                          Through automated daily optimization, intelligent cost management, and strategic protocol selection
+                          Through intelligent protocol selection, automated rebalancing, and cost-efficient execution across multiple chains
                         </div>
                       </div>
                     </div>
@@ -1188,12 +1164,12 @@ const YieldOptimizationDemo: React.FC = () => {
           </Card>
         )}
 
-        {/* Instructions */}
+        {/* Dashboard Instructions */}
         <Alert>
           <AlertDescription>
-            <strong>How to use:</strong> Click "Load 365-Day Pre-calculated Demo" to instantly see our wave-riding strategy results,
-            or upload your 365-day CSV file with columns: date,protocol,chain,apy,stablecoin,tvl,gasCost,bridgeFee.
-            The system automatically selects the best yield opportunities each day while considering gas costs, bridge fees, and your risk preferences.
+            <strong>💡 Portfolio Dashboard Guide:</strong> Click "📈 Load Portfolio Performance Demo" to view pre-calculated optimization results,
+            or upload your own mainnet APY data (CSV format: date,protocol,chain,apy,stablecoin,tvl,gasCost,bridgeFee) to analyze custom datasets.
+            The dashboard shows automated portfolio optimization performance compared to single pool strategies, with detailed analytics and cost tracking.
           </AlertDescription>
         </Alert>
       </div>

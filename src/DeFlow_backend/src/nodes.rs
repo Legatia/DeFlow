@@ -1889,6 +1889,20 @@ fn create_discord_node_definition() -> NodeDefinition {
                 required: true,
                 default_value: None,
             },
+            ParameterSchema {
+                name: "username".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Bot username (optional)".to_string()),
+                required: false,
+                default_value: Some(ConfigValue::String("DeFlow Bot".to_string())),
+            },
+            ParameterSchema {
+                name: "avatar_url".to_string(),
+                parameter_type: "string".to_string(),
+                description: Some("Bot avatar URL (optional)".to_string()),
+                required: false,
+                default_value: None,
+            },
         ],
     }
 }
@@ -4640,7 +4654,10 @@ async fn execute_telegram_post(config: &HashMap<String, ConfigValue>, message: &
 }
 
 async fn execute_discord_post(config: &HashMap<String, ConfigValue>, message: &str) -> Result<(String, String), String> {
-    use crate::defi::price_alert_service::PriceAlertManager;
+    use ic_cdk::api::management_canister::http_request::{
+        http_request, CanisterHttpRequestArgument, HttpMethod, HttpHeader, TransformContext,
+    };
+    use num_traits::ToPrimitive;
 
     let webhook_url = config.get("webhook_url")
         .and_then(|v| match v {
@@ -4655,20 +4672,79 @@ async fn execute_discord_post(config: &HashMap<String, ConfigValue>, message: &s
         return Err("Invalid Discord webhook URL format".to_string());
     }
 
-    // Create temporary alert manager for HTTP posting
-    let alert_manager = PriceAlertManager::new();
+    // Get optional username and avatar from config
+    let username = config.get("username")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+        .unwrap_or_else(|| "DeFlow Bot".to_string());
 
-    // Store config temporarily (in real app, this would be persistent)
-    alert_manager.set_discord_webhook("workflow_user", webhook_url.clone()).await?;
+    let avatar_url = config.get("avatar_url")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        });
 
-    // Send the message
-    alert_manager.post_to_discord(message).await?;
+    // Escape quotes and special characters for JSON
+    let escaped_msg = message
+        .replace('\\', "\\\\")
+        .replace('\"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t");
 
-    // Generate response data
-    let post_id = format!("dc_{}", api::time());
-    let post_url = webhook_url; // Discord webhook URL as reference
+    // Create Discord webhook payload
+    let payload = if let Some(avatar) = avatar_url {
+        format!(
+            r#"{{"content":"{}","username":"{}","avatar_url":"{}"}}"#,
+            escaped_msg, username, avatar
+        )
+    } else {
+        format!(
+            r#"{{"content":"{}","username":"{}"}}"#,
+            escaped_msg, username
+        )
+    };
 
-    Ok((post_id, post_url))
+    let request = CanisterHttpRequestArgument {
+        url: webhook_url.clone(),
+        method: HttpMethod::POST,
+        body: Some(payload.into_bytes()),
+        max_response_bytes: Some(2048), // Increased for better error messages
+        transform: Some(TransformContext::from_name("transform_discord_response".to_string(), Vec::new())),
+        headers: vec![
+            HttpHeader {
+                name: "Content-Type".to_string(),
+                value: "application/json".to_string(),
+            },
+            HttpHeader {
+                name: "User-Agent".to_string(),
+                value: "DeFlow-Workflow/1.0".to_string(),
+            },
+        ],
+    };
+
+    match http_request(request, 10_000_000_000).await {
+        Ok((response,)) => {
+            let status_code = response.status.0.to_u64().unwrap_or(0) as u16;
+            if status_code >= 200 && status_code < 300 {
+                ic_cdk::println!("✅ Discord message sent successfully to workflow");
+                let post_id = format!("dc_workflow_{}", api::time());
+                Ok((post_id, webhook_url))
+            } else {
+                let error_body = String::from_utf8_lossy(&response.body);
+                let error_msg = format!("Discord webhook failed: HTTP {} - {}", status_code, error_body);
+                ic_cdk::println!("❌ Discord error: {}", error_msg);
+                Err(error_msg)
+            }
+        }
+        Err((rejection_code, msg)) => {
+            let error_msg = format!("Discord HTTP request failed: {:?} - {}", rejection_code, msg);
+            ic_cdk::println!("❌ Discord HTTP error: {}", error_msg);
+            Err(error_msg)
+        }
+    }
 }
 
 async fn execute_twitter_post(_config: &HashMap<String, ConfigValue>, _message: &str) -> Result<(String, String), String> {

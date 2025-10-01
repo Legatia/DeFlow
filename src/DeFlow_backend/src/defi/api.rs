@@ -1218,11 +1218,13 @@ pub async fn generate_deposit_address(chain_type: String) -> Result<String, Stri
         },
         "ethereum" => {
             // Generate Ethereum address using existing system
-            let network = with_defi_manager(|manager| manager.context.ethereum.chain.clone());
-            let key_name = with_defi_manager(|manager| manager.context.ethereum.key_name.clone());
-
-            let ethereum_service = MinimalIcpEthereumService::new(network, key_name);
-            let ethereum_address = ethereum_service.get_ethereum_address(user).await?;
+            let ethereum_service = MinimalIcpEthereumService::new(
+                "deflow_ethereum_key".to_string(),
+                ic_cdk::api::id()
+            );
+            let ethereum_address = ethereum_service.get_ethereum_address(user, EvmChain::Ethereum)
+                .await
+                .map_err(|e| format!("Failed to generate Ethereum address: {}", e))?;
 
             // Register for deposit monitoring
             crate::defi::deposit_manager::register_user_deposit_address(
@@ -1236,18 +1238,21 @@ pub async fn generate_deposit_address(chain_type: String) -> Result<String, Stri
             // Generate Solana address
             let solana_service = crate::defi::solana::SolanaDeFiService::new(
                 "deflow_solana_key".to_string(),
+                ic_cdk::api::id(), // Current canister ID
                 crate::defi::solana::SolanaNetwork::Devnet,
-            ).await.map_err(|e| format!("Failed to initialize Solana service: {}", e))?;
+            );
 
-            let solana_address = solana_service.get_solana_address(user).await?;
+            let solana_account = solana_service.get_solana_account(user)
+                .await
+                .map_err(|e| format!("Failed to generate Solana address: {}", e))?;
 
             // Register for deposit monitoring
             crate::defi::deposit_manager::register_user_deposit_address(
                 chain_type,
-                solana_address.address.clone()
+                solana_account.address.clone()
             ).await?;
 
-            Ok(solana_address.address)
+            Ok(solana_account.address)
         },
         _ => Err("Chain type not implemented yet".to_string()),
     }

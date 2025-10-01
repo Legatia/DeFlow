@@ -403,6 +403,7 @@ impl DepositManager {
             ChainId::Base => "ETH".to_string(),
             ChainId::Avalanche => "AVAX".to_string(),
             ChainId::Solana => "SOL".to_string(),
+            ChainId::Stacks => "STX".to_string(),
         }
     }
 
@@ -411,8 +412,7 @@ impl DepositManager {
     }
 }
 
-/// Public API functions for deposit management
-#[ic_cdk::update]
+/// Internal function for deposit management - called by API layer
 pub async fn register_user_deposit_address(
     chain_type: String,
     address: String,
@@ -425,7 +425,7 @@ pub async fn register_user_deposit_address(
     Ok(format!("Registered address {} for chain {} for user {}", address, chain_type, user.to_text()))
 }
 
-#[ic_cdk::query]
+// Internal function - called by API layer
 pub fn get_user_deposit_portfolio(user_principal: Option<String>) -> Result<UserDepositPortfolio, String> {
     let user = match user_principal {
         Some(principal_text) => Principal::from_text(&principal_text)
@@ -445,7 +445,7 @@ pub fn get_user_deposit_portfolio(user_principal: Option<String>) -> Result<User
     })
 }
 
-#[ic_cdk::update]
+// Internal function - called by API layer
 pub async fn allocate_funds_to_strategy(
     strategy_type: String,
     amount_usd: f64,

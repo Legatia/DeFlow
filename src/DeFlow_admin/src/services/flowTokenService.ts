@@ -92,15 +92,16 @@ class FlowTokenService {
 
   private async getActor() {
     if (!this.actor) {
-      // Initialize agent
-      const host = process.env.DFX_NETWORK === 'ic' 
+      // Initialize agent using proper environment detection
+      const network = import.meta.env.VITE_DFX_NETWORK || 'local';
+      const host = network === 'ic'
         ? 'https://ic0.app'
-        : 'http://localhost:4943';
+        : 'http://127.0.0.1:8080';
       
       this.agent = new HttpAgent({ host });
       
       // Fetch root key for local development
-      if (process.env.DFX_NETWORK !== 'ic') {
+      if (network !== 'ic') {
         try {
           await this.agent.fetchRootKey();
         } catch (error) {
@@ -109,8 +110,7 @@ class FlowTokenService {
       }
 
       // Get canister ID from environment
-      const canisterId = process.env.CANISTER_ID_DEFLOW_POOL 
-        || process.env.VITE_CANISTER_ID_DEFLOW_POOL
+      const canisterId = import.meta.env.VITE_CANISTER_ID_DEFLOW_POOL
         || 'rrkah-fqaaa-aaaaa-aaaaq-cai'; // Default local canister ID
 
       this.actor = Actor.createActor(flowTokenIDL, {

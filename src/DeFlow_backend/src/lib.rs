@@ -6,6 +6,7 @@ mod execution;
 mod nodes;
 mod events;
 mod http_client;
+mod inter_canister_communication; // ICP best practices for canister-to-canister calls
 mod defi;
 mod user_management;
 mod security;

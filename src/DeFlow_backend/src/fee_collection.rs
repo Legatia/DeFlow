@@ -80,23 +80,23 @@ impl FeeCollectionService {
         // Generate transaction ID
         let transaction_id = format!("fee_{}_{}", request.user.to_text(), api::time());
 
-        // Call pool canister to deposit fee
-        let call_result: Result<(Result<String, String>,), _> = ic_cdk::call(
+        // Call pool canister to deposit fee using robust inter-canister communication
+        match crate::inter_canister_communication::deposit_fee_to_pool(
             pool_canister_id,
-            "deposit_fee",
-            (request.asset, fee_amount, transaction_id.clone(), request.user),
-        ).await;
-
-        match call_result {
-            Ok((Ok(receipt),)) => {
+            request.asset.symbol.clone(),
+            fee_amount,
+            transaction_id.clone(),
+            request.user,
+        ).await {
+            Ok(receipt) => {
                 ic_cdk::println!(
-                    "Fee collected successfully: User={}, Amount=${}, TxId={}, Receipt={}", 
-                    request.user.to_text(), 
-                    fee_amount, 
+                    "Fee collected successfully: User={}, Amount=${}, TxId={}, Receipt={}",
+                    request.user.to_text(),
+                    fee_amount,
                     transaction_id,
                     receipt
                 );
-                
+
                 Ok(FeeCollectionResult {
                     success: true,
                     fee_amount,
@@ -104,22 +104,30 @@ impl FeeCollectionService {
                     error: None,
                 })
             }
-            Ok((Err(pool_error),)) => {
-                let error_msg = format!("Pool deposit failed: {}", pool_error);
+            Err(inter_canister_error) => {
+                let error_msg = match inter_canister_error {
+                    crate::inter_canister_communication::InterCanisterError::CallRejected { code, message, .. } => {
+                        format!("Pool call rejected ({:?}): {}", code, message)
+                    }
+                    crate::inter_canister_communication::InterCanisterError::MaxRetriesExceeded { last_error } => {
+                        format!("Max retries exceeded: {}", last_error)
+                    }
+                    crate::inter_canister_communication::InterCanisterError::InsufficientCycles { required, available } => {
+                        format!("Insufficient cycles: need {} have {}", required, available)
+                    }
+                    crate::inter_canister_communication::InterCanisterError::Timeout => {
+                        "Call timed out".to_string()
+                    }
+                    _ => format!("Inter-canister error: {:?}", inter_canister_error),
+                };
                 ic_cdk::println!("Fee collection error: {}", error_msg);
-                
+
                 Ok(FeeCollectionResult {
                     success: false,
                     fee_amount,
                     transaction_id,
                     error: Some(error_msg),
                 })
-            }
-            Err(call_error) => {
-                let error_msg = format!("Inter-canister call failed: {:?}", call_error);
-                ic_cdk::println!("Fee collection call error: {}", error_msg);
-                
-                Err(error_msg)
             }
         }
     }

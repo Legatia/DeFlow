@@ -150,6 +150,85 @@ pub struct TeamHierarchy {
     pub last_financial_operation: u64,
 }
 
+// =============================================================================
+// ACCESS CONTROL SYSTEM
+// =============================================================================
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct AccessControlList {
+    /// Backend canister principal - only this canister can deposit transaction fees
+    pub backend_canister: Option<Principal>,
+
+    /// Admin canister principal - only this canister can perform admin operations
+    pub admin_canister: Option<Principal>,
+
+    /// Authorized fee collectors (for emergency access)
+    pub authorized_fee_collectors: Vec<Principal>,
+
+    /// Emergency stop principals (can pause pool in emergencies)
+    pub emergency_stop_principals: Vec<Principal>,
+
+    /// Readonly access principals (can query but not modify)
+    pub readonly_access: Vec<Principal>,
+
+    /// Rate limiting per principal
+    pub rate_limits: HashMap<Principal, RateLimitState>,
+}
+
+impl Default for AccessControlList {
+    fn default() -> Self {
+        Self {
+            backend_canister: None,
+            admin_canister: None,
+            authorized_fee_collectors: Vec::new(),
+            emergency_stop_principals: Vec::new(),
+            readonly_access: Vec::new(),
+            rate_limits: HashMap::new(),
+        }
+    }
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct RateLimitState {
+    pub last_call_time: u64,
+    pub call_count_in_window: u32,
+    pub window_start: u64,
+    pub is_temporarily_banned: bool,
+    pub ban_until: u64,
+}
+
+impl Default for RateLimitState {
+    fn default() -> Self {
+        Self {
+            last_call_time: 0,
+            call_count_in_window: 0,
+            window_start: ic_cdk::api::time(),
+            is_temporarily_banned: false,
+            ban_until: 0,
+        }
+    }
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum SecurityAction {
+    DepositFee,
+    AdminOperation,
+    EmergencyStop,
+    ReadonlyQuery,
+    OwnerAction,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct SecurityAuditLog {
+    pub timestamp: u64,
+    pub caller: Principal,
+    pub action: SecurityAction,
+    pub method_name: String,
+    pub success: bool,
+    pub failure_reason: Option<String>,
+    pub additional_context: Option<String>,
+}
+
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub enum EarningsAllocation {
     Percentage(f64),           // e.g., 25.0 for 25% of profits
@@ -301,6 +380,10 @@ pub struct PoolState {
     // SECURITY: Race condition prevention (with upgrade compatibility)
     pub state_version: u64, // Incremented on every state change to prevent race conditions
     pub termination_nonce: u64, // Prevents replay attacks on termination operations
+
+    // SECURITY: Access control system
+    pub access_control: AccessControlList,
+    pub security_audit_log: Vec<SecurityAuditLog>, // Bounded collection - only keep recent entries
 }
 
 impl Default for PoolState {
@@ -346,6 +429,10 @@ impl Default for PoolState {
             // SECURITY: Race condition prevention
             state_version: 1, // Start at version 1
             termination_nonce: 0, // Start at 0
+
+            // SECURITY: Initialize access control system
+            access_control: AccessControlList::default(),
+            security_audit_log: Vec::new()
         }
     }
 }

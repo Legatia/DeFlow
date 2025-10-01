@@ -15,7 +15,8 @@ const AdminAuth: React.FC<AdminAuthProps> = ({ onLogin }) => {
       setError(null);
 
       // DEVELOPMENT: For local replica, use development principal
-      if (process.env.DFX_NETWORK === "local") {
+      const network = import.meta.env.VITE_DFX_NETWORK || 'local';
+      if (network === "local") {
         console.warn('DEVELOPMENT: Using development principal for local testing');
         
         // Use the current dfx identity principal for local development
@@ -29,7 +30,7 @@ const AdminAuth: React.FC<AdminAuthProps> = ({ onLogin }) => {
       }
 
       // PRODUCTION: Ensure Internet Identity is properly configured
-      if (process.env.DFX_NETWORK === "ic" && !process.env.VITE_INTERNET_IDENTITY_CANISTER_ID) {
+      if (network === "ic" && !import.meta.env.VITE_INTERNET_IDENTITY_CANISTER_ID) {
         throw new Error('PRODUCTION: Internet Identity canister ID not configured for mainnet deployment');
       }
 
@@ -51,8 +52,8 @@ const AdminAuth: React.FC<AdminAuthProps> = ({ onLogin }) => {
 
       // Start Internet Identity login flow
       await authClient.login({
-        identityProvider: process.env.DFX_NETWORK === "local" 
-          ? `http://localhost:4943/?canisterId=${process.env.VITE_INTERNET_IDENTITY_CANISTER_ID}`
+        identityProvider: network === "local"
+          ? `http://localhost:4943/?canisterId=${import.meta.env.VITE_INTERNET_IDENTITY_CANISTER_ID}`
           : `https://identity.ic0.app`,
         maxTimeToLive: BigInt(7 * 24 * 60 * 60 * 1000 * 1000 * 1000), // 7 days in nanoseconds
         onSuccess: async () => {

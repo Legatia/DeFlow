@@ -4,9 +4,17 @@ import { fileURLToPath, URL } from 'url';
 import environment from 'vite-plugin-environment';
 import dotenv from 'dotenv';
 
-// Load local .env file first, then fallback to project root
-dotenv.config({ path: '.env' });
-dotenv.config({ path: '../../.env' });
+// Load environment files based on mode
+const mode = process.env.NODE_ENV || 'development';
+if (mode === 'production') {
+  // For production builds, load production environment first
+  dotenv.config({ path: '.env.production' });
+  dotenv.config({ path: '../../.env.production' });
+} else {
+  // For development, load local .env files first, then fallback to project root
+  dotenv.config({ path: '.env' });
+  dotenv.config({ path: '../../.env' });
+}
 
 export default defineConfig({
   build: {

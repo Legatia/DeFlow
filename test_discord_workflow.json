@@ -1,0 +1,26 @@
+{
+  "workflow_id": "test_discord_workflow_123",
+  "name": "Test Discord Integration",
+  "description": "Test workflow to verify Discord webhook functionality",
+  "nodes": [
+    {
+      "id": "discord_node_1",
+      "node_type": "discord",
+      "position": [100, 100],
+      "configuration": {
+        "parameters": {
+          "webhook_url": "https://discord.com/api/webhooks/1234567890/abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz",
+          "username": "DeFlow Test Bot",
+          "avatar_url": "https://via.placeholder.com/64"
+        }
+      }
+    }
+  ],
+  "connections": [],
+  "triggers": [
+    {
+      "trigger_type": "manual",
+      "configuration": {}
+    }
+  ]
+}
