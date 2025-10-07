@@ -39,7 +39,7 @@ const NodePalette = () => {
     if (!canAccessNodeType(subscriptionTier, nodeType)) {
       const requiredTier = nodeType.requiredTier || 'standard'
       const upgradePath = getUpgradePath(subscriptionTier, requiredTier)
-      if (upgradePath) {
+      if (upgradePath && 'name' in upgradePath && 'price' in upgradePath) {
         alert(`This node requires ${upgradePath.name} subscription (${upgradePath.price}/month). Please upgrade to access this feature.`)
         // TODO: Open upgrade modal or navigate to payment page
       }

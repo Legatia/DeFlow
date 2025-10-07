@@ -1031,15 +1031,10 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         type: 'workflowNode',
         position: { x: 500, y: 100 },
         data: {
-          nodeType: getNodeType('twitter-post'),
-          config: {
-            api_key: '',
-            api_secret: '',
-            access_token: '',
-            access_token_secret: ''
-          },
-          isValid: false,
-          errors: ['Twitter API credentials required']
+          nodeType: getNodeType('social-media-post'),
+          config: {},
+          isValid: true,
+          errors: []
         }
       }
     ],
@@ -1055,9 +1050,17 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: 'edge-twitter-2',
         source: 'social-text',
-        target: 'twitter-post',
+        target: 'platform-select',
         sourceHandle: 'message',
-        targetHandle: 'message',
+        targetHandle: 'data',
+        type: 'smoothstep'
+      },
+      {
+        id: 'edge-twitter-3',
+        source: 'platform-select',
+        target: 'social-post',
+        sourceHandle: 'platform_config',
+        targetHandle: 'platform_config',
         type: 'smoothstep'
       }
     ]
@@ -1111,19 +1114,28 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         }
       },
       {
-        id: 'twitter-post',
+        id: 'platform-select-2',
         type: 'workflowNode',
         position: { x: 500, y: 100 },
         data: {
-          nodeType: getNodeType('twitter-post'),
+          nodeType: getNodeType('select-platform'),
           config: {
-            api_key: '',
-            api_secret: '',
-            access_token: '',
-            access_token_secret: ''
+            platform: 'twitter',
+            target_id: ''
           },
-          isValid: false,
-          errors: ['Twitter API credentials required']
+          isValid: true,
+          errors: []
+        }
+      },
+      {
+        id: 'social-post-2',
+        type: 'workflowNode',
+        position: { x: 700, y: 100 },
+        data: {
+          nodeType: getNodeType('social-media-post'),
+          config: {},
+          isValid: true,
+          errors: []
         }
       }
     ],
@@ -1139,9 +1151,17 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: 'edge-signal-2',
         source: 'signal-content',
-        target: 'twitter-post',
+        target: 'platform-select-2',
         sourceHandle: 'message',
-        targetHandle: 'message',
+        targetHandle: 'data',
+        type: 'smoothstep'
+      },
+      {
+        id: 'edge-signal-3',
+        source: 'platform-select-2',
+        target: 'social-post-2',
+        sourceHandle: 'platform_config',
+        targetHandle: 'platform_config',
         type: 'smoothstep'
       }
     ]
@@ -1237,15 +1257,10 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         type: 'workflowNode',
         position: { x: 500, y: 250 },
         data: {
-          nodeType: getNodeType('twitter-post'),
-          config: {
-            api_key: '',
-            api_secret: '',
-            access_token: '',
-            access_token_secret: ''
-          },
-          isValid: false,
-          errors: ['Twitter API credentials required']
+          nodeType: getNodeType('social-media-post'),
+          config: {},
+          isValid: true,
+          errors: []
         }
       }
     ],
@@ -1339,7 +1354,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         type: 'workflowNode',
         position: { x: 700, y: 100 },
         data: {
-          nodeType: getNodeType('linkedin-post'),
+          nodeType: getNodeType('social-media-post'),
           config: {
             access_token: '',
             post_type: 'person',
@@ -1412,7 +1427,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         type: 'workflowNode',
         position: { x: 700, y: 100 },
         data: {
-          nodeType: getNodeType('linkedin-post'),
+          nodeType: getNodeType('social-media-post'),
           config: {
             access_token: '',
             post_type: 'organization',
@@ -1489,7 +1504,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         type: 'workflowNode',
         position: { x: 700, y: 100 },
         data: {
-          nodeType: getNodeType('facebook-post'),
+          nodeType: getNodeType('social-media-post'),
           config: {
             access_token: '',
             page_id: '',
@@ -1576,7 +1591,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         type: 'workflowNode',
         position: { x: 700, y: 50 },
         data: {
-          nodeType: getNodeType('facebook-post'),
+          nodeType: getNodeType('social-media-post'),
           config: {
             access_token: '',
             page_id: '',
@@ -1605,7 +1620,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         type: 'workflowNode',
         position: { x: 1000, y: 200 },
         data: {
-          nodeType: getNodeType('facebook-post'),
+          nodeType: getNodeType('social-media-post'),
           config: {
             access_token: '',
             page_id: '',

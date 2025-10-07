@@ -52,6 +52,7 @@ export interface LinkedInConfig {
   id: string
   name: string
   access_token: string
+  person_urn: string
   post_type: 'person' | 'organization'
   organization_id: string
   createdAt: string
@@ -62,7 +63,7 @@ export interface FacebookConfig {
   name: string
   access_token: string
   page_id: string
-  post_type: 'page' | 'group' | 'event'
+  post_type: 'page'
   createdAt: string
 }
 

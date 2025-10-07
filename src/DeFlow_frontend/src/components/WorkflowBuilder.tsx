@@ -112,8 +112,8 @@ const WorkflowBuilder = memo(({
       if (!canAddNodeToWorkflow(subscriptionTier, nodeType)) {
         const requiredTier = nodeType.requiredTier || 'standard'
         const upgradePath = getUpgradePath(subscriptionTier, requiredTier)
-        
-        if (upgradePath) {
+
+        if (upgradePath && 'name' in upgradePath && 'price' in upgradePath) {
           alert(`⚠️ Cannot add "${nodeType.name}" node\n\nThis node requires ${upgradePath.name} subscription (${upgradePath.price}/month).\n\nPlease upgrade to access this feature.`)
         }
         return // Prevent node creation

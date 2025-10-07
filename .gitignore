@@ -371,3 +371,73 @@ DISCORD_INTEGRATION_GUIDE.md
 DEPLOYMENT_SECRETS.md
 MAINNET_KEYS.md
 ADMIN_PASSWORDS.md
+
+# Auto-generated documentation and reports (keep git clean)
+APY_FETCH_SIZE_OPTIMIZATION.md
+CHAIN_FUSION_STRATEGY.md
+CYCLE_OPTIMIZATION_STRATEGY.md
+DEFLOW_TOKENOMICS_PLAN.md
+DEMO_SETUP_COMPLETE.md
+DEPOSIT_TEST_RESULTS.md
+DISCORD_INTEGRATION_FIXED_RESULTS.md
+DISCORD_INTEGRATION_TEST_RESULTS.md
+FLOW_TOKEN_INTRODUCTION_SCRIPT.md
+FRONTEND_BACKEND_SYNC_ISSUES.md
+ICP_INTER_CANISTER_BEST_PRACTICES.md
+LIQUID_GLASS_INTEGRATION.md
+LOCAL_DEPLOYMENT_SUCCESS.md
+MAINNET_DEPLOYMENT_CHECKLIST.md
+PHASE1_USER_ACQUISITION_STRATEGY.md
+PICTURE_NODES_ADDED.md
+PICTURE_NODES_QUICK_REFERENCE.md
+POOL_SECURITY_SETUP.md
+SOCIAL_MEDIA_AUDIT.md
+SOCIAL_MEDIA_COMPLETE.md
+SOCIAL_MEDIA_FEATURES_STATUS.md
+SOCIAL_MEDIA_FIXES_COMPLETE.md
+SOCIAL_MEDIA_GENERIC_FLOW.md
+SOCIAL_MEDIA_SETTINGS_AUDIT.md
+STACKS_INTEGRATION_SUMMARY.md
+STRATEGY_COMPARISON_CHART.md
+TEST_SUMMARY.md
+TIER_SYSTEM_UNLOCKED.md
+WARNINGS_CLEANUP_REPORT.md
+WORKFLOW_COMBINATIONS_GUIDE.md
+WORKFLOW_TEMPLATE_UPDATE_SUMMARY.md
+YIELD_OPTIMIZATION_DEMO.md
+
+# Demo data files (large CSV files)
+demo_yield_data.csv
+demo_yield_data_*.csv
+
+# Test and utility scripts
+test_*.js
+test_*.rs
+test_*.json
+test-*.js
+test-*.sh
+*_test_*.sh
+test_deposit_manager_simple
+fix_backend_prints.py
+generate_*.py
+generate_*.cjs
+run_demo*.sh
+run_demo*.cjs
+prepare_demo_package.sh
+verify_*.sh
+quick_fix_*.sh
+
+# Environment switching and deployment scripts (should be customized per environment)
+switch-environment.sh
+deploy-local.sh
+deploy-admin.sh
+setup_admin.sh
+
+# Test data and workflows
+test_admin_data.js
+test_discord_workflow.json
+
+# Keep only essential docs
+!README.md
+!DeFlow_Business_Whitebook.md
+!pitch.md

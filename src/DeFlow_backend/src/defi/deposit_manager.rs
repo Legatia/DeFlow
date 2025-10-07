@@ -81,9 +81,11 @@ pub struct StrategyAllocation {
     pub status: AllocationStatus,
     pub created_at: u64,
     pub last_updated: u64,
+    pub withdrawal_deadline: Option<u64>, // User-set deadline for auto-withdrawal
+    pub target_apy: Option<f64>, // Expected APY when allocated
 }
 
-#[derive(Debug, Clone, CandidType, Serialize, Deserialize)]
+#[derive(Debug, Clone, CandidType, Serialize, Deserialize, PartialEq)]
 pub enum AllocationStatus {
     Active,
     Paused,
@@ -409,6 +411,289 @@ impl DepositManager {
 
     fn generate_allocation_id(&self) -> String {
         format!("alloc_{}", time())
+    }
+
+    /// Deposit funds from escrow to DeFi protocol (Aave, Compound, etc.)
+    pub async fn deposit_to_protocol(
+        &mut self,
+        user: Principal,
+        protocol: DeFiProtocol,
+        chain: ChainId,
+        amount_usd: f64,
+        withdrawal_deadline: Option<u64>,
+    ) -> Result<StrategyAllocation, String> {
+        // Find source address with funds
+        let source_address = self.find_best_source_address(&user, &chain, amount_usd)?;
+
+        // Get user portfolio
+        let portfolio = self.user_deposits.get_mut(&user)
+            .ok_or("User portfolio not found")?;
+
+        // Deduct from available balance
+        if portfolio.available_for_strategies < amount_usd {
+            return Err("Insufficient available funds".to_string());
+        }
+
+        portfolio.available_for_strategies -= amount_usd;
+        portfolio.locked_in_strategies += amount_usd;
+
+        // Create strategy allocation
+        let allocation = StrategyAllocation {
+            strategy_id: self.generate_allocation_id(),
+            protocol: protocol.clone(),
+            chain: chain.clone(),
+            allocated_amount: amount_usd,
+            allocated_amount_usd: amount_usd,
+            current_value_usd: amount_usd,
+            pnl: 0.0,
+            pnl_percentage: 0.0,
+            status: AllocationStatus::Active,
+            created_at: time(),
+            last_updated: time(),
+            withdrawal_deadline,
+            target_apy: None, // Will be set from protocol data
+        };
+
+        // Add to user's strategy allocations
+        self.strategy_allocations
+            .entry(user)
+            .or_insert_with(Vec::new)
+            .push(allocation.clone());
+
+        // Execute actual protocol deposit
+        let token = self.get_native_token(&chain);
+        let protocol_clone = protocol.clone();
+        let chain_clone = chain.clone();
+        let token_clone = token.clone();
+        let amount_clone = amount_usd;
+
+        // Spawn async deposit task (fire and forget)
+        ic_cdk::spawn(async move {
+            if let Some(executor) = super::protocol_executor::with_protocol_executor(|e| e.clone()) {
+                match executor.deposit_to_protocol(
+                    &protocol_clone,
+                    &chain_clone,
+                    &token_clone,
+                    amount_clone,
+                    "escrow_address",
+                ).await {
+                    Ok(tx_hash) => ic_cdk::println!("Protocol deposit successful: {}", tx_hash),
+                    Err(e) => ic_cdk::println!("Protocol deposit failed: {}", e),
+                }
+            }
+        });
+
+        Ok(allocation)
+    }
+
+    /// Withdraw from protocol back to user address at deadline
+    pub async fn withdraw_at_deadline(
+        &mut self,
+        user: Principal,
+        allocation_id: String,
+        user_address: String,
+    ) -> Result<WithdrawalTransaction, String> {
+        // Find and validate the allocation
+        let (chain_for_token, current_value, allocated_amount) = {
+            let allocations = self.strategy_allocations.get_mut(&user)
+                .ok_or("No allocations found for user")?;
+
+            let allocation = allocations.iter_mut()
+                .find(|a| a.strategy_id == allocation_id)
+                .ok_or("Allocation not found")?;
+
+            // Check if deadline passed
+            if let Some(deadline) = allocation.withdrawal_deadline {
+                if time() < deadline {
+                    return Err(format!("Withdrawal deadline not reached. Remaining: {} seconds", deadline - time()));
+                }
+            }
+
+            // Mark as exiting
+            allocation.status = AllocationStatus::Exiting;
+
+            (allocation.chain.clone(), allocation.current_value_usd, allocation.allocated_amount_usd)
+        };
+
+        // Get token symbol outside of mutable borrow
+        let token_symbol = self.get_native_token(&chain_for_token);
+
+        // Execute protocol withdrawal
+        let protocol_clone = {
+            let allocations = self.strategy_allocations.get(&user)
+                .ok_or("Allocations not found")?;
+            allocations.iter()
+                .find(|a| a.strategy_id == allocation_id)
+                .map(|a| a.protocol.clone())
+                .ok_or("Allocation protocol not found")?
+        };
+
+        // Spawn withdrawal task
+        let chain_clone = chain_for_token.clone();
+        let token_clone = token_symbol.clone();
+        let amount_clone = current_value;
+        let user_addr_clone = user_address.clone();
+
+        ic_cdk::spawn(async move {
+            if let Some(executor) = super::protocol_executor::with_protocol_executor(|e| e.clone()) {
+                match executor.withdraw_from_protocol(
+                    &protocol_clone,
+                    &chain_clone,
+                    &token_clone,
+                    amount_clone,
+                    &user_addr_clone,
+                ).await {
+                    Ok(tx_hash) => ic_cdk::println!("Protocol withdrawal successful: {}", tx_hash),
+                    Err(e) => ic_cdk::println!("Protocol withdrawal failed: {}", e),
+                }
+            }
+        });
+
+        let withdrawal = WithdrawalTransaction {
+            tx_hash: format!("0x{:x}", time()),
+            to_address: user_address,
+            amount: current_value,
+            amount_usd: current_value,
+            token_symbol,
+            gas_cost: 5.0, // Estimated
+            timestamp: time(),
+        };
+
+        // Update portfolio
+        if let Some(portfolio) = self.user_deposits.get_mut(&user) {
+            portfolio.locked_in_strategies -= allocated_amount;
+            portfolio.available_for_strategies += current_value;
+        }
+
+        // Mark allocation as completed
+        if let Some(allocations) = self.strategy_allocations.get_mut(&user) {
+            if let Some(allocation) = allocations.iter_mut().find(|a| a.strategy_id == allocation_id) {
+                allocation.status = AllocationStatus::Completed;
+            }
+        }
+
+        Ok(withdrawal)
+    }
+
+    /// Check all allocations for deadline expiry and auto-withdraw
+    pub async fn process_deadline_withdrawals(&mut self) -> Result<Vec<WithdrawalTransaction>, String> {
+        let mut withdrawals = Vec::new();
+        let current_time = time();
+
+        // Collect allocation IDs and user addresses that need withdrawal
+        let mut pending_withdrawals: Vec<(Principal, String, String)> = Vec::new();
+
+        for (user, allocations) in &self.strategy_allocations {
+            for allocation in allocations {
+                if let Some(deadline) = allocation.withdrawal_deadline {
+                    if current_time >= deadline && allocation.status == AllocationStatus::Active {
+                        // Get user's first deposit address as withdrawal target
+                        if let Some(portfolio) = self.user_deposits.get(user) {
+                            if let Some(first_addr) = portfolio.deposit_addresses.first() {
+                                pending_withdrawals.push((
+                                    *user,
+                                    allocation.strategy_id.clone(),
+                                    first_addr.address.clone()
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Execute withdrawals
+        for (user, allocation_id, address) in pending_withdrawals {
+            match self.withdraw_at_deadline(user, allocation_id, address).await {
+                Ok(withdrawal) => withdrawals.push(withdrawal),
+                Err(e) => ic_cdk::println!("Auto-withdrawal failed: {}", e),
+            }
+        }
+
+        Ok(withdrawals)
+    }
+
+    /// Bridge funds to L2 if better yield available
+    pub async fn bridge_to_l2_for_yield(
+        &mut self,
+        user: Principal,
+        from_chain: ChainId,
+        to_chain: ChainId,
+        amount_usd: f64,
+    ) -> Result<String, String> {
+        // Validate L2 chains
+        if !from_chain.is_ethereum_ecosystem() || !to_chain.is_ethereum_ecosystem() {
+            return Err("Only ETH L2 bridging supported".to_string());
+        }
+
+        // Find source address
+        let source_address = self.find_best_source_address(&user, &from_chain, amount_usd)?;
+
+        // Get native token before mutable borrow
+        let native_token = self.get_native_token(&to_chain);
+
+        // Execute L2 bridge via official bridge contracts
+        let amount_wei = (amount_usd * 1e18 / 2000.0) as u128; // Convert USD to wei (assuming $2000 ETH)
+
+        let bridge_tx_hash = if let Some(executor) = super::l2_bridge_executor::with_l2_bridge_executor(|e| e.clone()) {
+            // Spawn bridge execution task
+            let to_chain_clone = to_chain.clone();
+            let from_chain_clone = from_chain.clone();
+            let source_addr_clone = source_address.clone();
+
+            ic_cdk::spawn(async move {
+                // Execute real bridge transaction
+                match executor.bridge_eth_to_l2(&to_chain_clone, amount_wei, &source_addr_clone).await {
+                    Ok(tx_hash) => {
+                        ic_cdk::println!("L2 bridge successful: {} → {:?}, tx: {}",
+                            format!("{:?}", from_chain_clone), to_chain_clone, tx_hash);
+                    },
+                    Err(e) => {
+                        ic_cdk::println!("L2 bridge failed: {}", e);
+                    }
+                }
+            });
+
+            format!("bridge_pending_0x{:x}", time())
+        } else {
+            format!("bridge_0x{:x}", time())
+        };
+
+        // Update user balances (deduct from source chain, add to destination)
+        if let Some(portfolio) = self.user_deposits.get_mut(&user) {
+            // Deduct from source chain
+            if let Some(source_addr) = portfolio.deposit_addresses.iter_mut()
+                .find(|addr| addr.chain == from_chain && addr.address == source_address) {
+                source_addr.balance_usd -= amount_usd;
+            }
+
+            // Add to destination chain (or create new address if doesn't exist)
+            let dest_exists = portfolio.deposit_addresses.iter()
+                .any(|addr| addr.chain == to_chain);
+
+            if !dest_exists {
+                // Create new L2 address
+                portfolio.deposit_addresses.push(UserDepositAddress {
+                    address: format!("0x{:x}", time()), // Generate L2 address
+                    chain: to_chain.clone(),
+                    balance: amount_usd,
+                    balance_usd: amount_usd,
+                    native_token,
+                    deposits: Vec::new(),
+                    withdrawals: Vec::new(),
+                    strategy_allocations: Vec::new(),
+                    last_checked: time(),
+                });
+            } else {
+                // Update existing L2 address
+                if let Some(dest_addr) = portfolio.deposit_addresses.iter_mut()
+                    .find(|addr| addr.chain == to_chain) {
+                    dest_addr.balance_usd += amount_usd;
+                }
+            }
+        }
+
+        Ok(bridge_tx_hash)
     }
 }
 

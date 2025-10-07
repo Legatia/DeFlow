@@ -202,7 +202,6 @@ const TwitterAPISetup: React.FC = () => {
           <h3 className="text-lg font-medium text-gray-900">Twitter/X API</h3>
           <p className="text-sm text-gray-600">
             Configure Twitter API credentials for posting tweets and social media automation.
-            <span className="text-amber-600 font-medium ml-1">Premium Feature</span>
           </p>
         </div>
         
@@ -226,9 +225,9 @@ const TwitterAPISetup: React.FC = () => {
             <li>Copy your credentials and add them below</li>
             <li>Test the connection to verify everything works</li>
           </ol>
-          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-sm text-amber-800">
-              <strong>⭐ Premium Feature:</strong> Twitter integration requires a DeFlow Premium subscription.
+          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-sm text-green-800">
+              <strong>✨ Available on All Tiers:</strong> Twitter integration is included in the free Standard plan!
             </p>
           </div>
         </div>
@@ -427,9 +426,9 @@ const TwitterAPISetup: React.FC = () => {
           </p>
           <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
             <li>Create social media content with "Social Media Text" or "Social Media with Image" nodes</li>
-            <li>Add a "Twitter/X Post" node to your workflow</li>
-            <li>Enter your API credentials from the configurations above</li>
-            <li>Connect your content formatter to the Twitter node</li>
+            <li>Add a "Select Platform" node and choose "Twitter"</li>
+            <li>Add a "Social Media Post" node to execute the post</li>
+            <li>Configure platform credentials in workflow node settings</li>
             <li>Use template variables like {'{{portfolio_value}}'} for dynamic content</li>
             <li>Test your workflow to ensure tweets are posted successfully</li>
           </ol>

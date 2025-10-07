@@ -320,13 +320,14 @@ const FacebookAPISetup: React.FC = () => {
               </label>
               <select
                 value={newConfig.post_type || 'page'}
-                onChange={(e) => setNewConfig({ ...newConfig, post_type: e.target.value as 'page' | 'group' | 'event' })}
+                onChange={(e) => setNewConfig({ ...newConfig, post_type: e.target.value as 'page' })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="page">Page Posts</option>
-                <option value="group">Group Posts</option>
-                <option value="event">Event Updates</option>
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Currently only Page Posts are supported
+              </p>
             </div>
           </div>
 
@@ -411,11 +412,12 @@ const FacebookAPISetup: React.FC = () => {
       <div className="bg-green-50 border border-green-200 rounded-lg p-4">
         <h4 className="font-medium text-green-900 mb-2">How to Use</h4>
         <div className="text-sm text-green-800 space-y-1">
-          <p>1. Create workflows with <strong>Social Media Text</strong> → <strong>Facebook Post</strong></p>
-          <p>2. Set platform to "Facebook (63,206 chars)" in Social Media Text node</p>
-          <p>3. Use engaging content with calls-to-action and relevant hashtags</p>
-          <p>4. Templates support variables like {"{{business_update}}, {{date}}, {{metrics}}"}</p>
-          <p>5. Consider posting timing for maximum engagement</p>
+          <p>1. Create workflows with <strong>Social Media Text</strong> → <strong>Select Platform</strong> → <strong>Social Media Post</strong></p>
+          <p>2. Choose "Facebook" in the Select Platform node</p>
+          <p>3. Set platform to "Facebook (63,206 chars)" in Social Media Text node</p>
+          <p>4. Use engaging content with calls-to-action and relevant hashtags</p>
+          <p>5. Templates support variables like {"{{business_update}}, {{date}}, {{metrics}}"}</p>
+          <p>6. Consider posting timing for maximum engagement</p>
         </div>
       </div>
 

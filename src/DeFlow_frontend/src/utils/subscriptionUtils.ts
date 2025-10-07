@@ -9,63 +9,53 @@ const TIER_HIERARCHY: Record<SubscriptionTier, number> = {
 
 /**
  * Check if user's subscription tier allows access to a node that requires a specific tier
+ * ALL FEATURES UNLOCKED - always returns true
  */
 export function canAccessNode(userTier: SubscriptionTier, requiredTier: SubscriptionTier): boolean {
-  return TIER_HIERARCHY[userTier] >= TIER_HIERARCHY[requiredTier]
+  return true // All features unlocked for all tiers
 }
 
 /**
  * Universal access control for any node type
  * This is the main function that should be used everywhere for feature gating
+ * ALL FEATURES UNLOCKED - always returns true
  */
 export function canAccessNodeType(userTier: SubscriptionTier, nodeType: NodeType): boolean {
-  const requiredTier = nodeType.requiredTier || 'standard'
-  return canAccessNode(userTier, requiredTier)
+  return true // All features unlocked for all tiers
 }
 
 /**
  * Check if a user can perform drag & drop operations on a node
+ * ALL FEATURES UNLOCKED - always returns true
  */
 export function canDragNode(userTier: SubscriptionTier, nodeType: NodeType): boolean {
-  return canAccessNodeType(userTier, nodeType)
+  return true // All features unlocked for all tiers
 }
 
 /**
  * Check if a user can add a node to their workflow
+ * ALL FEATURES UNLOCKED - always returns true
  */
 export function canAddNodeToWorkflow(userTier: SubscriptionTier, nodeType: NodeType): boolean {
-  return canAccessNodeType(userTier, nodeType)
+  return true // All features unlocked for all tiers
 }
 
 /**
  * Check if a user can execute/run workflows containing specific node types
+ * ALL FEATURES UNLOCKED - always returns canExecute: true
  */
 export function canExecuteWorkflowWithNodes(userTier: SubscriptionTier, nodeTypes: NodeType[]): {
   canExecute: boolean
   restrictedNodes: NodeType[]
   requiredUpgrade?: SubscriptionTier
 } {
-  const restrictedNodes = nodeTypes.filter(nodeType => !canAccessNodeType(userTier, nodeType))
-  
-  if (restrictedNodes.length === 0) {
-    return { canExecute: true, restrictedNodes: [] }
-  }
-
-  // Find the minimum tier needed to access all restricted nodes
-  const maxRequiredTier = restrictedNodes.reduce((maxTier, node) => {
-    const nodeTier = node.requiredTier || 'standard'
-    return TIER_HIERARCHY[nodeTier] > TIER_HIERARCHY[maxTier] ? nodeTier : maxTier
-  }, 'standard' as SubscriptionTier)
-
-  return {
-    canExecute: false,
-    restrictedNodes,
-    requiredUpgrade: maxRequiredTier
-  }
+  // All nodes allowed for all tiers
+  return { canExecute: true, restrictedNodes: [] }
 }
 
 /**
  * Get subscription tier display information
+ * UPDATED: All features unlocked for all tiers
  */
 export function getSubscriptionTierInfo(tier: SubscriptionTier) {
   const tierInfo = {
@@ -76,75 +66,61 @@ export function getSubscriptionTierInfo(tier: SubscriptionTier) {
       color: '#6b7280',
       feeRate: '0.85%',
       features: [
-        'Telegram & Discord nodes only',
-        'Basic workflow automation', 
-        'Community support',
-        'Standard execution speed',
-        '0.85% transaction fees'
+        '🌐 FULL social media integrations (Twitter, Discord, Telegram, etc.)',
+        '🏦 Complete DeFi integration suite',
+        '⚙️ Advanced workflow automation',
+        '🔗 HTTP API calls & webhooks',
+        '📧 Email & SMS capabilities',
+        '👥 Community support',
+        '⚡ Standard execution speed',
+        '💸 0.85% transaction fees'
       ],
-      limitations: [
-        'Limited to Telegram and Discord integrations',
-        'No access to social media nodes (Twitter, Facebook, LinkedIn)',
-        'No email/SMS capabilities',
-        'No DeFi integrations'
-      ]
+      limitations: [] // No limitations - all features unlocked!
     },
     'premium': {
-      name: 'Premium', 
+      name: 'Premium',
       price: '$19/month',
       monthlyPrice: '$19',
       color: '#3b82f6',
       feeRate: '0.25%',
       features: [
-        'All Standard features',
-        'Full social media integrations (Twitter, Facebook, LinkedIn)',
-        'Email & SMS sending capabilities',
-        'HTTP API calls & webhooks',
-        'Advanced data processing tools',
-        'Priority execution queue',
-        'Email support (24h response)',
-        '0.25% transaction fees (70% savings!)',
-        'Break-even at $3,167/month volume'
+        '✨ All Standard features',
+        '🚀 Priority execution queue',
+        '💬 Priority email support (24h response)',
+        '💰 0.25% transaction fees (70% savings!)',
+        '📊 Advanced analytics dashboard',
+        '🔔 Priority notifications',
+        '⚡ Faster workflow execution',
+        '💎 Break-even at $3,167/month volume'
       ]
     },
     'pro': {
       name: 'Pro',
       price: '$149/month',
-      monthlyPrice: '$149', 
+      monthlyPrice: '$149',
       color: '#7c3aed',
       feeRate: '0.1%',
       features: [
-        'All Premium features',
-        'Complete DeFi integration suite',
-        'Full API access',
-        'Custom strategy development',
-        'Portfolio insurance options',
-        'Priority phone support',
-        'Advanced risk management tools',
-        '0.1% transaction fees (88% savings!)',
-        'Break-even at $19,867/month volume'
+        '✨ All Premium features',
+        '📞 24/7 priority phone support',
+        '💰 0.1% transaction fees (88% savings!)',
+        '🎯 Dedicated account manager',
+        '🔒 Enhanced security features',
+        '📊 Custom reporting & analytics',
+        '🚀 Maximum execution priority',
+        '💼 White-label options',
+        '💎 Break-even at $19,867/month volume'
       ]
     }
   }
-  
+
   return tierInfo[tier]
 }
 
 /**
  * Get upgrade path for accessing a restricted node
+ * ALL FEATURES UNLOCKED - always returns null (no upgrade needed)
  */
-export function getUpgradePath(userTier: SubscriptionTier, requiredTier: SubscriptionTier) {
-  if (canAccessNode(userTier, requiredTier)) {
-    return null // No upgrade needed
-  }
-  
-  const upgradeTo = requiredTier === 'premium' ? 'premium' : 'pro'
-  const tierInfo = getSubscriptionTierInfo(upgradeTo)
-  
-  return {
-    tier: upgradeTo,
-    name: tierInfo.name,
-    price: tierInfo.price,
-    features: tierInfo.features
-  }
+export function getUpgradePath(userTier: SubscriptionTier, requiredTier: SubscriptionTier): { name: string; price: string } | null {
+  return null // No upgrade needed - all features unlocked
 }

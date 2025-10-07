@@ -1,5 +1,5 @@
 use crate::types::{
-    WorkflowNode, NodeInput, NodeOutput, NodeError, ValidationError, 
+    WorkflowNode, NodeInput, NodeOutput, NodeError, ValidationError,
     NodeConfiguration, NodeDefinition, ParameterSchema, ConfigValue,
     ExecutionContext
 };
@@ -11,6 +11,7 @@ use crate::security::spending_limits_enforcement::{SpendingLimitsEnforcement, Sp
 use ic_cdk::{api, update, query, caller};
 use candid::Principal;
 use std::collections::HashMap;
+use num_traits::ToPrimitive;
 
 #[allow(dead_code)]
 pub trait Node {
@@ -4582,6 +4583,15 @@ async fn execute_social_media_post_node(
         "twitter" => {
             execute_twitter_post(platform_config, &message).await
         },
+        "facebook" => {
+            execute_facebook_post(platform_config, &message).await
+        },
+        "linkedin" => {
+            execute_linkedin_post(platform_config, &message).await
+        },
+        "instagram" => {
+            execute_instagram_post(platform_config, &message).await
+        },
         _ => {
             Err(format!("Unsupported platform: {}", platform))
         }
@@ -4747,9 +4757,421 @@ async fn execute_discord_post(config: &HashMap<String, ConfigValue>, message: &s
     }
 }
 
-async fn execute_twitter_post(_config: &HashMap<String, ConfigValue>, _message: &str) -> Result<(String, String), String> {
-    // Twitter API integration not implemented yet
-    Err("Twitter integration not yet implemented. Please use Telegram or Discord.".to_string())
+async fn execute_twitter_post(config: &HashMap<String, ConfigValue>, message: &str) -> Result<(String, String), String> {
+    use ic_cdk::api::management_canister::http_request::{
+        http_request, CanisterHttpRequestArgument, HttpMethod, HttpHeader,
+    };
+    use sha1::{Sha1, Digest};
+    use std::collections::BTreeMap;
+
+    // Extract Twitter credentials
+    let api_key = config.get("api_key")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+        .ok_or("Missing api_key in Twitter config")?;
+
+    let api_secret = config.get("api_secret")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+        .ok_or("Missing api_secret in Twitter config")?;
+
+    let access_token = config.get("access_token")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+        .ok_or("Missing access_token in Twitter config")?;
+
+    let access_token_secret = config.get("access_token_secret")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+        .ok_or("Missing access_token_secret in Twitter config")?;
+
+    // Twitter API v2 endpoint
+    let url = "https://api.twitter.com/2/tweets";
+    let method = "POST";
+
+    // Generate OAuth 1.0a parameters
+    let timestamp = (ic_cdk::api::time() / 1_000_000_000).to_string();
+    let nonce: String = format!("{:x}", ic_cdk::api::time());
+
+    // Build OAuth parameters
+    let mut oauth_params = BTreeMap::new();
+    oauth_params.insert("oauth_consumer_key", api_key.clone());
+    oauth_params.insert("oauth_token", access_token.clone());
+    oauth_params.insert("oauth_signature_method", "HMAC-SHA1".to_string());
+    oauth_params.insert("oauth_timestamp", timestamp);
+    oauth_params.insert("oauth_nonce", nonce);
+    oauth_params.insert("oauth_version", "1.0".to_string());
+
+    // Build signature base string
+    let param_string: String = oauth_params.iter()
+        .map(|(k, v)| format!("{}={}", percent_encode(k), percent_encode(v)))
+        .collect::<Vec<_>>()
+        .join("&");
+
+    let signature_base = format!(
+        "{}&{}&{}",
+        method,
+        percent_encode(url),
+        percent_encode(&param_string)
+    );
+
+    // Generate signing key
+    let signing_key = format!(
+        "{}&{}",
+        percent_encode(&api_secret),
+        percent_encode(&access_token_secret)
+    );
+
+    // Generate HMAC-SHA1 signature
+    use hmac::{Hmac, Mac};
+    type HmacSha1 = Hmac<Sha1>;
+    let mut mac = HmacSha1::new_from_slice(signing_key.as_bytes())
+        .map_err(|e| format!("Failed to create HMAC: {}", e))?;
+    mac.update(signature_base.as_bytes());
+    let signature = base64::encode(mac.finalize().into_bytes());
+
+    oauth_params.insert("oauth_signature", signature);
+
+    // Build Authorization header
+    let auth_header = format!(
+        "OAuth {}",
+        oauth_params.iter()
+            .map(|(k, v)| format!("{}=\"{}\"", k, percent_encode(v)))
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+
+    // Build request body
+    let body = format!(r#"{{"text":"{}"}}"#, message.replace("\"", "\\\""));
+
+    // Make HTTP outcall to Twitter API
+    let request = CanisterHttpRequestArgument {
+        url: url.to_string(),
+        method: HttpMethod::POST,
+        body: Some(body.as_bytes().to_vec()),
+        max_response_bytes: Some(2000),
+        transform: None,
+        headers: vec![
+            HttpHeader {
+                name: "Authorization".to_string(),
+                value: auth_header,
+            },
+            HttpHeader {
+                name: "Content-Type".to_string(),
+                value: "application/json".to_string(),
+            },
+        ],
+    };
+
+    match http_request(request, 25_000_000_000).await {
+        Ok((response,)) => {
+            let response_body = String::from_utf8_lossy(&response.body);
+            let status_code = response.status.0.to_u64().unwrap_or(0);
+
+            if status_code >= 200 && status_code < 300 {
+                // Parse tweet ID from response
+                let tweet_id = extract_json_field(&response_body, "id")
+                    .unwrap_or_else(|| format!("tweet_{}", ic_cdk::api::time()));
+                let tweet_url = format!("https://twitter.com/i/web/status/{}", tweet_id);
+
+                ic_cdk::println!("Twitter post successful: {}", tweet_url);
+                Ok((tweet_id, tweet_url))
+            } else {
+                Err(format!("Twitter API error {}: {}", status_code, response_body))
+            }
+        },
+        Err((code, msg)) => {
+            Err(format!("HTTP request to Twitter failed: {:?} - {}", code, msg))
+        }
+    }
+}
+
+// Helper function for URL encoding
+fn percent_encode(s: &str) -> String {
+    s.chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '.' || c == '_' || c == '~' {
+                c.to_string()
+            } else {
+                format!("%{:02X}", c as u8)
+            }
+        })
+        .collect()
+}
+
+// Helper to extract JSON field value
+fn extract_json_field(json: &str, field: &str) -> Option<String> {
+    let pattern = format!("\"{}\":\"", field);
+    if let Some(start) = json.find(&pattern) {
+        let start = start + pattern.len();
+        if let Some(end) = json[start..].find("\"") {
+            return Some(json[start..start + end].to_string());
+        }
+    }
+    None
+}
+
+async fn execute_facebook_post(config: &HashMap<String, ConfigValue>, message: &str) -> Result<(String, String), String> {
+    use ic_cdk::api::management_canister::http_request::{
+        http_request, CanisterHttpRequestArgument, HttpMethod, HttpHeader,
+    };
+
+    // Extract Facebook credentials
+    let access_token = config.get("access_token")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+        .ok_or("Missing access_token in Facebook config")?;
+
+    let page_id = config.get("page_id")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+        .unwrap_or_else(|| "me".to_string()); // Default to user's timeline
+
+    // Facebook Graph API endpoint
+    let url = format!("https://graph.facebook.com/v18.0/{}/feed?access_token={}", page_id, access_token);
+
+    // Build request body
+    let body = format!(r#"{{"message":"{}"}}"#, message.replace("\"", "\\\""));
+
+    // Make HTTP outcall to Facebook Graph API
+    let request = CanisterHttpRequestArgument {
+        url,
+        method: HttpMethod::POST,
+        body: Some(body.as_bytes().to_vec()),
+        max_response_bytes: Some(2000),
+        transform: None,
+        headers: vec![
+            HttpHeader {
+                name: "Content-Type".to_string(),
+                value: "application/json".to_string(),
+            },
+        ],
+    };
+
+    match http_request(request, 25_000_000_000).await {
+        Ok((response,)) => {
+            let response_body = String::from_utf8_lossy(&response.body);
+            let status_code = response.status.0.to_u64().unwrap_or(0);
+
+            if status_code >= 200 && status_code < 300 {
+                // Parse post ID from response
+                let post_id = extract_json_field(&response_body, "id")
+                    .unwrap_or_else(|| format!("fb_{}", ic_cdk::api::time()));
+                let post_url = format!("https://www.facebook.com/{}", post_id);
+
+                ic_cdk::println!("Facebook post successful: {}", post_url);
+                Ok((post_id, post_url))
+            } else {
+                Err(format!("Facebook API error {}: {}", status_code, response_body))
+            }
+        },
+        Err((code, msg)) => {
+            Err(format!("HTTP request to Facebook failed: {:?} - {}", code, msg))
+        }
+    }
+}
+
+async fn execute_linkedin_post(config: &HashMap<String, ConfigValue>, message: &str) -> Result<(String, String), String> {
+    use ic_cdk::api::management_canister::http_request::{
+        http_request, CanisterHttpRequestArgument, HttpMethod, HttpHeader,
+    };
+
+    // Extract LinkedIn credentials
+    let access_token = config.get("access_token")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+        .ok_or("Missing access_token in LinkedIn config")?;
+
+    let person_urn = config.get("person_urn")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+        .ok_or("Missing person_urn in LinkedIn config (format: urn:li:person:XXXXXX)")?;
+
+    // LinkedIn API v2 endpoint
+    let url = "https://api.linkedin.com/v2/ugcPosts";
+
+    // Build request body for LinkedIn UGC Post
+    let body = format!(
+        r#"{{
+            "author": "{}",
+            "lifecycleState": "PUBLISHED",
+            "specificContent": {{
+                "com.linkedin.ugc.ShareContent": {{
+                    "shareCommentary": {{
+                        "text": "{}"
+                    }},
+                    "shareMediaCategory": "NONE"
+                }}
+            }},
+            "visibility": {{
+                "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+            }}
+        }}"#,
+        person_urn,
+        message.replace("\"", "\\\"")
+    );
+
+    // Make HTTP outcall to LinkedIn API
+    let request = CanisterHttpRequestArgument {
+        url: url.to_string(),
+        method: HttpMethod::POST,
+        body: Some(body.as_bytes().to_vec()),
+        max_response_bytes: Some(2000),
+        transform: None,
+        headers: vec![
+            HttpHeader {
+                name: "Authorization".to_string(),
+                value: format!("Bearer {}", access_token),
+            },
+            HttpHeader {
+                name: "Content-Type".to_string(),
+                value: "application/json".to_string(),
+            },
+            HttpHeader {
+                name: "X-Restli-Protocol-Version".to_string(),
+                value: "2.0.0".to_string(),
+            },
+        ],
+    };
+
+    match http_request(request, 25_000_000_000).await {
+        Ok((response,)) => {
+            let response_body = String::from_utf8_lossy(&response.body);
+            let status_code = response.status.0.to_u64().unwrap_or(0);
+
+            if status_code >= 200 && status_code < 300 {
+                // Parse post ID from response
+                let post_id = extract_json_field(&response_body, "id")
+                    .unwrap_or_else(|| format!("li_{}", ic_cdk::api::time()));
+                let post_url = format!("https://www.linkedin.com/feed/update/{}", post_id);
+
+                ic_cdk::println!("LinkedIn post successful: {}", post_url);
+                Ok((post_id, post_url))
+            } else {
+                Err(format!("LinkedIn API error {}: {}", status_code, response_body))
+            }
+        },
+        Err((code, msg)) => {
+            Err(format!("HTTP request to LinkedIn failed: {:?} - {}", code, msg))
+        }
+    }
+}
+
+async fn execute_instagram_post(config: &HashMap<String, ConfigValue>, message: &str) -> Result<(String, String), String> {
+    use ic_cdk::api::management_canister::http_request::{
+        http_request, CanisterHttpRequestArgument, HttpMethod, HttpHeader,
+    };
+
+    // Extract Instagram credentials (uses Facebook Graph API)
+    let access_token = config.get("access_token")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+        .ok_or("Missing access_token in Instagram config")?;
+
+    let instagram_account_id = config.get("instagram_account_id")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+        .ok_or("Missing instagram_account_id in Instagram config")?;
+
+    let image_url = config.get("image_url")
+        .and_then(|v| match v {
+            ConfigValue::String(s) => Some(s.clone()),
+            _ => None,
+        })
+        .ok_or("Missing image_url in Instagram config (Instagram requires media)")?;
+
+    // Step 1: Create media container
+    let container_url = format!(
+        "https://graph.facebook.com/v18.0/{}/media?image_url={}&caption={}&access_token={}",
+        instagram_account_id,
+        percent_encode(&image_url),
+        percent_encode(message),
+        access_token
+    );
+
+    let container_request = CanisterHttpRequestArgument {
+        url: container_url,
+        method: HttpMethod::POST,
+        body: None,
+        max_response_bytes: Some(2000),
+        transform: None,
+        headers: vec![],
+    };
+
+    // Create media container
+    let container_response = match http_request(container_request, 25_000_000_000).await {
+        Ok((response,)) => {
+            let response_body = String::from_utf8_lossy(&response.body);
+            let status_code = response.status.0.to_u64().unwrap_or(0);
+            if status_code >= 200 && status_code < 300 {
+                extract_json_field(&response_body, "id")
+                    .ok_or_else(|| "Failed to get container ID from Instagram".to_string())?
+            } else {
+                return Err(format!("Instagram container creation error {}: {}", status_code, response_body));
+            }
+        },
+        Err((code, msg)) => {
+            return Err(format!("HTTP request to Instagram failed: {:?} - {}", code, msg));
+        }
+    };
+
+    // Step 2: Publish media container
+    let publish_url = format!(
+        "https://graph.facebook.com/v18.0/{}/media_publish?creation_id={}&access_token={}",
+        instagram_account_id,
+        container_response,
+        access_token
+    );
+
+    let publish_request = CanisterHttpRequestArgument {
+        url: publish_url,
+        method: HttpMethod::POST,
+        body: None,
+        max_response_bytes: Some(2000),
+        transform: None,
+        headers: vec![],
+    };
+
+    match http_request(publish_request, 25_000_000_000).await {
+        Ok((response,)) => {
+            let response_body = String::from_utf8_lossy(&response.body);
+            let status_code = response.status.0.to_u64().unwrap_or(0);
+
+            if status_code >= 200 && status_code < 300 {
+                let post_id = extract_json_field(&response_body, "id")
+                    .unwrap_or_else(|| format!("ig_{}", ic_cdk::api::time()));
+                let post_url = format!("https://www.instagram.com/p/{}", post_id);
+
+                ic_cdk::println!("Instagram post successful: {}", post_url);
+                Ok((post_id, post_url))
+            } else {
+                Err(format!("Instagram API error {}: {}", status_code, response_body))
+            }
+        },
+        Err((code, msg)) => {
+            Err(format!("HTTP request to Instagram failed: {:?} - {}", code, msg))
+        }
+    }
 }
 
 // ===== AI CONTENT GENERATION NODES =====

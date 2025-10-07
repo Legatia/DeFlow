@@ -10,6 +10,7 @@ const LinkedInAPISetup: React.FC = () => {
   const [newConfig, setNewConfig] = useState<Partial<LinkedInConfig>>({
     name: '',
     access_token: '',
+    person_urn: '',
     post_type: 'person',
     organization_id: ''
   })
@@ -45,6 +46,7 @@ const LinkedInAPISetup: React.FC = () => {
     const validation = inputValidationService.validateLinkedInCredentials({
       name: newConfig.name || '',
       access_token: newConfig.access_token || '',
+      person_urn: newConfig.person_urn || '',
       post_type: newConfig.post_type || 'person',
       organization_id: newConfig.organization_id
     })
@@ -66,6 +68,7 @@ const LinkedInAPISetup: React.FC = () => {
         id: Date.now().toString(),
         name: validation.sanitizedData!.name,
         access_token: validation.sanitizedData!.access_token,
+        person_urn: validation.sanitizedData!.person_urn,
         post_type: validation.sanitizedData!.post_type,
         organization_id: validation.sanitizedData!.organization_id || '',
         createdAt: new Date().toISOString()
@@ -84,6 +87,7 @@ const LinkedInAPISetup: React.FC = () => {
       setNewConfig({
         name: '',
         access_token: '',
+        person_urn: '',
         post_type: 'person',
         organization_id: ''
       })
@@ -192,7 +196,8 @@ const LinkedInAPISetup: React.FC = () => {
           <li>Create a new app or use existing one</li>
           <li>Add "Share on LinkedIn" and "Sign In with LinkedIn" products</li>
           <li>Set redirect URI: <code className="bg-blue-100 px-1 rounded">{window.location.origin}/auth/linkedin/callback</code></li>
-          <li>Use the OAuth flow below or manually enter your access token</li>
+          <li>Get your Person URN: Call <code className="bg-blue-100 px-1 rounded">GET https://api.linkedin.com/v2/me</code> with your access token</li>
+          <li>Use the OAuth flow below or manually enter your credentials</li>
         </ol>
       </div>
 
@@ -245,6 +250,22 @@ const LinkedInAPISetup: React.FC = () => {
               />
               <p className="text-xs text-gray-500 mt-1">
                 Long-lived access token from LinkedIn OAuth flow
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Person URN *
+              </label>
+              <input
+                type="text"
+                value={newConfig.person_urn || ''}
+                onChange={(e) => setNewConfig({ ...newConfig, person_urn: e.target.value })}
+                placeholder="urn:li:person:XXXXXXXXX"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Get your Person URN by calling: GET https://api.linkedin.com/v2/me
               </p>
             </div>
 
@@ -316,6 +337,7 @@ const LinkedInAPISetup: React.FC = () => {
                   
                   <div className="mt-1 text-sm text-gray-600">
                     <p>Token: {config.access_token.slice(0, 10)}...{config.access_token.slice(-6)}</p>
+                    <p>Person URN: {config.person_urn.slice(0, 20)}...{config.person_urn.slice(-6)}</p>
                     {config.organization_id && (
                       <p>Organization ID: {config.organization_id}</p>
                     )}
@@ -357,10 +379,11 @@ const LinkedInAPISetup: React.FC = () => {
       <div className="bg-green-50 border border-green-200 rounded-lg p-4">
         <h4 className="font-medium text-green-900 mb-2">How to Use</h4>
         <div className="text-sm text-green-800 space-y-1">
-          <p>1. Create workflows with <strong>Social Media Text</strong> → <strong>LinkedIn Post</strong></p>
-          <p>2. Set platform to "LinkedIn (3000 chars)" in Social Media Text node</p>
-          <p>3. Use professional tone and relevant hashtags (#DeFi #Business)</p>
-          <p>4. Templates support variables like {"{{portfolio_value}}, {{date}}, {{strategy}}"}</p>
+          <p>1. Create workflows with <strong>Social Media Text</strong> → <strong>Select Platform</strong> → <strong>Social Media Post</strong></p>
+          <p>2. Choose "LinkedIn" in the Select Platform node</p>
+          <p>3. Set platform to "LinkedIn (3000 chars)" in Social Media Text node</p>
+          <p>4. Use professional tone and relevant hashtags (#DeFi #Business)</p>
+          <p>5. Templates support variables like {"{{portfolio_value}}, {{date}}, {{strategy}}"}</p>
         </div>
       </div>
     </div>

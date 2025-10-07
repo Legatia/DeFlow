@@ -6,6 +6,7 @@ import { Workflow } from '../types'
 import WorkflowBuilder from '../components/WorkflowBuilder'
 import WorkflowTemplates from '../components/WorkflowTemplates'
 import { WorkflowTemplate, WORKFLOW_TEMPLATES } from '../data/workflowTemplates'
+import { reactFlowToBackend, backendToReactFlow, validateWorkflowForBackend } from '../utils/workflowConverter'
 
 const WorkflowEditor = () => {
   const { id } = useParams()
@@ -73,39 +74,9 @@ const WorkflowEditor = () => {
         description: currentWorkflow.description || '',
         active: currentWorkflow.active
       })
-      
-      // Convert workflow nodes to React Flow format
-      const nodes: Node[] = currentWorkflow.nodes.map(node => ({
-        id: node.id,
-        type: 'workflowNode',
-        position: node.position,
-        data: {
-          nodeType: {
-            id: node.node_type,
-            name: node.metadata.label || node.node_type,
-            description: node.metadata.description || '',
-            category: 'actions' as any,
-            icon: node.metadata.icon || '⚡',
-            color: node.metadata.color || '#10b981',
-            inputs: [],
-            outputs: [],
-            configSchema: [],
-            defaultConfig: {}
-          },
-          config: node.configuration.parameters || {},
-          isValid: true,
-          errors: []
-        }
-      }))
 
-      const edges: Edge[] = currentWorkflow.connections.map(conn => ({
-        id: conn.id,
-        source: conn.source_node_id,
-        target: conn.target_node_id,
-        sourceHandle: conn.source_output,
-        targetHandle: conn.target_input,
-        type: 'smoothstep'
-      }))
+      // Convert workflow nodes to React Flow format using converter
+      const { nodes, edges } = backendToReactFlow(currentWorkflow.nodes, currentWorkflow.connections)
 
       setWorkflowNodes(nodes)
       setWorkflowEdges(edges)
@@ -119,30 +90,16 @@ const WorkflowEditor = () => {
     }
 
     try {
-      // Convert React Flow format back to workflow format
-      const workflowNodes = nodes.map(node => ({
-        id: node.id,
-        node_type: node.data.nodeType.id,
-        position: node.position,
-        configuration: {
-          parameters: node.data.config || {}
-        },
-        metadata: {
-          label: node.data.nodeType.name,
-          description: node.data.nodeType.description,
-          tags: [node.data.nodeType.category],
-          icon: node.data.nodeType.icon,
-          color: node.data.nodeType.color
-        }
-      }))
+      // Validate workflow before saving
+      const validation = validateWorkflowForBackend(nodes, edges)
+      if (!validation.valid) {
+        alert('Workflow validation failed:\n' + validation.errors.join('\n'))
+        console.error('Validation errors:', validation.errors)
+        return
+      }
 
-      const workflowConnections = edges.map(edge => ({
-        id: edge.id,
-        source_node_id: edge.source,
-        target_node_id: edge.target,
-        source_output: edge.sourceHandle || 'output',
-        target_input: edge.targetHandle || 'input'
-      }))
+      // Convert React Flow format back to backend workflow format
+      const { nodes: workflowNodes, connections: workflowConnections } = reactFlowToBackend(nodes, edges)
 
       const workflowData = {
         ...formData,
@@ -151,6 +108,11 @@ const WorkflowEditor = () => {
         triggers: [{ type: 'manual' as const }],
         state: 'published' as const
       }
+
+      console.log('💾 Saving workflow:', {
+        frontend: { nodes, edges },
+        backend: workflowData
+      })
 
       if (isEditing && currentWorkflow) {
         const updatedWorkflow: Workflow = {

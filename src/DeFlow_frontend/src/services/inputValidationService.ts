@@ -199,6 +199,7 @@ class InputValidationService {
   validateLinkedInCredentials(credentials: {
     name: string
     access_token: string
+    person_urn: string
     post_type: string
     organization_id?: string
   }): ValidationResult {
@@ -223,6 +224,16 @@ class InputValidationService {
       errors.access_token = 'Invalid Access Token format. Use only alphanumeric characters'
     } else {
       sanitizedData.access_token = accessToken
+    }
+
+    // Validate Person URN
+    const personUrn = credentials.person_urn.trim()
+    if (!personUrn) {
+      errors.person_urn = 'Person URN is required'
+    } else if (!personUrn.startsWith('urn:li:person:')) {
+      errors.person_urn = 'Invalid Person URN format. Must start with "urn:li:person:"'
+    } else {
+      sanitizedData.person_urn = personUrn
     }
 
     // Validate Post Type

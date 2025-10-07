@@ -5,61 +5,61 @@ import { SubscriptionTier } from '../types/nodes'
  * This centralizes all tier decisions and makes it easy to manage upgrades
  */
 
-// Nodes available for Standard tier (free)
-export const STANDARD_TIER_NODES = [
+// ALL FEATURES UNLOCKED FOR ALL TIERS
+// Focus on user traction through social media management
+const ALL_NODES = [
   // Core workflow nodes
   'manual-trigger',
   'schedule-trigger',
   'delay',
   'condition',
   'transform-data',
-  
-  // Basic utilities
   'data-filter',
   'data-validator',
-  
-  // Allowed social integrations for Standard tier
+
+  // Social Media Integrations (PRIMARY FOCUS)
   'discord-webhook',
-  'discord-text-message', 
+  'discord-text-message',
   'discord-embed-builder',
   'telegram-bot',
-]
+  'social-auth-setup',
+  'select-platform',
+  'social-media-post',
+  'social-media-text',
+  'social-media-with-image',
 
-// Additional nodes for Premium tier ($19/month)
-export const PREMIUM_TIER_NODES = [
-  ...STANDARD_TIER_NODES,
-  
-  // Social Media Integrations
+  // Individual Platform Nodes (Better UX)
   'twitter-post',
   'facebook-post',
   'linkedin-post',
   'instagram-post',
-  
+
+  // Picture/Image Nodes
+  'upload-image',
+  'ai-generate-image',
+  'image-from-url',
+  'image-editor',
+
   // Communication
   'send-email',
   'sms-send',
-  
+
   // API Integrations
   'http-request',
   'webhook-trigger',
   'api-call',
-  
+
   // Advanced utilities
   'data-transform',
   'json-processor',
   'text-processor',
   'file-processor',
-  
+
   // Basic Analytics
   'analytics-track',
   'event-tracker',
-]
 
-// Additional nodes for Pro tier ($149/month)
-export const PRO_TIER_NODES = [
-  ...PREMIUM_TIER_NODES,
-  
-  // DeFi integrations (all DeFi nodes require Pro)
+  // DeFi integrations (all unlocked)
   'bitcoin-portfolio',
   'bitcoin-send',
   'bitcoin-address',
@@ -73,14 +73,14 @@ export const PRO_TIER_NODES = [
   'defi-yield-farming',
   'defi-arbitrage',
   'portfolio-manager',
-  
+
   // Advanced features
   'ai-analysis',
   'ml-prediction',
   'advanced-scheduler',
   'batch-processor',
   'multi-chain-bridge',
-  
+
   // Enterprise features
   'audit-logger',
   'compliance-checker',
@@ -88,43 +88,38 @@ export const PRO_TIER_NODES = [
   'automated-reporting',
 ]
 
+// All tiers get all nodes now
+export const STANDARD_TIER_NODES = ALL_NODES
+export const PREMIUM_TIER_NODES = ALL_NODES
+export const PRO_TIER_NODES = ALL_NODES
+
 /**
  * Get all allowed node IDs for a subscription tier
  */
 export function getAllowedNodeIds(tier: SubscriptionTier): string[] {
-  switch (tier) {
-    case 'standard':
-      return STANDARD_TIER_NODES
-    case 'premium':
-      return PREMIUM_TIER_NODES
-    case 'pro':
-      return PRO_TIER_NODES
-    default:
-      return STANDARD_TIER_NODES
-  }
+  // All tiers get all nodes
+  return ALL_NODES
 }
 
 /**
  * Check if a node ID is allowed for a subscription tier
  */
 export function isNodeAllowedForTier(nodeId: string, tier: SubscriptionTier): boolean {
-  return getAllowedNodeIds(tier).includes(nodeId)
+  // All nodes allowed for all tiers
+  return true
 }
 
 /**
  * Get the minimum tier required for a node ID
  */
 export function getMinimumTierForNode(nodeId: string): SubscriptionTier {
-  if (STANDARD_TIER_NODES.includes(nodeId)) return 'standard'
-  if (PREMIUM_TIER_NODES.includes(nodeId)) return 'premium'
-  if (PRO_TIER_NODES.includes(nodeId)) return 'pro'
-  
-  // Default to premium for unknown nodes (safer)
-  return 'premium'
+  // All nodes available at standard tier
+  return 'standard'
 }
 
 /**
- * Tier upgrade suggestions based on restricted nodes
+ * Updated tier benefits - ALL FEATURES UNLOCKED
+ * Focus on social media management for user traction
  */
 export const TIER_UPGRADE_MESSAGES = {
   premium: {
@@ -133,41 +128,42 @@ export const TIER_UPGRADE_MESSAGES = {
     savings: '70% fee savings (0.25% vs 0.85%)',
     breakEven: 'Break-even at $3,167/month volume',
     benefits: [
-      '🌐 Full social media integrations (Twitter, Facebook, LinkedIn)',
-      '📧 Email & SMS sending capabilities', 
-      '🔗 HTTP API calls & webhooks',
-      '⚡ Advanced data processing tools',
       '🚀 Priority execution queue',
-      '💬 Email support (24h response)',
-      '💰 0.25% transaction fees (70% savings!)'
+      '💬 Priority email support (24h response)',
+      '💰 0.25% transaction fees (70% savings!)',
+      '📊 Advanced analytics dashboard',
+      '🔔 Priority notifications',
+      '⚡ Faster workflow execution'
     ]
   },
   pro: {
-    title: 'Upgrade to Pro', 
+    title: 'Upgrade to Pro',
     price: '$149/month',
     savings: '88% fee savings (0.1% vs 0.85%)',
     breakEven: 'Break-even at $19,867/month volume',
     benefits: [
       '✨ All Premium features',
-      '🏦 Complete DeFi integration suite',
-      '🤖 AI/ML analysis capabilities',
-      '🌉 Multi-chain bridge operations',
-      '🔒 Enterprise compliance tools',
-      '📊 Advanced analytics & reporting',
       '📞 24/7 priority phone support',
-      '💰 0.1% transaction fees (88% savings!)'
+      '💰 0.1% transaction fees (88% savings!)',
+      '🎯 Dedicated account manager',
+      '🔒 Enhanced security features',
+      '📊 Custom reporting & analytics',
+      '🚀 Maximum execution priority',
+      '💼 White-label options'
     ]
   },
   standard: {
     title: 'Standard Plan (Free)',
     price: 'Free forever',
-    limitations: 'Telegram & Discord nodes only',
+    limitations: 'All features unlocked!',
     benefits: [
-      '💬 Telegram bot integrations',
-      '🎮 Discord webhook & messaging',
-      '⚙️ Basic workflow automation',
+      '🌐 FULL social media integrations (Twitter, Discord, Telegram, etc.)',
+      '🏦 Complete DeFi integration suite',
+      '⚙️ Advanced workflow automation',
+      '🔗 HTTP API calls & webhooks',
+      '📧 Email & SMS capabilities',
       '👥 Community support',
-      '🐌 Standard execution speed',
+      '⚡ Standard execution speed',
       '💸 0.85% transaction fees'
     ]
   }

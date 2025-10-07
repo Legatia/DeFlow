@@ -21,6 +21,7 @@ pub struct Workflow {
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "lowercase")]
 pub enum WorkflowState {
     Draft,
     Published,
@@ -576,51 +577,43 @@ pub struct User {
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq)]
 pub enum SubscriptionTier {
-    Standard,  // $0/month - Telegram & Discord only
-    Premium,   // $19/month - All integrations
-    Pro,       // $149/month - All integrations + advanced features
+    Standard,  // $0/month - ALL FEATURES UNLOCKED (focus on user traction)
+    Premium,   // $19/month - Priority support + lower fees (0.25%)
+    Pro,       // $149/month - Premium + dedicated support + lowest fees (0.1%)
 }
 
 impl SubscriptionTier {
     pub fn allowed_node_types(&self) -> Vec<String> {
-        match self {
-            SubscriptionTier::Standard => vec![
-                "telegram".to_string(),
-                "discord".to_string(),
-                // Core workflow nodes always available
-                "delay".to_string(),
-                "condition".to_string(),
-                "transform".to_string(),
-                "timer".to_string(),
-            ],
-            SubscriptionTier::Premium | SubscriptionTier::Pro => vec![
-                "telegram".to_string(),
-                "discord".to_string(),
-                "twitter".to_string(),
-                "facebook".to_string(),
-                "email".to_string(),
-                "linkedin".to_string(),
-                "instagram".to_string(),
-                "webhook".to_string(),
-                "http_request".to_string(),
-                // Core workflow nodes
-                "delay".to_string(),
-                "condition".to_string(),
-                "transform".to_string(),
-                "timer".to_string(),
-                // DeFi nodes
-                "bitcoin_portfolio".to_string(),
-                "bitcoin_send".to_string(),
-                "bitcoin_address".to_string(),
-                "bitcoin_balance".to_string(),
-                "ethereum_portfolio".to_string(),
-                "ethereum_send".to_string(),
-                "ethereum_address".to_string(),
-                "ethereum_gas_estimate".to_string(),
-                "l2_optimization".to_string(),
-                "bridge_analysis".to_string(),
-            ],
-        }
+        // ALL FEATURES UNLOCKED FOR ALL TIERS
+        // Focus on user traction through social media management
+        vec![
+            // Social Media (primary focus for traction)
+            "telegram".to_string(),
+            "discord".to_string(),
+            "twitter".to_string(),
+            "facebook".to_string(),
+            "email".to_string(),
+            "linkedin".to_string(),
+            "instagram".to_string(),
+            "webhook".to_string(),
+            "http_request".to_string(),
+            // Core workflow nodes
+            "delay".to_string(),
+            "condition".to_string(),
+            "transform".to_string(),
+            "timer".to_string(),
+            // DeFi nodes (all unlocked)
+            "bitcoin_portfolio".to_string(),
+            "bitcoin_send".to_string(),
+            "bitcoin_address".to_string(),
+            "bitcoin_balance".to_string(),
+            "ethereum_portfolio".to_string(),
+            "ethereum_send".to_string(),
+            "ethereum_address".to_string(),
+            "ethereum_gas_estimate".to_string(),
+            "l2_optimization".to_string(),
+            "bridge_analysis".to_string(),
+        ]
     }
     
     pub fn monthly_fee(&self) -> f64 {

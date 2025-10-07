@@ -46,6 +46,10 @@ pub mod price_alert_defi_integration;
 pub mod social_media_formatter;
 // Real-time APY fetcher with HTTP outcalls
 pub mod realtime_apy_fetcher;
+// Protocol executor for connecting deposit manager to DeFi protocols
+pub mod protocol_executor;
+// L2 bridge executor for real bridge contract interactions
+pub mod l2_bridge_executor;
 
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
@@ -215,9 +219,15 @@ pub async fn initialize_defi_system() -> Result<(), String> {
     
     // Initialize DeFi trigger engine for price alerts
     price_alert_defi_integration::init_defi_trigger_engine();
-    
+
+    // Initialize protocol executor for deposits/withdrawals
+    protocol_executor::init_protocol_executor(ic_cdk::api::id());
+
+    // Initialize L2 bridge executor for cross-L2 transfers
+    l2_bridge_executor::init_l2_bridge_executor(ic_cdk::api::id());
+
     // Bitcoin service initialization will be handled on-demand in API calls
     // This avoids complex async lifetime issues during initialization
-    
+
     Ok(())
 }

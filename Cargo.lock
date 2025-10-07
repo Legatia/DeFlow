@@ -6,10 +6,12 @@ version = 4
 name = "DeFlow_backend"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "bs58",
  "candid",
  "getrandom",
  "hex",
+ "hmac",
  "ic-cdk",
  "ic-cdk-timers",
  "ic-stable-structures",
@@ -20,6 +22,7 @@ dependencies = [
  "rlp",
  "serde",
  "serde_json",
+ "sha1",
  "sha2",
  "sha3",
  "tokio",
@@ -78,6 +81,12 @@ name = "base16ct"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c7f02d4ea65f2c1853089ffd8d2787bdbc63de2f0d29dedbcf8ccdfa0ccd4cf"
+
+[[package]]
+name = "base64"
+version = "0.21.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 
 [[package]]
 name = "binread"
@@ -883,6 +892,17 @@ dependencies = [
  "quote",
  "serde",
  "syn 2.0.106",
+]
+
+[[package]]
+name = "sha1"
+version = "0.10.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3bf829a2d51ab4a5ddf1352d8470c140cadc8301b2ae1789db023f01cedd6ba"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "digest",
 ]
 
 [[package]]

@@ -1368,6 +1368,347 @@ export const NODE_TYPES: NodeType[] = [
     }
   },
 
+  // Individual Platform Nodes for Better UX
+  {
+    id: 'twitter-post',
+    name: 'Twitter/X Post',
+    description: 'Post directly to Twitter/X (280 characters)',
+    category: 'integrations',
+    icon: '𝕏',
+    color: '#000000',
+    inputs: [
+      { id: 'auth', name: 'Auth Config', type: 'data', required: true },
+      { id: 'content_data', name: 'Content Data', type: 'data', required: false }
+    ],
+    outputs: [
+      { id: 'result', name: 'Tweet Result', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'tweet_text',
+        name: 'Tweet Text',
+        type: 'textarea',
+        required: true,
+        placeholder: '🚀 Just made +{{profit}}% with DeFlow!\n\n💰 Portfolio: ${{value}}\n📈 #DeFi #crypto',
+        description: 'Tweet content (max 280 chars, supports {{variables}})',
+        validation: { maxLength: 280 }
+      },
+      {
+        key: 'reply_to_tweet_id',
+        name: 'Reply to Tweet ID',
+        type: 'text',
+        required: false,
+        placeholder: '1234567890123456789',
+        description: 'Tweet ID to reply to (optional)'
+      },
+      {
+        key: 'media_urls',
+        name: 'Media URLs',
+        type: 'textarea',
+        required: false,
+        placeholder: 'https://example.com/image1.png\nhttps://example.com/image2.png',
+        description: 'Image URLs (one per line, max 4 images)'
+      },
+      {
+        key: 'quote_tweet_id',
+        name: 'Quote Tweet ID',
+        type: 'text',
+        required: false,
+        placeholder: '1234567890123456789',
+        description: 'Tweet ID to quote tweet (optional)'
+      },
+      {
+        key: 'poll_options',
+        name: 'Poll Options',
+        type: 'textarea',
+        required: false,
+        placeholder: 'Bullish\nBearish\nNeutral',
+        description: 'Poll options (one per line, 2-4 options)'
+      },
+      {
+        key: 'poll_duration_minutes',
+        name: 'Poll Duration (minutes)',
+        type: 'number',
+        required: false,
+        placeholder: '1440',
+        description: 'Poll duration in minutes (5-10080)',
+        validation: { min: 5, max: 10080 }
+      }
+    ],
+    defaultConfig: {
+      tweet_text: '',
+      reply_to_tweet_id: '',
+      media_urls: '',
+      quote_tweet_id: '',
+      poll_options: '',
+      poll_duration_minutes: 1440
+    },
+    requiredTier: 'standard'
+  },
+
+  {
+    id: 'facebook-post',
+    name: 'Facebook Post',
+    description: 'Post to Facebook Page or Group',
+    category: 'integrations',
+    icon: '👥',
+    color: '#1877F2',
+    inputs: [
+      { id: 'auth', name: 'Auth Config', type: 'data', required: true },
+      { id: 'content_data', name: 'Content Data', type: 'data', required: false }
+    ],
+    outputs: [
+      { id: 'result', name: 'Post Result', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'post_text',
+        name: 'Post Text',
+        type: 'textarea',
+        required: true,
+        placeholder: 'Check out my latest DeFi gains! 🚀\n\nPortfolio value: ${{value}}\nProfit: +{{profit}}%\n\n#DeFi #crypto',
+        description: 'Post content (supports {{variables}})'
+      },
+      {
+        key: 'target_type',
+        name: 'Target Type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'My Page', value: 'page' },
+          { label: 'Group', value: 'group' },
+          { label: 'Personal Profile', value: 'profile' }
+        ],
+        defaultValue: 'page',
+        description: 'Where to post'
+      },
+      {
+        key: 'target_id',
+        name: 'Page/Group ID',
+        type: 'text',
+        required: false,
+        placeholder: '123456789',
+        description: 'Facebook Page ID or Group ID (required for page/group posts)'
+      },
+      {
+        key: 'media_url',
+        name: 'Media URL',
+        type: 'url',
+        required: false,
+        placeholder: 'https://example.com/image.png',
+        description: 'Image or video URL to attach'
+      },
+      {
+        key: 'link_url',
+        name: 'Link URL',
+        type: 'url',
+        required: false,
+        placeholder: 'https://deflow.app',
+        description: 'Link to share in post'
+      },
+      {
+        key: 'published',
+        name: 'Publish Immediately',
+        type: 'boolean',
+        required: false,
+        defaultValue: true,
+        description: 'Publish immediately or save as draft'
+      }
+    ],
+    defaultConfig: {
+      post_text: '',
+      target_type: 'page',
+      target_id: '',
+      media_url: '',
+      link_url: '',
+      published: true
+    },
+    requiredTier: 'standard'
+  },
+
+  {
+    id: 'linkedin-post',
+    name: 'LinkedIn Post',
+    description: 'Post to LinkedIn Profile or Company Page',
+    category: 'integrations',
+    icon: '💼',
+    color: '#0A66C2',
+    inputs: [
+      { id: 'auth', name: 'Auth Config', type: 'data', required: true },
+      { id: 'content_data', name: 'Content Data', type: 'data', required: false }
+    ],
+    outputs: [
+      { id: 'result', name: 'Post Result', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'post_text',
+        name: 'Post Text',
+        type: 'textarea',
+        required: true,
+        placeholder: 'Excited to share my latest DeFi automation results! 📊\n\nPortfolio Performance:\n• Value: ${{value}}\n• Profit: +{{profit}}%\n• Strategy: {{strategy}}\n\n#DeFi #FinTech #Automation',
+        description: 'Post content (max 3000 chars, supports {{variables}})',
+        validation: { maxLength: 3000 }
+      },
+      {
+        key: 'target_type',
+        name: 'Target Type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Personal Profile', value: 'profile' },
+          { label: 'Company Page', value: 'company' }
+        ],
+        defaultValue: 'profile',
+        description: 'Post to profile or company page'
+      },
+      {
+        key: 'company_id',
+        name: 'Company ID',
+        type: 'text',
+        required: false,
+        placeholder: '12345678',
+        description: 'LinkedIn Company ID (required for company posts)'
+      },
+      {
+        key: 'media_url',
+        name: 'Media URL',
+        type: 'url',
+        required: false,
+        placeholder: 'https://example.com/image.png',
+        description: 'Image or video URL to attach'
+      },
+      {
+        key: 'article_title',
+        name: 'Article Title',
+        type: 'text',
+        required: false,
+        placeholder: 'How I Automated My DeFi Portfolio',
+        description: 'Title for shared article/link'
+      },
+      {
+        key: 'article_url',
+        name: 'Article URL',
+        type: 'url',
+        required: false,
+        placeholder: 'https://medium.com/@user/article',
+        description: 'URL of article to share'
+      },
+      {
+        key: 'visibility',
+        name: 'Visibility',
+        type: 'select',
+        required: false,
+        options: [
+          { label: 'Public (Anyone)', value: 'public' },
+          { label: 'Connections Only', value: 'connections' }
+        ],
+        defaultValue: 'public',
+        description: 'Who can see this post'
+      }
+    ],
+    defaultConfig: {
+      post_text: '',
+      target_type: 'profile',
+      company_id: '',
+      media_url: '',
+      article_title: '',
+      article_url: '',
+      visibility: 'public'
+    },
+    requiredTier: 'standard'
+  },
+
+  {
+    id: 'instagram-post',
+    name: 'Instagram Post',
+    description: 'Post photos/videos to Instagram',
+    category: 'integrations',
+    icon: '📷',
+    color: '#E4405F',
+    inputs: [
+      { id: 'auth', name: 'Auth Config', type: 'data', required: true },
+      { id: 'content_data', name: 'Content Data', type: 'data', required: false }
+    ],
+    outputs: [
+      { id: 'result', name: 'Post Result', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'caption',
+        name: 'Caption',
+        type: 'textarea',
+        required: true,
+        placeholder: '📊 Portfolio Update 🚀\n\nLatest gains from automated DeFi strategies!\n\n💰 Value: ${{value}}\n📈 Profit: +{{profit}}%\n\n#DeFi #crypto #automation #trading',
+        description: 'Post caption (max 2200 chars, supports {{variables}})',
+        validation: { maxLength: 2200 }
+      },
+      {
+        key: 'media_type',
+        name: 'Media Type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Photo (JPG/PNG)', value: 'image' },
+          { label: 'Video (MP4)', value: 'video' },
+          { label: 'Carousel (Multiple)', value: 'carousel' }
+        ],
+        defaultValue: 'image',
+        description: 'Type of media to post'
+      },
+      {
+        key: 'media_url',
+        name: 'Media URL',
+        type: 'url',
+        required: true,
+        placeholder: 'https://example.com/portfolio-chart.png',
+        description: 'Image or video URL (must be publicly accessible)'
+      },
+      {
+        key: 'carousel_urls',
+        name: 'Carousel URLs',
+        type: 'textarea',
+        required: false,
+        placeholder: 'https://example.com/image1.png\nhttps://example.com/image2.png\nhttps://example.com/image3.png',
+        description: 'Multiple image URLs (one per line, 2-10 images)'
+      },
+      {
+        key: 'location_id',
+        name: 'Location ID',
+        type: 'text',
+        required: false,
+        placeholder: '213385402',
+        description: 'Instagram Location ID (optional)'
+      },
+      {
+        key: 'user_tags',
+        name: 'User Tags',
+        type: 'text',
+        required: false,
+        placeholder: '@username1 @username2',
+        description: 'Tag users (space-separated, @ optional)'
+      },
+      {
+        key: 'share_to_feed',
+        name: 'Share to Feed',
+        type: 'boolean',
+        required: false,
+        defaultValue: true,
+        description: 'Share to main feed (or story only)'
+      }
+    ],
+    defaultConfig: {
+      caption: '',
+      media_type: 'image',
+      media_url: '',
+      carousel_urls: '',
+      location_id: '',
+      user_tags: '',
+      share_to_feed: true
+    },
+    requiredTier: 'standard'
+  },
+
   {
     id: 'nft-operations',
     name: 'NFT Operations',
@@ -2026,6 +2367,476 @@ export const NODE_TYPES: NodeType[] = [
       guidelines: 'Always be helpful and accurate. Keep responses under 280 characters.'
     },
     requiredTier: 'premium'
+  },
+
+  // Picture/Image Nodes
+  {
+    id: 'upload-image',
+    name: 'Upload Image',
+    description: 'Upload an image file to use in workflows',
+    category: 'utilities',
+    icon: '📤',
+    color: '#ec4899',
+    inputs: [
+      { id: 'trigger', name: 'Trigger', type: 'trigger', required: false }
+    ],
+    outputs: [
+      { id: 'image_data', name: 'Image Data', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'image_file',
+        name: 'Image File',
+        type: 'text',
+        required: true,
+        placeholder: 'Click to upload image',
+        description: 'Upload image file (JPG, PNG, GIF, WebP)'
+      },
+      {
+        key: 'image_name',
+        name: 'Image Name',
+        type: 'text',
+        required: false,
+        placeholder: 'my-image.png',
+        description: 'Optional name for the image'
+      },
+      {
+        key: 'storage_type',
+        name: 'Storage Type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'ICP Asset Canister (Permanent)', value: 'icp_asset' },
+          { label: 'IPFS (Decentralized)', value: 'ipfs' },
+          { label: 'Temporary URL (24h)', value: 'temporary' }
+        ],
+        defaultValue: 'icp_asset',
+        description: 'Where to store the uploaded image'
+      },
+      {
+        key: 'max_width',
+        name: 'Max Width (px)',
+        type: 'number',
+        required: false,
+        placeholder: '1920',
+        validation: { min: 100, max: 4096 },
+        description: 'Resize image to max width (keeps aspect ratio)'
+      },
+      {
+        key: 'max_height',
+        name: 'Max Height (px)',
+        type: 'number',
+        required: false,
+        placeholder: '1080',
+        validation: { min: 100, max: 4096 },
+        description: 'Resize image to max height (keeps aspect ratio)'
+      },
+      {
+        key: 'quality',
+        name: 'Quality (%)',
+        type: 'number',
+        required: false,
+        validation: { min: 1, max: 100 },
+        defaultValue: 85,
+        description: 'JPEG compression quality (1-100)'
+      },
+      {
+        key: 'convert_format',
+        name: 'Convert Format',
+        type: 'select',
+        required: false,
+        options: [
+          { label: 'Keep Original', value: 'original' },
+          { label: 'Convert to JPEG', value: 'jpeg' },
+          { label: 'Convert to PNG', value: 'png' },
+          { label: 'Convert to WebP', value: 'webp' }
+        ],
+        defaultValue: 'original',
+        description: 'Convert image to different format'
+      }
+    ],
+    defaultConfig: {
+      image_file: '',
+      image_name: '',
+      storage_type: 'icp_asset',
+      max_width: null,
+      max_height: null,
+      quality: 85,
+      convert_format: 'original'
+    },
+    requiredTier: 'standard'
+  },
+
+  {
+    id: 'ai-generate-image',
+    name: 'AI Generate Image',
+    description: 'Generate images using AI (DALL-E, Midjourney, Stable Diffusion)',
+    category: 'utilities',
+    icon: '🎨',
+    color: '#a855f7',
+    inputs: [
+      { id: 'prompt_data', name: 'Prompt Data', type: 'data', required: false }
+    ],
+    outputs: [
+      { id: 'image_data', name: 'Generated Image', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'ai_provider',
+        name: 'AI Provider',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'OpenAI DALL-E 3', value: 'openai_dalle3' },
+          { label: 'OpenAI DALL-E 2', value: 'openai_dalle2' },
+          { label: 'Stability AI (Stable Diffusion)', value: 'stability_ai' },
+          { label: 'Midjourney (via API)', value: 'midjourney' },
+          { label: 'Replicate (Multiple Models)', value: 'replicate' }
+        ],
+        defaultValue: 'openai_dalle3',
+        description: 'AI image generation provider'
+      },
+      {
+        key: 'api_key',
+        name: 'API Key',
+        type: 'password',
+        required: true,
+        placeholder: 'sk-...',
+        description: 'Your API key for the selected provider'
+      },
+      {
+        key: 'prompt',
+        name: 'Image Prompt',
+        type: 'textarea',
+        required: true,
+        placeholder: 'A futuristic DeFi dashboard showing portfolio performance with {{portfolio_value}} in glowing neon colors, cyberpunk style, high detail',
+        description: 'Describe the image you want to generate (supports {{variables}})'
+      },
+      {
+        key: 'negative_prompt',
+        name: 'Negative Prompt',
+        type: 'textarea',
+        required: false,
+        placeholder: 'blurry, low quality, distorted',
+        description: 'What to avoid in the image (Stable Diffusion only)'
+      },
+      {
+        key: 'size',
+        name: 'Image Size',
+        type: 'select',
+        required: true,
+        options: [
+          { label: '256x256 (Small)', value: '256x256' },
+          { label: '512x512 (Medium)', value: '512x512' },
+          { label: '1024x1024 (Large, Square)', value: '1024x1024' },
+          { label: '1792x1024 (Landscape)', value: '1792x1024' },
+          { label: '1024x1792 (Portrait)', value: '1024x1792' }
+        ],
+        defaultValue: '1024x1024',
+        description: 'Generated image dimensions'
+      },
+      {
+        key: 'style',
+        name: 'Style',
+        type: 'select',
+        required: false,
+        options: [
+          { label: 'Natural', value: 'natural' },
+          { label: 'Vivid', value: 'vivid' }
+        ],
+        defaultValue: 'vivid',
+        description: 'Image style (DALL-E 3 only)'
+      },
+      {
+        key: 'quality',
+        name: 'Quality',
+        type: 'select',
+        required: false,
+        options: [
+          { label: 'Standard', value: 'standard' },
+          { label: 'HD (High Definition)', value: 'hd' }
+        ],
+        defaultValue: 'standard',
+        description: 'Image quality (affects cost)'
+      },
+      {
+        key: 'num_images',
+        name: 'Number of Images',
+        type: 'number',
+        required: false,
+        validation: { min: 1, max: 10 },
+        defaultValue: 1,
+        description: 'How many variations to generate (1-10)'
+      },
+      {
+        key: 'save_all',
+        name: 'Save All Variations',
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        description: 'Save all generated variations or just the first one'
+      },
+      {
+        key: 'auto_enhance',
+        name: 'Auto-Enhance Prompt',
+        type: 'boolean',
+        required: false,
+        defaultValue: true,
+        description: 'Let AI improve your prompt for better results'
+      }
+    ],
+    defaultConfig: {
+      ai_provider: 'openai_dalle3',
+      api_key: '',
+      prompt: '',
+      negative_prompt: '',
+      size: '1024x1024',
+      style: 'vivid',
+      quality: 'standard',
+      num_images: 1,
+      save_all: false,
+      auto_enhance: true
+    },
+    requiredTier: 'premium'
+  },
+
+  {
+    id: 'image-from-url',
+    name: 'Image from URL',
+    description: 'Fetch an image from a URL',
+    category: 'utilities',
+    icon: '🔗',
+    color: '#ec4899',
+    inputs: [
+      { id: 'data', name: 'Input Data', type: 'data', required: false }
+    ],
+    outputs: [
+      { id: 'image_data', name: 'Image Data', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'image_url',
+        name: 'Image URL',
+        type: 'url',
+        required: true,
+        placeholder: 'https://example.com/image.png or {{dynamic_url}}',
+        description: 'URL of the image to fetch (supports {{variables}})'
+      },
+      {
+        key: 'cache_duration',
+        name: 'Cache Duration',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'No Cache (Always Fetch)', value: 'none' },
+          { label: '1 Hour', value: '1h' },
+          { label: '24 Hours', value: '24h' },
+          { label: '7 Days', value: '7d' },
+          { label: 'Permanent', value: 'permanent' }
+        ],
+        defaultValue: '24h',
+        description: 'How long to cache the fetched image'
+      },
+      {
+        key: 'fallback_url',
+        name: 'Fallback Image URL',
+        type: 'url',
+        required: false,
+        placeholder: 'https://example.com/default.png',
+        description: 'Image to use if main URL fails'
+      },
+      {
+        key: 'validate_image',
+        name: 'Validate Image',
+        type: 'boolean',
+        required: false,
+        defaultValue: true,
+        description: 'Check if URL returns a valid image'
+      }
+    ],
+    defaultConfig: {
+      image_url: '',
+      cache_duration: '24h',
+      fallback_url: '',
+      validate_image: true
+    },
+    requiredTier: 'standard'
+  },
+
+  {
+    id: 'image-editor',
+    name: 'Image Editor',
+    description: 'Edit images: resize, crop, add text, filters',
+    category: 'utilities',
+    icon: '✂️',
+    color: '#ec4899',
+    inputs: [
+      { id: 'image_data', name: 'Source Image', type: 'data', required: true }
+    ],
+    outputs: [
+      { id: 'edited_image', name: 'Edited Image', type: 'data', required: true }
+    ],
+    configSchema: [
+      {
+        key: 'operation',
+        name: 'Edit Operation',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Resize', value: 'resize' },
+          { label: 'Crop', value: 'crop' },
+          { label: 'Add Text Overlay', value: 'add_text' },
+          { label: 'Add Watermark', value: 'watermark' },
+          { label: 'Apply Filter', value: 'filter' },
+          { label: 'Adjust Brightness/Contrast', value: 'adjust' },
+          { label: 'Rotate/Flip', value: 'rotate' }
+        ],
+        defaultValue: 'resize',
+        description: 'Type of editing operation'
+      },
+      {
+        key: 'resize_width',
+        name: 'Resize Width',
+        type: 'number',
+        required: false,
+        placeholder: '1200',
+        validation: { min: 1, max: 4096 },
+        description: 'New width in pixels (for resize)'
+      },
+      {
+        key: 'resize_height',
+        name: 'Resize Height',
+        type: 'number',
+        required: false,
+        placeholder: '630',
+        validation: { min: 1, max: 4096 },
+        description: 'New height in pixels (for resize)'
+      },
+      {
+        key: 'crop_x',
+        name: 'Crop X Position',
+        type: 'number',
+        required: false,
+        defaultValue: 0,
+        description: 'X coordinate for crop start'
+      },
+      {
+        key: 'crop_y',
+        name: 'Crop Y Position',
+        type: 'number',
+        required: false,
+        defaultValue: 0,
+        description: 'Y coordinate for crop start'
+      },
+      {
+        key: 'crop_width',
+        name: 'Crop Width',
+        type: 'number',
+        required: false,
+        placeholder: '800',
+        description: 'Width of cropped area'
+      },
+      {
+        key: 'crop_height',
+        name: 'Crop Height',
+        type: 'number',
+        required: false,
+        placeholder: '600',
+        description: 'Height of cropped area'
+      },
+      {
+        key: 'text_content',
+        name: 'Text to Add',
+        type: 'text',
+        required: false,
+        placeholder: '{{portfolio_value}} Portfolio Value',
+        description: 'Text overlay content (supports {{variables}})'
+      },
+      {
+        key: 'text_position',
+        name: 'Text Position',
+        type: 'select',
+        required: false,
+        options: [
+          { label: 'Top Left', value: 'top-left' },
+          { label: 'Top Center', value: 'top-center' },
+          { label: 'Top Right', value: 'top-right' },
+          { label: 'Center', value: 'center' },
+          { label: 'Bottom Left', value: 'bottom-left' },
+          { label: 'Bottom Center', value: 'bottom-center' },
+          { label: 'Bottom Right', value: 'bottom-right' }
+        ],
+        defaultValue: 'bottom-center',
+        description: 'Where to place text'
+      },
+      {
+        key: 'text_color',
+        name: 'Text Color',
+        type: 'text',
+        required: false,
+        placeholder: '#FFFFFF',
+        defaultValue: '#FFFFFF',
+        description: 'Text color (hex code)'
+      },
+      {
+        key: 'text_size',
+        name: 'Text Size',
+        type: 'number',
+        required: false,
+        validation: { min: 8, max: 200 },
+        defaultValue: 48,
+        description: 'Font size in pixels'
+      },
+      {
+        key: 'filter_type',
+        name: 'Filter Type',
+        type: 'select',
+        required: false,
+        options: [
+          { label: 'None', value: 'none' },
+          { label: 'Grayscale', value: 'grayscale' },
+          { label: 'Sepia', value: 'sepia' },
+          { label: 'Blur', value: 'blur' },
+          { label: 'Sharpen', value: 'sharpen' },
+          { label: 'Vintage', value: 'vintage' },
+          { label: 'High Contrast', value: 'high_contrast' }
+        ],
+        defaultValue: 'none',
+        description: 'Image filter to apply'
+      },
+      {
+        key: 'rotation',
+        name: 'Rotation',
+        type: 'select',
+        required: false,
+        options: [
+          { label: 'None', value: '0' },
+          { label: '90° Clockwise', value: '90' },
+          { label: '180°', value: '180' },
+          { label: '270° Clockwise', value: '270' },
+          { label: 'Flip Horizontal', value: 'flip-h' },
+          { label: 'Flip Vertical', value: 'flip-v' }
+        ],
+        defaultValue: '0',
+        description: 'Rotate or flip image'
+      }
+    ],
+    defaultConfig: {
+      operation: 'resize',
+      resize_width: null,
+      resize_height: null,
+      crop_x: 0,
+      crop_y: 0,
+      crop_width: null,
+      crop_height: null,
+      text_content: '',
+      text_position: 'bottom-center',
+      text_color: '#FFFFFF',
+      text_size: 48,
+      filter_type: 'none',
+      rotation: '0'
+    },
+    requiredTier: 'standard'
   }
 ]
 
