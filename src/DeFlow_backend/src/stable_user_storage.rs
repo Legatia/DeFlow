@@ -279,6 +279,31 @@ pub fn insert_user_settings(user_principal: String, settings: UserSettings) {
     });
 }
 
+/// Get all user subscription infos (for admin analytics)
+pub fn get_all_user_subscription_infos() -> Vec<UserSubscriptionInfo> {
+    USER_SUBSCRIPTION_INFO.with(|infos| {
+        infos.borrow().iter()
+            .map(|(_, storable)| storable.0)
+            .collect()
+    })
+}
+
+/// Get count of total users
+pub fn get_total_user_count() -> u64 {
+    USER_PROFILES.with(|profiles| {
+        profiles.borrow().len()
+    })
+}
+
+/// Get all user principals
+pub fn get_all_user_principals() -> Vec<String> {
+    USER_PROFILES.with(|profiles| {
+        profiles.borrow().iter()
+            .map(|(principal, _)| principal)
+            .collect()
+    })
+}
+
 pub fn insert_template(template_id: String, template: WorkflowTemplate) {
     if template.is_public {
         GLOBAL_TEMPLATES.with(|templates| {

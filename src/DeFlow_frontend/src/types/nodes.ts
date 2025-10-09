@@ -1127,115 +1127,8 @@ export const NODE_TYPES: NodeType[] = [
     }
   },
 
-  // Social Media Authentication & Setup
-  {
-    id: 'social-auth-setup',
-    name: 'Social Auth Setup',
-    description: 'Configure social media platform credentials once for your workflow',
-    category: 'utilities',
-    icon: '🔐',
-    color: '#6366f1',
-    inputs: [],
-    outputs: [
-      { id: 'auth_data', name: 'Auth Data', type: 'data', required: true }
-    ],
-    configSchema: [
-      {
-        key: 'platform',
-        name: 'Platform',
-        type: 'select',
-        required: true,
-        options: [
-          { label: 'Twitter/X', value: 'twitter' },
-          { label: 'LinkedIn', value: 'linkedin' },
-          { label: 'Facebook', value: 'facebook' },
-          { label: 'Instagram', value: 'instagram' },
-          { label: 'YouTube', value: 'youtube' }
-        ],
-        defaultValue: 'twitter',
-        description: 'Select social media platform'
-      },
-      {
-        key: 'auth_token',
-        name: 'Access Token',
-        type: 'password',
-        required: true,
-        placeholder: 'Platform access token or API key',
-        description: 'Main authentication token for the platform'
-      }
-    ],
-    defaultConfig: {
-      platform: 'twitter',
-      auth_token: ''
-    },
-    requiredTier: 'premium'
-  },
-
-  {
-    id: 'select-platform',
-    name: 'Select Platform',
-    description: 'Choose target social media platform for posting',
-    category: 'utilities',
-    icon: '📱',
-    color: '#8b5cf6',
-    inputs: [
-      { id: 'auth_data', name: 'Auth Data', type: 'data', required: false }
-    ],
-    outputs: [
-      { id: 'platform_config', name: 'Platform Config', type: 'data', required: true }
-    ],
-    configSchema: [
-      {
-        key: 'platform',
-        name: 'Platform',
-        type: 'select',
-        required: true,
-        options: [
-          { label: 'Twitter/X', value: 'twitter' },
-          { label: 'LinkedIn Personal', value: 'linkedin_personal' },
-          { label: 'LinkedIn Company', value: 'linkedin_company' },
-          { label: 'Facebook Page', value: 'facebook_page' },
-          { label: 'Facebook Group', value: 'facebook_group' },
-          { label: 'Instagram', value: 'instagram' },
-          { label: 'YouTube Community', value: 'youtube' }
-        ],
-        defaultValue: 'twitter',
-        description: 'Target platform for posting'
-      },
-      {
-        key: 'target_id',
-        name: 'Target ID',
-        type: 'text',
-        required: false,
-        placeholder: 'Page ID, Group ID, or Company ID (if applicable)',
-        description: 'ID for specific page/group/company (required for some platforms)'
-      }
-    ],
-    defaultConfig: {
-      platform: 'twitter',
-      target_id: ''
-    },
-    requiredTier: 'premium'
-  },
-
-  {
-    id: 'social-media-post',
-    name: 'Social Media Post',
-    description: 'Execute the social media post to the selected platform',
-    category: 'integrations',
-    icon: '📝',
-    color: '#10b981',
-    inputs: [
-      { id: 'platform_config', name: 'Platform Config', type: 'data', required: true },
-      { id: 'content_data', name: 'Content Data', type: 'data', required: true }
-    ],
-    outputs: [
-      { id: 'result', name: 'Post Result', type: 'data', required: true }
-    ],
-    configSchema: [],
-    defaultConfig: {},
-    requiredTier: 'premium'
-  },
+  // DEPRECATED: Old social media nodes - use platform-specific nodes instead
+  // Keeping for backward compatibility with old workflows
 
   {
     id: 'social-media-text',
@@ -1433,6 +1326,14 @@ export const NODE_TYPES: NodeType[] = [
         placeholder: '1440',
         description: 'Poll duration in minutes (5-10080)',
         validation: { min: 5, max: 10080 }
+      },
+      {
+        key: 'thread_tweets',
+        name: 'Thread Tweets',
+        type: 'textarea',
+        required: false,
+        placeholder: 'Tweet 2: Second tweet in thread\nTweet 3: Third tweet in thread\nTweet 4: Fourth tweet in thread',
+        description: 'Additional tweets for thread (one per line, max 25 tweets total). First tweet is from "Tweet Text" field.'
       }
     ],
     defaultConfig: {
@@ -1441,7 +1342,8 @@ export const NODE_TYPES: NodeType[] = [
       media_urls: '',
       quote_tweet_id: '',
       poll_options: '',
-      poll_duration_minutes: 1440
+      poll_duration_minutes: 1440,
+      thread_tweets: ''
     },
     requiredTier: 'standard'
   },

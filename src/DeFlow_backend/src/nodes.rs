@@ -4389,6 +4389,9 @@ fn create_social_auth_setup_node_definition() -> NodeDefinition {
     }
 }
 
+// DEPRECATED: Use platform-specific nodes instead (twitter-post, facebook-post, etc.)
+// Kept for backward compatibility with old workflows
+#[allow(dead_code)]
 async fn execute_social_auth_setup_node(
     node: &WorkflowNode,
     _input: &HashMap<String, ConfigValue>
@@ -4420,7 +4423,8 @@ async fn execute_social_auth_setup_node(
     })
 }
 
-// Select Platform Node
+// DEPRECATED: Use platform-specific nodes instead
+#[allow(dead_code)]
 fn create_select_platform_node_definition() -> NodeDefinition {
     NodeDefinition {
         node_type: "select-platform".to_string(),
@@ -4465,6 +4469,8 @@ fn create_select_platform_node_definition() -> NodeDefinition {
     }
 }
 
+// DEPRECATED: Use platform-specific nodes instead
+#[allow(dead_code)]
 async fn execute_select_platform_node(
     node: &WorkflowNode,
     input: &HashMap<String, ConfigValue>
@@ -4503,7 +4509,8 @@ async fn execute_select_platform_node(
     })
 }
 
-// Social Media Post Node
+// DEPRECATED: Use platform-specific nodes instead
+#[allow(dead_code)]
 fn create_social_media_post_node_definition() -> NodeDefinition {
     NodeDefinition {
         node_type: "social-media-post".to_string(),
@@ -4758,6 +4765,66 @@ async fn execute_discord_post(config: &HashMap<String, ConfigValue>, message: &s
 }
 
 async fn execute_twitter_post(config: &HashMap<String, ConfigValue>, message: &str) -> Result<(String, String), String> {
+    // Check if this is a thread (multiple tweets)
+    let thread_tweets = config.get("thread_tweets")
+        .and_then(|v| match v {
+            ConfigValue::String(s) if !s.trim().is_empty() => Some(s.clone()),
+            _ => None,
+        });
+
+    if let Some(thread_content) = thread_tweets {
+        // Post as a thread
+        execute_twitter_thread(config, message, &thread_content).await
+    } else {
+        // Post single tweet
+        execute_twitter_single_tweet(config, message).await
+    }
+}
+
+async fn execute_twitter_thread(config: &HashMap<String, ConfigValue>, first_tweet: &str, thread_content: &str) -> Result<(String, String), String> {
+    // Split thread content into individual tweets
+    let mut all_tweets = vec![first_tweet.to_string()];
+    all_tweets.extend(
+        thread_content
+            .lines()
+            .filter(|line| !line.trim().is_empty())
+            .map(|line| line.to_string())
+    );
+
+    if all_tweets.len() > 25 {
+        return Err("Thread exceeds Twitter's 25 tweet limit".to_string());
+    }
+
+    let mut previous_tweet_id: Option<String> = None;
+    let mut first_tweet_id = String::new();
+    let mut last_tweet_url = String::new();
+
+    for (index, tweet_text) in all_tweets.iter().enumerate() {
+        // Create config with reply_to for threading
+        let mut thread_config = config.clone();
+        if let Some(prev_id) = &previous_tweet_id {
+            thread_config.insert("reply_to_tweet_id".to_string(), ConfigValue::String(prev_id.clone()));
+        }
+
+        match execute_twitter_single_tweet(&thread_config, tweet_text).await {
+            Ok((tweet_id, tweet_url)) => {
+                if index == 0 {
+                    first_tweet_id = tweet_id.clone();
+                }
+                previous_tweet_id = Some(tweet_id);
+                last_tweet_url = tweet_url;
+            },
+            Err(e) => {
+                return Err(format!("Failed to post tweet {} in thread: {}", index + 1, e));
+            }
+        }
+    }
+
+    ic_cdk::println!("Twitter thread posted successfully: {} tweets", all_tweets.len());
+    Ok((first_tweet_id, last_tweet_url))
+}
+
+async fn execute_twitter_single_tweet(config: &HashMap<String, ConfigValue>, message: &str) -> Result<(String, String), String> {
     use ic_cdk::api::management_canister::http_request::{
         http_request, CanisterHttpRequestArgument, HttpMethod, HttpHeader,
     };
@@ -4836,7 +4903,8 @@ async fn execute_twitter_post(config: &HashMap<String, ConfigValue>, message: &s
     let mut mac = HmacSha1::new_from_slice(signing_key.as_bytes())
         .map_err(|e| format!("Failed to create HMAC: {}", e))?;
     mac.update(signature_base.as_bytes());
-    let signature = base64::encode(mac.finalize().into_bytes());
+    use base64::{Engine as _, engine::general_purpose};
+    let signature = general_purpose::STANDARD.encode(mac.finalize().into_bytes());
 
     oauth_params.insert("oauth_signature", signature);
 
@@ -4849,8 +4917,22 @@ async fn execute_twitter_post(config: &HashMap<String, ConfigValue>, message: &s
             .join(", ")
     );
 
-    // Build request body
-    let body = format!(r#"{{"text":"{}"}}"#, message.replace("\"", "\\\""));
+    // Build request body with optional reply_to
+    let reply_to = config.get("reply_to_tweet_id")
+        .and_then(|v| match v {
+            ConfigValue::String(s) if !s.trim().is_empty() => Some(s.clone()),
+            _ => None,
+        });
+
+    let body = if let Some(reply_id) = reply_to {
+        format!(
+            r#"{{"text":"{}","reply":{{"in_reply_to_tweet_id":"{}"}}}}"#,
+            message.replace("\"", "\\\""),
+            reply_id
+        )
+    } else {
+        format!(r#"{{"text":"{}"}}"#, message.replace("\"", "\\\""))
+    };
 
     // Make HTTP outcall to Twitter API
     let request = CanisterHttpRequestArgument {

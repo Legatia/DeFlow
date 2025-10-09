@@ -22,13 +22,10 @@ const ALL_NODES = [
   'discord-text-message',
   'discord-embed-builder',
   'telegram-bot',
-  'social-auth-setup',
-  'select-platform',
-  'social-media-post',
   'social-media-text',
   'social-media-with-image',
 
-  // Individual Platform Nodes (Better UX)
+  // Platform-Specific Posting Nodes
   'twitter-post',
   'facebook-post',
   'linkedin-post',

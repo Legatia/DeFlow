@@ -1,6 +1,8 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 #![allow(dead_code)]
+#![allow(hidden_glob_reexports)]
+#![allow(unused_mut)]
 
 mod types;
 mod storage;
@@ -18,6 +20,9 @@ mod scheduler_service;
 mod cycles_monitor_service;
 mod cycle_optimization_best_practices;
 mod fee_collection;
+mod credential_encryption; // Encrypted credential storage and rate limiting
+mod http_outcall_monitor; // HTTP outcall monitoring and logging
+mod user_analytics; // User analytics and admin dashboard
 
 #[cfg(test)]
 mod tests;
@@ -79,8 +84,16 @@ pub use user_management::{
     get_subscription_pricing, list_all_users, reset_monthly_stats
 };
 pub use fee_collection::{
-    collect_transaction_fee, estimate_transaction_fee, get_user_fee_rate, 
+    collect_transaction_fee, estimate_transaction_fee, get_user_fee_rate,
     initialize_fee_collection, TransactionFeeRequest, FeeCollectionResult
+};
+// Credential Encryption API functions
+pub use credential_encryption::{
+    CredentialVault, RateLimiter, EncryptedCredential, EncryptionMethod
+};
+// HTTP Outcall Monitoring API functions
+pub use http_outcall_monitor::{
+    HTTPOutcallMonitor, OutcallLog, OutcallStats, OutcallStatus, PlatformHealth, HealthStatus
 };
 
 /// Get the appropriate pool canister ID based on the network environment
@@ -140,6 +153,9 @@ fn init(pool_canister_id: Option<String>) {
     // Initialize real-time APY fetcher timer (no HTTP calls during init)
     defi::realtime_apy_fetcher::init_apy_fetcher_timer();
 
+    // Initialize credential vault and rate limiter
+    init_credential_vault();
+    init_rate_limiter();
 }
 
 #[pre_upgrade]
@@ -1179,4 +1195,284 @@ fn optimize_memory_usage() -> Result<String, String> {
 #[query]
 fn get_cycle_optimization_guide() -> String {
     CycleOptimizer::best_practices_guide()
+}
+
+// ============================================================================
+// Credential Vault and Rate Limiting
+// ============================================================================
+
+thread_local! {
+    static CREDENTIAL_VAULT: std::cell::RefCell<credential_encryption::CredentialVault> = std::cell::RefCell::new(credential_encryption::CredentialVault::new());
+    static RATE_LIMITER: std::cell::RefCell<credential_encryption::RateLimiter> = std::cell::RefCell::new(credential_encryption::RateLimiter::new());
+    static OUTCALL_MONITOR: std::cell::RefCell<http_outcall_monitor::HTTPOutcallMonitor> = std::cell::RefCell::new(http_outcall_monitor::HTTPOutcallMonitor::default());
+}
+
+/// Initialize credential vault
+fn init_credential_vault() {
+    CREDENTIAL_VAULT.with(|vault| {
+        *vault.borrow_mut() = credential_encryption::CredentialVault::new();
+    });
+}
+
+/// Initialize rate limiter
+fn init_rate_limiter() {
+    RATE_LIMITER.with(|limiter| {
+        *limiter.borrow_mut() = credential_encryption::RateLimiter::new();
+    });
+}
+
+/// Store encrypted credential for a user
+#[update]
+fn store_credential(credential_type: String, plaintext: String) -> Result<(), String> {
+    let caller = ic_cdk::caller();
+
+    // Prevent anonymous users from storing credentials
+    if caller == Principal::anonymous() {
+        return Err("Anonymous users cannot store credentials".to_string());
+    }
+
+    CREDENTIAL_VAULT.with(|vault| {
+        vault.borrow_mut().store_credential(caller, &credential_type, &plaintext)
+    })
+}
+
+/// Retrieve decrypted credential for a user
+#[query]
+fn get_credential(credential_type: String) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+
+    if caller == Principal::anonymous() {
+        return Err("Anonymous users cannot retrieve credentials".to_string());
+    }
+
+    CREDENTIAL_VAULT.with(|vault| {
+        vault.borrow().get_credential(caller, &credential_type)
+    })
+}
+
+/// Delete a credential
+#[update]
+fn delete_credential(credential_type: String) -> Result<(), String> {
+    let caller = ic_cdk::caller();
+
+    if caller == Principal::anonymous() {
+        return Err("Anonymous users cannot delete credentials".to_string());
+    }
+
+    CREDENTIAL_VAULT.with(|vault| {
+        vault.borrow_mut().delete_credential(caller, &credential_type)
+    })
+}
+
+/// List all credential types for the caller
+#[query]
+fn list_user_credentials() -> Vec<String> {
+    let caller = ic_cdk::caller();
+
+    if caller == Principal::anonymous() {
+        return Vec::new();
+    }
+
+    CREDENTIAL_VAULT.with(|vault| {
+        vault.borrow().list_credentials(caller)
+    })
+}
+
+/// Rotate encryption keys for caller's credentials
+#[update]
+fn rotate_credential_keys() -> Result<u32, String> {
+    let caller = ic_cdk::caller();
+
+    if caller == Principal::anonymous() {
+        return Err("Anonymous users cannot rotate keys".to_string());
+    }
+
+    CREDENTIAL_VAULT.with(|vault| {
+        vault.borrow_mut().rotate_user_keys(caller)
+    })
+}
+
+/// Check rate limit for a platform (returns Ok if allowed, Err if blocked)
+#[update]
+fn check_rate_limit(platform: String, max_requests: u32, window_seconds: u64) -> Result<(), String> {
+    let caller = ic_cdk::caller();
+
+    if caller == Principal::anonymous() {
+        return Err("Anonymous users cannot make API calls".to_string());
+    }
+
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().check_rate_limit(caller, &platform, max_requests, window_seconds)
+    })
+}
+
+/// Get current rate limit usage for a platform
+#[query]
+fn get_rate_limit_usage(platform: String) -> (u32, u32) {
+    let caller = ic_cdk::caller();
+
+    if caller == Principal::anonymous() {
+        return (0, 0);
+    }
+
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow().get_usage(caller, &platform)
+    })
+}
+
+/// Reset rate limit for a platform (admin/debug function)
+#[update]
+fn reset_rate_limit(platform: String) -> Result<(), String> {
+    let caller = ic_cdk::caller();
+
+    if caller == Principal::anonymous() {
+        return Err("Anonymous users cannot reset rate limits".to_string());
+    }
+
+    RATE_LIMITER.with(|limiter| {
+        limiter.borrow_mut().reset_limit(caller, &platform);
+        Ok(())
+    })
+}
+
+// ============================================================================
+// HTTP Outcall Monitoring
+// ============================================================================
+
+/// Log an HTTP outcall (internal helper for nodes.rs)
+pub fn log_http_outcall(
+    user: Principal,
+    platform: &str,
+    endpoint: &str,
+    method: &str,
+    status: http_outcall_monitor::OutcallStatus,
+    latency_ms: u64,
+    error_message: Option<String>,
+    response_code: Option<u16>,
+) {
+    OUTCALL_MONITOR.with(|monitor| {
+        monitor.borrow_mut().log_outcall(
+            user,
+            platform,
+            endpoint,
+            method,
+            status,
+            latency_ms,
+            error_message,
+            response_code,
+        );
+    });
+}
+
+/// Get platform stats
+#[query]
+fn get_platform_stats(platform: String) -> Option<http_outcall_monitor::OutcallStats> {
+    OUTCALL_MONITOR.with(|monitor| {
+        monitor.borrow().get_platform_stats(&platform)
+    })
+}
+
+/// Get all platform stats
+#[query]
+fn get_all_platform_stats() -> Vec<http_outcall_monitor::OutcallStats> {
+    OUTCALL_MONITOR.with(|monitor| {
+        monitor.borrow().get_all_stats()
+    })
+}
+
+/// Get recent logs for a platform
+#[query]
+fn get_platform_logs(platform: String, limit: u32) -> Vec<http_outcall_monitor::OutcallLog> {
+    OUTCALL_MONITOR.with(|monitor| {
+        monitor.borrow().get_recent_logs(&platform, limit as usize)
+    })
+}
+
+/// Get recent logs for the caller
+#[query]
+fn get_my_outcall_logs(limit: u32) -> Vec<http_outcall_monitor::OutcallLog> {
+    let caller = ic_cdk::caller();
+    OUTCALL_MONITOR.with(|monitor| {
+        monitor.borrow().get_user_logs(caller, limit as usize)
+    })
+}
+
+/// Get platform health summary
+#[query]
+fn get_platform_health_summary() -> Vec<http_outcall_monitor::PlatformHealth> {
+    OUTCALL_MONITOR.with(|monitor| {
+        monitor.borrow().get_health_summary()
+    })
+}
+
+/// Cleanup old logs (admin function)
+#[update]
+fn cleanup_old_outcall_logs() -> usize {
+    OUTCALL_MONITOR.with(|monitor| {
+        monitor.borrow_mut().cleanup_old_logs()
+    })
+}
+
+// ============================================================================
+// User Analytics and Admin Dashboard
+// ============================================================================
+
+/// Get comprehensive analytics overview (admin only)
+#[query]
+fn get_user_analytics() -> user_analytics::UserAnalytics {
+    // TODO: Add admin-only authorization
+    user_analytics::get_analytics_overview()
+}
+
+/// Get all user details (admin only)
+#[query]
+fn get_all_users_details() -> Vec<user_analytics::UserDetail> {
+    // TODO: Add admin-only authorization
+    user_analytics::get_all_user_details()
+}
+
+/// Get filtered users (admin only)
+#[query]
+fn get_users_filtered(
+    tier: Option<SubscriptionTier>,
+    active_only: bool,
+    min_executions: Option<u64>
+) -> Vec<user_analytics::UserDetail> {
+    // TODO: Add admin-only authorization
+    user_analytics::get_users_filtered(tier, active_only, min_executions)
+}
+
+/// Get user growth trend (admin only)
+#[query]
+fn get_user_growth_trend() -> Vec<(String, u64)> {
+    // TODO: Add admin-only authorization
+    user_analytics::get_user_growth_trend()
+}
+
+/// Get revenue breakdown by tier (admin only)
+#[query]
+fn get_revenue_breakdown() -> std::collections::HashMap<String, f64> {
+    // TODO: Add admin-only authorization
+    user_analytics::get_revenue_breakdown()
+}
+
+/// Get top users by activity (admin only)
+#[query]
+fn get_top_users(limit: u32, sort_by: String) -> Vec<user_analytics::UserDetail> {
+    // TODO: Add admin-only authorization
+    user_analytics::get_top_users(limit as usize, sort_by)
+}
+
+/// Search users by principal ID (admin only)
+#[query]
+fn search_users(query: String) -> Vec<user_analytics::UserDetail> {
+    // TODO: Add admin-only authorization
+    user_analytics::search_users(query)
+}
+
+/// Get total user count (admin only)
+#[query]
+fn get_total_user_count() -> u64 {
+    // TODO: Add admin-only authorization
+    stable_user_storage::get_total_user_count()
 }

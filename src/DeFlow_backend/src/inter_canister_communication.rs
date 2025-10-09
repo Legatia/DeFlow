@@ -98,6 +98,7 @@ impl InterCanisterManager {
     {
         let config = config.unwrap_or_default();
         let mut attempts = 0u8;
+        #[allow(unused_assignments)]
         let mut last_error = String::new();
         let mut total_cycles_consumed = 0u64;
 
@@ -400,6 +401,38 @@ impl InterCanisterManager {
 
 /// Convenience functions for common call patterns
 
+/// Pool Asset enum (must match DeFlow_pool/src/types.rs::Asset)
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub enum PoolAsset {
+    BTC,
+    ETH,
+    USDC,
+    USDT,
+    DAI,
+    SOL,
+    MATIC,
+    AVAX,
+    FLOW,
+}
+
+impl PoolAsset {
+    /// Convert asset symbol string to PoolAsset enum
+    pub fn from_symbol(symbol: &str) -> Result<Self, String> {
+        match symbol.to_uppercase().as_str() {
+            "BTC" | "BITCOIN" => Ok(PoolAsset::BTC),
+            "ETH" | "ETHEREUM" => Ok(PoolAsset::ETH),
+            "USDC" => Ok(PoolAsset::USDC),
+            "USDT" => Ok(PoolAsset::USDT),
+            "DAI" => Ok(PoolAsset::DAI),
+            "SOL" | "SOLANA" => Ok(PoolAsset::SOL),
+            "MATIC" | "POLYGON" => Ok(PoolAsset::MATIC),
+            "AVAX" | "AVALANCHE" => Ok(PoolAsset::AVAX),
+            "FLOW" | "DEFLOW" => Ok(PoolAsset::FLOW),
+            _ => Err(format!("Unsupported asset: {}", symbol)),
+        }
+    }
+}
+
 /// Call the pool canister to deposit fees (with full error handling)
 pub async fn deposit_fee_to_pool(
     pool_canister: Principal,
@@ -408,10 +441,14 @@ pub async fn deposit_fee_to_pool(
     transaction_id: String,
     user: Principal,
 ) -> Result<String, InterCanisterError> {
+    // Convert asset symbol to PoolAsset enum
+    let pool_asset = PoolAsset::from_symbol(&asset)
+        .map_err(|e| InterCanisterError::SerializationError { message: e })?;
+
     InterCanisterManager::call_with_retry(
         pool_canister,
         "deposit_fee",
-        (asset, amount, transaction_id, user),
+        (pool_asset, amount, transaction_id, user),
         Some(CallConfig {
             max_retries: 3,
             cycles_limit: 50_000_000_000, // 50B cycles for fee operations
@@ -457,7 +494,7 @@ mod tests {
     #[test]
     fn test_is_retriable_rejection() {
         assert!(InterCanisterManager::is_retriable_rejection(&RejectionCode::SysTransient));
-        assert!(InterCanisterManager::is_retriable_rejection(&RejectionCode::SysUnknown));
+        assert!(InterCanisterManager::is_retriable_rejection(&RejectionCode::Unknown));
         assert!(!InterCanisterManager::is_retriable_rejection(&RejectionCode::CanisterReject));
         assert!(!InterCanisterManager::is_retriable_rejection(&RejectionCode::DestinationInvalid));
     }

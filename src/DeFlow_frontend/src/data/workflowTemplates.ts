@@ -992,7 +992,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     description: 'Share portfolio performance updates on Twitter with charts and hashtags',
     category: 'notification',
     difficulty: 'beginner',
-    estimatedTime: '8 minutes',
+    estimatedTime: '5 minutes',
     useCase: 'Automated Twitter posts about DeFi portfolio performance',
     tags: ['twitter', 'portfolio', 'social', 'defi', 'automation'],
     nodes: [
@@ -1011,30 +1011,21 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         }
       },
       {
-        id: 'social-text',
-        type: 'workflowNode',
-        position: { x: 300, y: 100 },
-        data: {
-          nodeType: getNodeType('social-media-text'),
-          config: {
-            content: '🚀 Daily Portfolio Update!\n\n💰 Value: ${{portfolio_value}}\n📈 24h: {{daily_change}}%\n🏆 Top: {{best_strategy}}\n\nAutomated with DeFlow 🤖',
-            hashtags: '#DeFi #crypto #portfolio #automation #DeFlow',
-            mentions: '',
-            platform: 'twitter'
-          },
-          isValid: true,
-          errors: []
-        }
-      },
-      {
         id: 'twitter-post',
         type: 'workflowNode',
-        position: { x: 500, y: 100 },
+        position: { x: 400, y: 100 },
         data: {
-          nodeType: getNodeType('social-media-post'),
-          config: {},
-          isValid: true,
-          errors: []
+          nodeType: getNodeType('twitter-post'),
+          config: {
+            tweet_text: '🚀 Daily Portfolio Update!\n\n💰 Value: ${{portfolio_value}}\n📈 24h: {{daily_change}}%\n🏆 Top: {{best_strategy}}\n\nAutomated with DeFlow 🤖\n\n#DeFi #crypto #portfolio #automation',
+            media_urls: '',
+            reply_to_tweet_id: '',
+            quote_tweet_id: '',
+            poll_options: '',
+            poll_duration_minutes: 1440
+          },
+          isValid: false,
+          errors: ['Authentication required']
         }
       }
     ],
@@ -1042,25 +1033,9 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: 'edge-twitter-1',
         source: 'schedule-twitter',
-        target: 'social-text',
+        target: 'twitter-post',
         sourceHandle: 'time',
-        targetHandle: 'data',
-        type: 'smoothstep'
-      },
-      {
-        id: 'edge-twitter-2',
-        source: 'social-text',
-        target: 'platform-select',
-        sourceHandle: 'message',
-        targetHandle: 'data',
-        type: 'smoothstep'
-      },
-      {
-        id: 'edge-twitter-3',
-        source: 'platform-select',
-        target: 'social-post',
-        sourceHandle: 'platform_config',
-        targetHandle: 'platform_config',
+        targetHandle: 'auth',
         type: 'smoothstep'
       }
     ]
@@ -1069,10 +1044,10 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'twitter-trading-signals',
     name: 'Twitter Trading Signals',
-    description: 'Share DeFi trading signals and market analysis on Twitter',
+    description: 'Share DeFi trading signals and market analysis on Twitter with chart images',
     category: 'integration',
     difficulty: 'intermediate',
-    estimatedTime: '12 minutes',
+    estimatedTime: '8 minutes',
     useCase: 'Broadcast trading opportunities and market insights to Twitter followers',
     tags: ['twitter', 'trading', 'signals', 'defi', 'community'],
     nodes: [
@@ -1097,45 +1072,21 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         }
       },
       {
-        id: 'signal-content',
+        id: 'twitter-signal-post',
         type: 'workflowNode',
-        position: { x: 300, y: 100 },
+        position: { x: 400, y: 100 },
         data: {
-          nodeType: getNodeType('social-media-with-image'),
+          nodeType: getNodeType('twitter-post'),
           config: {
-            content: '📡 SIGNAL: {{asset_symbol}} RSI {{rsi_value}}\n\n⚠️ OVERBOUGHT - Consider taking profits\n\n💡 Entry: ${{entry_price}}\n🎯 Target: ${{target_price}}\n\n#NotFinancialAdvice',
-            media_type: 'image',
-            media_url: 'https://charts.tradingview.com/{{asset_symbol}}.png',
-            alt_text: '{{asset_symbol}} trading chart with RSI indicator',
-            hashtags: '#{{asset_symbol}} #trading #DeFi #signals'
+            tweet_text: '📡 SIGNAL: {{asset_symbol}} RSI {{rsi_value}}\n\n⚠️ OVERBOUGHT - Consider taking profits\n\n💡 Entry: ${{entry_price}}\n🎯 Target: ${{target_price}}\n\n#{{asset_symbol}} #trading #DeFi #signals #NotFinancialAdvice',
+            media_urls: 'https://charts.tradingview.com/{{asset_symbol}}.png',
+            reply_to_tweet_id: '',
+            quote_tweet_id: '',
+            poll_options: '',
+            poll_duration_minutes: 1440
           },
-          isValid: true,
-          errors: []
-        }
-      },
-      {
-        id: 'platform-select-2',
-        type: 'workflowNode',
-        position: { x: 500, y: 100 },
-        data: {
-          nodeType: getNodeType('select-platform'),
-          config: {
-            platform: 'twitter',
-            target_id: ''
-          },
-          isValid: true,
-          errors: []
-        }
-      },
-      {
-        id: 'social-post-2',
-        type: 'workflowNode',
-        position: { x: 700, y: 100 },
-        data: {
-          nodeType: getNodeType('social-media-post'),
-          config: {},
-          isValid: true,
-          errors: []
+          isValid: false,
+          errors: ['Authentication required']
         }
       }
     ],
@@ -1143,25 +1094,9 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: 'edge-signal-1',
         source: 'market-analysis',
-        target: 'signal-content',
+        target: 'twitter-signal-post',
         sourceHandle: 'signal',
-        targetHandle: 'data',
-        type: 'smoothstep'
-      },
-      {
-        id: 'edge-signal-2',
-        source: 'signal-content',
-        target: 'platform-select-2',
-        sourceHandle: 'message',
-        targetHandle: 'data',
-        type: 'smoothstep'
-      },
-      {
-        id: 'edge-signal-3',
-        source: 'platform-select-2',
-        target: 'social-post-2',
-        sourceHandle: 'platform_config',
-        targetHandle: 'platform_config',
+        targetHandle: 'content_data',
         type: 'smoothstep'
       }
     ]
@@ -1169,48 +1104,86 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
 
   {
     id: 'cross-platform-announcement',
-    name: 'Cross-Platform Social Announcement',
-    description: 'Send the same announcement to Discord and Twitter simultaneously',
+    name: 'Multi-Platform Announcement',
+    description: 'Post to Twitter, Facebook, LinkedIn, and Discord simultaneously',
     category: 'integration',
-    difficulty: 'intermediate',
-    estimatedTime: '15 minutes',
-    useCase: 'Broadcast important updates across multiple social platforms',
-    tags: ['discord', 'twitter', 'cross-platform', 'announcement', 'social'],
+    difficulty: 'beginner',
+    estimatedTime: '10 minutes',
+    useCase: 'Broadcast important updates across ALL social platforms at once',
+    tags: ['multi-platform', 'twitter', 'facebook', 'linkedin', 'discord', 'announcement'],
     nodes: [
       {
         id: 'announcement-trigger',
         type: 'workflowNode',
-        position: { x: 100, y: 150 },
+        position: { x: 100, y: 200 },
         data: {
-          nodeType: getNodeType('webhook-trigger'),
+          nodeType: getNodeType('manual-trigger'),
           config: {
-            path: '/webhook/announcement',
-            method: 'POST'
+            name: 'Launch Multi-Platform Post'
           },
           isValid: true,
           errors: []
         }
       },
       {
-        id: 'social-content',
+        id: 'twitter-post',
         type: 'workflowNode',
-        position: { x: 300, y: 150 },
+        position: { x: 400, y: 50 },
         data: {
-          nodeType: getNodeType('social-media-text'),
+          nodeType: getNodeType('twitter-post'),
           config: {
-            content: '🎉 {{announcement_title}}\n\n{{announcement_body}}\n\nLearn more: {{learn_more_url}}',
-            hashtags: '#DeFlow #DeFi #announcement',
-            mentions: '',
-            platform: 'general'
+            tweet_text: '🎉 {{announcement_title}}\n\n{{announcement_body}}\n\nLearn more: {{learn_more_url}}\n\n#DeFlow #DeFi #announcement',
+            media_urls: '',
+            reply_to_tweet_id: '',
+            quote_tweet_id: '',
+            poll_options: '',
+            poll_duration_minutes: 1440
           },
-          isValid: true,
-          errors: []
+          isValid: false,
+          errors: ['Authentication required']
+        }
+      },
+      {
+        id: 'facebook-post',
+        type: 'workflowNode',
+        position: { x: 400, y: 150 },
+        data: {
+          nodeType: getNodeType('facebook-post'),
+          config: {
+            post_text: '🎉 {{announcement_title}}\n\n{{announcement_body}}\n\nLearn more: {{learn_more_url}}\n\n#DeFlow #DeFi #announcement',
+            target_type: 'page',
+            target_id: '',
+            media_url: '',
+            link_url: '{{learn_more_url}}',
+            published: true
+          },
+          isValid: false,
+          errors: ['Authentication required']
+        }
+      },
+      {
+        id: 'linkedin-post',
+        type: 'workflowNode',
+        position: { x: 400, y: 250 },
+        data: {
+          nodeType: getNodeType('linkedin-post'),
+          config: {
+            post_text: '🎉 {{announcement_title}}\n\n{{announcement_body}}\n\nLearn more: {{learn_more_url}}\n\n#DeFlow #DeFi #announcement #ProfessionalNetwork',
+            target_type: 'profile',
+            company_id: '',
+            media_url: '',
+            article_title: '{{announcement_title}}',
+            article_url: '{{learn_more_url}}',
+            visibility: 'public'
+          },
+          isValid: false,
+          errors: ['Authentication required']
         }
       },
       {
         id: 'discord-embed',
         type: 'workflowNode',
-        position: { x: 500, y: 50 },
+        position: { x: 400, y: 350 },
         data: {
           nodeType: getNodeType('discord-embed-builder'),
           config: {
@@ -1225,22 +1198,9 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         }
       },
       {
-        id: 'discord-json',
-        type: 'workflowNode',
-        position: { x: 700, y: 50 },
-        data: {
-          nodeType: getNodeType('json-builder'),
-          config: {
-            template: '{\n  "content": "{{content}}",\n  "embeds": [{{embed}}]\n}'
-          },
-          isValid: true,
-          errors: []
-        }
-      },
-      {
         id: 'discord-webhook',
         type: 'workflowNode',
-        position: { x: 900, y: 50 },
+        position: { x: 700, y: 350 },
         data: {
           nodeType: getNodeType('discord-webhook'),
           config: {
@@ -1251,57 +1211,46 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           isValid: false,
           errors: ['Webhook URL required']
         }
-      },
-      {
-        id: 'twitter-post',
-        type: 'workflowNode',
-        position: { x: 500, y: 250 },
-        data: {
-          nodeType: getNodeType('social-media-post'),
-          config: {},
-          isValid: true,
-          errors: []
-        }
       }
     ],
     edges: [
       {
         id: 'edge-cross-1',
         source: 'announcement-trigger',
-        target: 'social-content',
-        sourceHandle: 'data',
-        targetHandle: 'data',
+        target: 'twitter-post',
+        sourceHandle: 'trigger',
+        targetHandle: 'auth',
         type: 'smoothstep'
       },
       {
         id: 'edge-cross-2',
-        source: 'social-content',
-        target: 'discord-embed',
-        sourceHandle: 'message',
-        targetHandle: 'data',
+        source: 'announcement-trigger',
+        target: 'facebook-post',
+        sourceHandle: 'trigger',
+        targetHandle: 'auth',
         type: 'smoothstep'
       },
       {
         id: 'edge-cross-3',
-        source: 'discord-embed',
-        target: 'discord-json',
-        sourceHandle: 'embed',
-        targetHandle: 'data',
+        source: 'announcement-trigger',
+        target: 'linkedin-post',
+        sourceHandle: 'trigger',
+        targetHandle: 'auth',
         type: 'smoothstep'
       },
       {
         id: 'edge-cross-4',
-        source: 'discord-json',
-        target: 'discord-webhook',
-        sourceHandle: 'json',
-        targetHandle: 'message',
+        source: 'announcement-trigger',
+        target: 'discord-embed',
+        sourceHandle: 'trigger',
+        targetHandle: 'data',
         type: 'smoothstep'
       },
       {
         id: 'edge-cross-5',
-        source: 'social-content',
-        target: 'twitter-post',
-        sourceHandle: 'message',
+        source: 'discord-embed',
+        target: 'discord-webhook',
+        sourceHandle: 'embed',
         targetHandle: 'message',
         type: 'smoothstep'
       }
@@ -1315,7 +1264,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     description: 'Schedule professional updates to your LinkedIn profile with business metrics and insights',
     category: 'integration',
     difficulty: 'beginner',
-    estimatedTime: '10 minutes',
+    estimatedTime: '5 minutes',
     useCase: 'Perfect for sharing business achievements, DeFi insights, and professional updates',
     tags: ['linkedin', 'professional', 'business', 'defi', 'automation'],
     nodes: [
@@ -1326,24 +1275,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         data: {
           nodeType: getNodeType('schedule-trigger'),
           config: {
-            schedule_type: 'interval',
-            interval: '24h',
-            name: 'Daily LinkedIn Update'
-          },
-          isValid: true,
-          errors: []
-        }
-      },
-      {
-        id: 'social-content',
-        type: 'workflowNode',
-        position: { x: 400, y: 100 },
-        data: {
-          nodeType: getNodeType('social-media-text'),
-          config: {
-            content: '📊 Daily Business Update - {{date}}\n\n🎯 Key Insights:\n• Portfolio Growth: +{{growth_percentage}}%\n• DeFi Strategy: {{active_strategy}}\n• Market Analysis: {{market_sentiment}}\n\n💡 Professional Tip: {{business_tip}}\n\nWhat\'s your take on today\'s DeFi trends?\n\n#DeFi #Business #FinTech #Blockchain #ProfessionalGrowth',
-            hashtags: '#DeFi #Business #FinTech #Blockchain #ProfessionalGrowth',
-            platform: 'linkedin'
+            cron: '0 9 * * 1-5',
+            timezone: 'UTC'
           },
           isValid: true,
           errors: []
@@ -1352,16 +1285,20 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: 'linkedin-post',
         type: 'workflowNode',
-        position: { x: 700, y: 100 },
+        position: { x: 400, y: 100 },
         data: {
-          nodeType: getNodeType('social-media-post'),
+          nodeType: getNodeType('linkedin-post'),
           config: {
-            access_token: '',
-            post_type: 'person',
-            organization_id: ''
+            post_text: '📊 Daily Business Update - {{date}}\n\n🎯 Key Insights:\n• Portfolio Growth: +{{growth_percentage}}%\n• DeFi Strategy: {{active_strategy}}\n• Market Analysis: {{market_sentiment}}\n\n💡 Professional Tip: {{business_tip}}\n\nWhat\'s your take on today\'s DeFi trends?\n\n#DeFi #Business #FinTech #Blockchain #ProfessionalGrowth',
+            target_type: 'profile',
+            company_id: '',
+            media_url: '',
+            article_title: '',
+            article_url: '',
+            visibility: 'public'
           },
           isValid: false,
-          errors: ['Access token required']
+          errors: ['Authentication required']
         }
       }
     ],
@@ -1369,17 +1306,9 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: 'edge-linkedin-1',
         source: 'schedule-linkedin',
-        target: 'social-content',
-        sourceHandle: 'trigger',
-        targetHandle: 'data',
-        type: 'smoothstep'
-      },
-      {
-        id: 'edge-linkedin-2',
-        source: 'social-content',
         target: 'linkedin-post',
-        sourceHandle: 'message',
-        targetHandle: 'message',
+        sourceHandle: 'time',
+        targetHandle: 'auth',
         type: 'smoothstep'
       }
     ]
@@ -1391,7 +1320,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     description: 'Automatically post company updates and product announcements to LinkedIn business page',
     category: 'integration',
     difficulty: 'intermediate',
-    estimatedTime: '15 minutes',
+    estimatedTime: '7 minutes',
     useCase: 'Great for product launches, company milestones, and team achievements',
     tags: ['linkedin', 'company', 'announcements', 'business', 'marketing'],
     nodes: [
@@ -1407,34 +1336,22 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         }
       },
       {
-        id: 'company-content',
+        id: 'linkedin-company-post',
         type: 'workflowNode',
         position: { x: 400, y: 100 },
         data: {
-          nodeType: getNodeType('social-media-with-image'),
+          nodeType: getNodeType('linkedin-post'),
           config: {
-            content: '🚀 Exciting Company Update!\n\n{{announcement_title}}\n\n{{announcement_details}}\n\nThis milestone represents our commitment to {{company_value}} and pushing the boundaries of {{industry_focus}}.\n\n🎯 What this means:\n• {{benefit_1}}\n• {{benefit_2}}\n• {{benefit_3}}\n\nThank you to our amazing team and supporters!\n\n#Innovation #TeamWork #BusinessGrowth #CompanyUpdate',
-            media_type: 'image',
+            post_text: '🚀 Exciting Company Update!\n\n{{announcement_title}}\n\n{{announcement_details}}\n\nThis milestone represents our commitment to {{company_value}} and pushing the boundaries of {{industry_focus}}.\n\n🎯 What this means:\n• {{benefit_1}}\n• {{benefit_2}}\n• {{benefit_3}}\n\nThank you to our amazing team and supporters!\n\n#Innovation #TeamWork #BusinessGrowth #CompanyUpdate',
+            target_type: 'company',
+            company_id: '',
             media_url: '{{announcement_image}}',
-            platform: 'linkedin'
-          },
-          isValid: true,
-          errors: []
-        }
-      },
-      {
-        id: 'linkedin-company-post',
-        type: 'workflowNode',
-        position: { x: 700, y: 100 },
-        data: {
-          nodeType: getNodeType('social-media-post'),
-          config: {
-            access_token: '',
-            post_type: 'organization',
-            organization_id: ''
+            article_title: '',
+            article_url: '',
+            visibility: 'public'
           },
           isValid: false,
-          errors: ['Access token and organization ID required']
+          errors: ['Company ID and authentication required']
         }
       }
     ],
@@ -1442,17 +1359,9 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: 'edge-company-1',
         source: 'manual-trigger',
-        target: 'company-content',
-        sourceHandle: 'trigger',
-        targetHandle: 'data',
-        type: 'smoothstep'
-      },
-      {
-        id: 'edge-company-2',
-        source: 'company-content',
         target: 'linkedin-company-post',
-        sourceHandle: 'message',
-        targetHandle: 'message',
+        sourceHandle: 'trigger',
+        targetHandle: 'auth',
         type: 'smoothstep'
       }
     ]
@@ -1465,7 +1374,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     description: 'Schedule engaging posts to build community and encourage interaction on your Facebook page',
     category: 'integration',
     difficulty: 'beginner',
-    estimatedTime: '12 minutes',
+    estimatedTime: '5 minutes',
     useCase: 'Perfect for building community, sharing updates, and engaging with your audience',
     tags: ['facebook', 'community', 'engagement', 'social', 'marketing'],
     nodes: [
@@ -1476,24 +1385,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         data: {
           nodeType: getNodeType('schedule-trigger'),
           config: {
-            schedule_type: 'interval',
-            interval: '12h',
-            name: 'Bi-daily Facebook Post'
-          },
-          isValid: true,
-          errors: []
-        }
-      },
-      {
-        id: 'community-content',
-        type: 'workflowNode',
-        position: { x: 400, y: 100 },
-        data: {
-          nodeType: getNodeType('social-media-text'),
-          config: {
-            content: '🤔 Community Question of the Day\n\n{{discussion_topic}}\n\nWe\'d love to hear your thoughts! 💭\n\n📊 Quick Poll in comments:\nA) {{option_a}}\nB) {{option_b}}\nC) {{option_c}}\n\nDrop your answer below and tell us why! 👇\n\nYour insights help shape our community discussions.\n\n#CommunityEngagement #Discussion #YourVoiceMatters #DeFi #Finance',
-            hashtags: '#CommunityEngagement #Discussion #YourVoiceMatters #DeFi #Finance',
-            platform: 'facebook'
+            cron: '0 9,21 * * *',
+            timezone: 'UTC'
           },
           isValid: true,
           errors: []
@@ -1502,16 +1395,19 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: 'facebook-post',
         type: 'workflowNode',
-        position: { x: 700, y: 100 },
+        position: { x: 400, y: 100 },
         data: {
-          nodeType: getNodeType('social-media-post'),
+          nodeType: getNodeType('facebook-post'),
           config: {
-            access_token: '',
-            page_id: '',
-            post_type: 'page'
+            post_text: '🤔 Community Question of the Day\n\n{{discussion_topic}}\n\nWe\'d love to hear your thoughts! 💭\n\n📊 Quick Poll in comments:\nA) {{option_a}}\nB) {{option_b}}\nC) {{option_c}}\n\nDrop your answer below and tell us why! 👇\n\nYour insights help shape our community discussions.\n\n#CommunityEngagement #Discussion #YourVoiceMatters #DeFi #Finance',
+            target_type: 'page',
+            target_id: '',
+            media_url: '',
+            link_url: '',
+            published: true
           },
           isValid: false,
-          errors: ['Access token and page ID required']
+          errors: ['Page ID and authentication required']
         }
       }
     ],
@@ -1519,17 +1415,9 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: 'edge-facebook-1',
         source: 'schedule-facebook',
-        target: 'community-content',
-        sourceHandle: 'trigger',
-        targetHandle: 'data',
-        type: 'smoothstep'
-      },
-      {
-        id: 'edge-facebook-2',
-        source: 'community-content',
         target: 'facebook-post',
-        sourceHandle: 'message',
-        targetHandle: 'message',
+        sourceHandle: 'time',
+        targetHandle: 'auth',
         type: 'smoothstep'
       }
     ]
@@ -1541,7 +1429,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     description: 'Multi-stage event promotion campaign on Facebook with countdown and updates',
     category: 'integration',
     difficulty: 'advanced',
-    estimatedTime: '25 minutes',
+    estimatedTime: '10 minutes',
     useCase: 'Perfect for webinars, product launches, workshops, and community events',
     tags: ['facebook', 'events', 'promotion', 'marketing', 'campaign'],
     nodes: [
@@ -1557,59 +1445,32 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         }
       },
       {
-        id: 'announcement-content',
+        id: 'facebook-announcement',
         type: 'workflowNode',
         position: { x: 400, y: 50 },
         data: {
-          nodeType: getNodeType('social-media-with-image'),
+          nodeType: getNodeType('facebook-post'),
           config: {
-            content: '🎉 EVENT ANNOUNCEMENT 🎉\n\n{{event_title}}\n📅 {{event_date}}\n🕐 {{event_time}}\n📍 {{event_location}}\n\n{{event_description}}\n\n🎯 What you\'ll learn:\n• {{learning_1}}\n• {{learning_2}}\n• {{learning_3}}\n\n🎟️ Register now: {{registration_link}}\n\nDon\'t miss out on this amazing opportunity!\n\n#Event #Learning #Community #DeFi #Education',
-            media_type: 'image',
+            post_text: '🎉 EVENT ANNOUNCEMENT 🎉\n\n{{event_title}}\n📅 {{event_date}}\n🕐 {{event_time}}\n📍 {{event_location}}\n\n{{event_description}}\n\n🎯 What you\'ll learn:\n• {{learning_1}}\n• {{learning_2}}\n• {{learning_3}}\n\n🎟️ Register now: {{registration_link}}\n\nDon\'t miss out on this amazing opportunity!\n\n#Event #Learning #Community #DeFi #Education',
+            target_type: 'page',
+            target_id: '',
             media_url: '{{event_banner}}',
-            platform: 'facebook'
-          },
-          isValid: true,
-          errors: []
-        }
-      },
-      {
-        id: 'reminder-content',
-        type: 'workflowNode',
-        position: { x: 400, y: 200 },
-        data: {
-          nodeType: getNodeType('social-media-text'),
-          config: {
-            content: '⏰ REMINDER: Only {{days_left}} days left!\n\n{{event_title}} is coming up!\n\n📅 {{event_date}} at {{event_time}}\n\nLast chance to register: {{registration_link}}\n\n✨ Special highlights:\n{{event_highlights}}\n\nSee you there! 🚀\n\n#EventReminder #LastChance #DontMissOut #{{event_hashtag}}',
-            platform: 'facebook'
-          },
-          isValid: true,
-          errors: []
-        }
-      },
-      {
-        id: 'facebook-announcement',
-        type: 'workflowNode',
-        position: { x: 700, y: 50 },
-        data: {
-          nodeType: getNodeType('social-media-post'),
-          config: {
-            access_token: '',
-            page_id: '',
-            post_type: 'page'
+            link_url: '{{registration_link}}',
+            published: true
           },
           isValid: false,
-          errors: ['Access token and page ID required']
+          errors: ['Page ID and authentication required']
         }
       },
       {
         id: 'delay-node',
         type: 'workflowNode',
-        position: { x: 700, y: 150 },
+        position: { x: 700, y: 50 },
         data: {
           nodeType: getNodeType('delay'),
           config: {
-            delay_amount: 3,
-            delay_unit: 'days'
+            duration: 3,
+            unit: 'days'
           },
           isValid: true,
           errors: []
@@ -1618,16 +1479,19 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: 'facebook-reminder',
         type: 'workflowNode',
-        position: { x: 1000, y: 200 },
+        position: { x: 1000, y: 50 },
         data: {
-          nodeType: getNodeType('social-media-post'),
+          nodeType: getNodeType('facebook-post'),
           config: {
-            access_token: '',
-            page_id: '',
-            post_type: 'page'
+            post_text: '⏰ REMINDER: Only {{days_left}} days left!\n\n{{event_title}} is coming up!\n\n📅 {{event_date}} at {{event_time}}\n\nLast chance to register: {{registration_link}}\n\n✨ Special highlights:\n{{event_highlights}}\n\nSee you there! 🚀\n\n#EventReminder #LastChance #DontMissOut #{{event_hashtag}}',
+            target_type: 'page',
+            target_id: '',
+            media_url: '',
+            link_url: '{{registration_link}}',
+            published: true
           },
           isValid: false,
-          errors: ['Access token and page ID required']
+          errors: ['Page ID and authentication required']
         }
       }
     ],
@@ -1635,21 +1499,13 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: 'edge-event-1',
         source: 'event-trigger',
-        target: 'announcement-content',
+        target: 'facebook-announcement',
         sourceHandle: 'trigger',
-        targetHandle: 'data',
+        targetHandle: 'auth',
         type: 'smoothstep'
       },
       {
         id: 'edge-event-2',
-        source: 'announcement-content',
-        target: 'facebook-announcement',
-        sourceHandle: 'message',
-        targetHandle: 'message',
-        type: 'smoothstep'
-      },
-      {
-        id: 'edge-event-3',
         source: 'facebook-announcement',
         target: 'delay-node',
         sourceHandle: 'result',
@@ -1657,19 +1513,95 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         type: 'smoothstep'
       },
       {
-        id: 'edge-event-4',
+        id: 'edge-event-3',
         source: 'delay-node',
-        target: 'reminder-content',
-        sourceHandle: 'delayed',
-        targetHandle: 'data',
+        target: 'facebook-reminder',
+        sourceHandle: 'continue',
+        targetHandle: 'auth',
+        type: 'smoothstep'
+      }
+    ]
+  },
+
+  // Instagram Template
+  {
+    id: 'instagram-portfolio-showcase',
+    name: 'Instagram Portfolio Showcase',
+    description: 'Share stunning portfolio visuals on Instagram with AI-generated charts',
+    category: 'integration',
+    difficulty: 'intermediate',
+    estimatedTime: '8 minutes',
+    useCase: 'Visual portfolio updates for Instagram with professional charts and captions',
+    tags: ['instagram', 'portfolio', 'visual', 'defi', 'ai-charts'],
+    nodes: [
+      {
+        id: 'schedule-instagram',
+        type: 'workflowNode',
+        position: { x: 100, y: 100 },
+        data: {
+          nodeType: getNodeType('schedule-trigger'),
+          config: {
+            cron: '0 18 * * *',
+            timezone: 'UTC'
+          },
+          isValid: true,
+          errors: []
+        }
+      },
+      {
+        id: 'ai-chart',
+        type: 'workflowNode',
+        position: { x: 300, y: 100 },
+        data: {
+          nodeType: getNodeType('ai-generate-image'),
+          config: {
+            ai_provider: 'openai_dalle3',
+            api_key: '',
+            prompt: 'Professional DeFi portfolio chart showing ${{portfolio_value}} value with +{{daily_change}}% gain, modern fintech style, clean data visualization',
+            size: '1024x1024',
+            quality: 'hd',
+            style: 'vivid',
+            n: 1
+          },
+          isValid: false,
+          errors: ['API key required']
+        }
+      },
+      {
+        id: 'instagram-post',
+        type: 'workflowNode',
+        position: { x: 600, y: 100 },
+        data: {
+          nodeType: getNodeType('instagram-post'),
+          config: {
+            caption: '📊 Portfolio Update 🚀\n\nLatest gains from automated DeFi strategies!\n\n💰 Value: ${{portfolio_value}}\n📈 Profit: +{{daily_change}}%\n⚡ Strategy: {{top_strategy}}\n\nAutomating wealth with DeFlow 🤖\n\n#DeFi #crypto #automation #portfolio #trading #fintech #wealth',
+            media_type: 'image',
+            media_url: '{{ai_generated_image}}',
+            carousel_urls: '',
+            location_id: '',
+            user_tags: '',
+            share_to_feed: true
+          },
+          isValid: false,
+          errors: ['Authentication required']
+        }
+      }
+    ],
+    edges: [
+      {
+        id: 'edge-ig-1',
+        source: 'schedule-instagram',
+        target: 'ai-chart',
+        sourceHandle: 'time',
+        targetHandle: 'trigger',
         type: 'smoothstep'
       },
       {
-        id: 'edge-event-5',
-        source: 'reminder-content',
-        target: 'facebook-reminder',
-        sourceHandle: 'message',
-        targetHandle: 'message',
+        id: 'edge-ig-2',
+        source: 'ai-chart',
+        target: 'instagram-post',
+        sourceHandle: 'image_data',
+        targetHandle: 'content_data',
         type: 'smoothstep'
       }
     ]

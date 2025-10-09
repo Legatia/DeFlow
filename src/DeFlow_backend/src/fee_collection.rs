@@ -6,7 +6,7 @@ use serde::Serialize;
 use ic_cdk::api;
 use crate::types::SubscriptionTier;
 use crate::defi::Asset;
-use crate::defi::yield_farming::ChainId;
+use crate::defi::types::ChainId;
 use crate::user_management;
 
 // Pool canister ID - should be set via environment or init

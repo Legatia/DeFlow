@@ -403,8 +403,9 @@ async fn execute_with_recovery(
     execution: &mut WorkflowExecution
 ) -> Result<NodeOutput, String> {
     let mut attempts = 0;
+    #[allow(unused_assignments)]
     let mut last_error = String::new();
-    
+
     loop {
         let result = execute_node_internal(node, input_data, context).await;
         
